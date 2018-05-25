@@ -1,0 +1,156 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Sweetalert core CSS -->
+    <link href="./css/sweetalert.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./css/nna.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div id="navbar"></div>
+
+    <!-- Main component for a primary marketing message or call to action -->
+    <div class="jumbotron">
+        <h1>Welcome to NNAnalytics</h1>
+        <div id="connection"></div>
+        <p>
+            Like tidy.html but without the "old files" part.
+        </p>
+        <img style="margin:auto;display:block" id="loaderDiv" src="images/loader.gif" />
+        <br />
+        <br />
+        <div id="toClearUsers"></div>
+    </div>
+
+</div> <!-- /container -->
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="./js/vendor/jquery.min.js"><\/script>')</script>
+<script src="./js/bootstrap.min.js"></script>
+<script src="./js/sweetalert.min.js"></script>
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="./js/Chart.bundle.min.js"></script>
+<script src="./js/cycle.js"></script>
+<script type="text/javascript">$(document).ready(function(){ $('#navbar').load('navbar.html'); });</script>
+<script type="text/javascript">$(document).ready(function(){  $("head").append("header.html");});</script>
+<script src="./js/nna.utility.js"></script>
+<script type="text/javascript">getClusterName();</script>
+
+<script>
+    var limit = getUrlParameter("limit");
+    if(limit == null || limit.length == 0) {
+        limit = 25;
+    }
+    $.ajax({
+            type: 'GET',
+            url: "./users",
+            dataType: 'json',
+            beforeSend: function() {
+                $("#loaderDiv").show();
+            },
+            success: function(users) {
+                console.log("success");
+                var toClearMap = new Object();
+                for (var user in users) {
+                    var percent = getBadPercentage(users[user]);
+                    toClearMap[users[user]] = percent;
+                }
+
+                // Get an array of the keys:
+                let sortedUsers = Object.keys(toClearMap);
+                // Then sort by using the keys to lookup the values in the original object:
+                sortedUsers.sort(function(a, b) { return -(parseFloat((toClearMap[a])["percentBad"]) - parseFloat((toClearMap[b])["percentBad"])) });
+                sortedUsers = sortedUsers.slice(0,limit);
+
+                console.log(toClearMap);
+                $("#loaderDiv").hide();
+                var html = "<table style='max-width:100%; width:100%'><tr><th>Username:</th><th>Bad Files:</th><th>Empty Dirs:</th><th>Total:</th><th>Last Login:</th><th>Percent:</th></tr>";
+                for(var idx in sortedUsers) {
+                    var user = sortedUsers[idx];
+                    html += "<tr><td>" + user + "</td><td>" + Object.values(toClearMap[user])[0] + "</td>" +
+                            "<td>" + Object.values(toClearMap[user])[1] + "</td>" +
+                            "<td>" + Object.values(toClearMap[user])[2] + "</td>" +
+                            "<td>" + Object.values(toClearMap[user])[3] + "</td>" +
+                            "<td>" + Object.values(toClearMap[user])[4] + "</td>" +
+                }
+                $('#toClearUsers').html(html + "</table>");
+            },
+            error: function(response) {
+                $("#loaderDiv").hide();
+                console.log("error");
+                console.log(response);
+                displayAlert(response);
+            }
+        });
+
+function getBadPercentage(user) {
+    var percentage = new Object();
+    $.ajax({
+        type: 'GET',
+        async: false,
+        url: "./suggestions?username="+user,
+        dataType: 'json',
+        success: function(suggestions) {
+            var emptyFiles = suggestions["emptyFiles"];
+            var emptyFiles1yr = suggestions["emptyFiles1yr"];
+            var emptyDirs = suggestions["emptyDirs"];
+            var emptyDirs1yr = suggestions["emptyDirs1yr"];
+            var tinyFiles = suggestions["tinyFiles"];
+            var tinyFiles1yr = suggestions["tinyFiles1yr"];
+            var smallFiles = suggestions["smallFiles"];
+            var smallFiles1yr = suggestions["smallFiles1yr"];
+            var numFiles = suggestions["numFiles"];
+            var numDirs = suggestions["numDirs"];
+            var lastLogin = suggestions["lastLogin"];
+            var numBadFiles = emptyFiles + tinyFiles + smallFiles;
+            var numFilesDirs = numFiles + numDirs;
+            percentage["numBadFiles"] = numBadFiles;
+            percentage["numBadDirs"] = emptyDirs;
+            percentage["numFilesDirs"] = numFilesDirs;
+            if(lastLogin == null || lastLogin == 0) {
+                percentage["lastLogin"] = "N/A";
+            } else {
+                percentage["lastLogin"] = new Date(lastLogin).toISOString().slice(0, 10);
+            }
+            percentage["percentBad"] = getPercentage(numBadFiles + emptyDirs, numFilesDirs);
+        }
+    });
+    return percentage;
+}
+</script>
+
+</body>
+</html>
+

@@ -1,0 +1,617 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Sweetalert core CSS -->
+    <link href="./css/sweetalert.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./css/nna.css" rel="stylesheet">
+
+    <title>NNAnalytics History</title>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div id="navbar"></div>
+
+    <div class="jumbotron" id="issues_container">
+        <div class="jumboback">
+        <center><h4><b>Top Issues</b></h4></center>
+        <div id="issues"></div>
+        </div></div>  <!-- /container -->
+
+    <!-- Main component for a primary marketing message or call to action -->
+    <div class="jumbotron">
+        <h1>Welcome to NNAnalytics</h1>
+        <div id="connection"></div>
+        <p>
+            Get historical data analysis of your Hadoop Cluster.
+        </p>
+        <div class="col-md-30" align="left">
+            <form class="navbar-form">
+                <div class="input-group add-on">
+                    <input class="form-control" placeholder="Search By User" name="username" id="user" type="text">
+                </div>
+                <div class='input-group date'  data-provide="datepicker">
+                    <input type='text' placeholder="From Date" name="fromDate" id="fromDate" class="form-control datepicker" />
+                    <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+                </div>
+                <div class='input-group date' data-provide="datepicker">
+                    <input type='text' placeholder="To Date" name="toDate" id="toDate" class="form-control datepicker" />
+                    <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="icon-user icon-white"></i>Search</button>
+            </form>
+        </div>
+        <div class="dropdown">
+            <p>
+                After pressing 'Search', select charts from below.
+            </p>
+            <button type="button" id="emptyFilesCount" class="btn btn-info btn-xs"><b>Empty Files</b></button>
+            <button type="button" id="emptyDirsCount" class="btn btn-info btn-xs"><b>Empty Directories</b></button>
+            <button type="button" id="tinyFilesCount" class="btn btn-info btn-xs"><b>Tiny Files</b></button>
+            <button type="button" id="smallFilesCount" class="btn btn-info btn-xs"><b>Small Files</b></button>
+            <button type="button" id="mediumFilesCount" class="btn btn-info btn-xs"><b>Medium Files</b></button>
+            <button type="button" id="diskspace" class="btn btn-info btn-xs"><b>Diskspace</b></button>
+            <button type="button" id="fileCount" class="btn btn-info btn-xs"><b>Total Files</b></button>
+            <button type="button" id="dirCount" class="btn btn-info btn-xs"><b>Total Directories</b></button>
+        </div>
+        <br />
+        <img style="margin:auto;display:block" id="loaderDiv1" src="images/loader.gif" />
+        <canvas id="line-chart" width="800" height="450"></canvas>
+        <br />
+    </div>
+
+</div> <!-- /container -->
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="./js/vendor/jquery.min.js"><\/script>')</script>
+<script src="./js/bootstrap.min.js"></script>
+<script src="./js/sweetalert.min.js"></script>
+<script src="./js/bootstrap-datepicker.js"></script>
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="./js/Chart.bundle.min.js"></script>
+<script src="./js/nna.utility.js"></script>
+<script src="./js/cycle.js"></script>
+<script type="text/javascript">$(document).ready(function(){ $('#navbar').load('navbar.html'); });</script>
+<script type="text/javascript">$(document).ready(function(){  $("head").append("header.html");});</script>
+<script type="text/javascript">getClusterName();</script>
+<script type="text/javascript">listIssues();</script>
+
+<script>
+        $("#user").val(getUrlParameter("username"));
+        $("#fromDate").val(getUrlParameter("fromDate"));
+        $("#toDate").val(getUrlParameter("toDate"));
+
+        $.ajax({
+            type: 'GET',
+            url: "./history"+ window.location.search,
+            dataType: 'json',
+            beforeSend: function() {
+                $("#loaderDiv1").show();
+            },
+            success: function(response) {
+                $("#loaderDiv1").hide();
+                console.log("success");
+                console.log(response);
+
+                var myChart1;
+
+                data = response;
+                var numDirs = [data.length];
+                var mediumFiles = [data.length];
+                var smallFiles = [data.length];
+                var emptyDirs = [data.length];
+                var tinyFiles = [data.length];
+                var emptyFiles = [data.length];
+                var diskspace = [data.length];
+                var numFiles = [data.length];
+                var dataLabels = [data.length];
+
+                var field = document.getElementById("line-chart");
+                for (var i = 0; i < data.length; i++) {
+                    numDirs[i] = data[i].NUMDIRS;
+                    smallFiles[i] = data[i].SMALLFILES;
+                    emptyDirs[i] = data[i].EMPTYDIRS;
+                    tinyFiles[i] = data[i].TINYFILES;
+                    emptyFiles[i] = data[i].EMPTYFILES;
+                    diskspace[i] = data[i].DISKSPACE;
+                    numFiles[i] = data[i].NUMFILES;
+                    mediumFiles[i] = data[i].MEDIUMFILES;
+                    dataLabels[i] = timeConverter(data[i].STDATE);
+                }
+
+                $(document).ready(function() {
+
+                $("#emptyFilesCount").click( function(){
+                if(myChart1!=null){
+                    myChart1.destroy();
+                    }
+                var config1 = {
+                    type: 'line',
+                    data: {
+                            labels: dataLabels,
+                            datasets: [{
+                                    data: emptyFiles,
+                                    label: "Empty Files Count",
+                                    borderColor: "#ff0000",
+                                    fill: true
+                                        }
+                                        ]
+                          },
+                    options: {
+                                title: {
+                                        display: true,
+                                        text: 'Empty Files Count Over Time'
+                                       },
+                                scales: {
+                                    xAxes: [{
+                                        type: "time",
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Date'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true
+                                        },
+                                        gridLines: {
+                                            display: true,
+                                            drawBorder: true
+                                        },
+                                        ticks: {
+                                            display: true,
+                                            beginAtZero: true,
+                                            callback: function (tick, index, ticks) {
+                                                return nFormatter(tick, 3);
+                                            }
+                                        }
+                                    }]
+                                }
+                    }
+                };
+                myChart1 = new Chart(field,config1);
+                });
+
+                $("#emptyDirsCount").click( function(){
+                if(myChart1!=null){
+                    myChart1.destroy();
+                    }
+                var config1 = {
+                    type: 'line',
+                    data: {
+                            labels: dataLabels,
+                            datasets: [{
+                                    data: emptyDirs,
+                                    label: "Empty Dirs Count",
+                                    borderColor: "#ff3300",
+                                    fill: true
+                                        }
+                                        ]
+                          },
+                    options: {
+                                title: {
+                                        display: true,
+                                        text: 'Empty Directories Count Over Time'
+                                       },
+                                scales: {
+                                    xAxes: [{
+                                        type: "time",
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Date'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true
+                                        },
+                                        gridLines: {
+                                            display: true,
+                                            drawBorder: true
+                                        },
+                                        ticks: {
+                                            display: true,
+                                            beginAtZero: true,
+                                            callback: function (tick, index, ticks) {
+                                                return nFormatter(tick, 3);
+                                            }
+                                        }
+                                    }]
+                                }
+                            }
+                };
+                myChart1 = new Chart(field,config1);
+                });
+
+                $("#tinyFilesCount").click( function(){
+                if(myChart1!=null){
+                    myChart1.destroy();
+                    }
+                var config1 = {
+                    type: 'line',
+                    data: {
+                            labels: dataLabels,
+                            datasets: [{
+                                    data: tinyFiles,
+                                    label: "Tiny Files Count",
+                                    borderColor: "#663300",
+                                    fill: true
+                                        }
+                                        ]
+                          },
+                    options: {
+                                title: {
+                                        display: true,
+                                        text: 'Tiny Files Count Over Time (< 1KB)'
+                                       },
+                                scales: {
+                                    xAxes: [{
+                                        type: "time",
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Date'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true
+                                        },
+                                        gridLines: {
+                                            display: true,
+                                            drawBorder: true
+                                        },
+                                        ticks: {
+                                            display: true,
+                                            beginAtZero: true,
+                                            callback: function (tick, index, ticks) {
+                                                return nFormatter(tick, 3);
+                                            }
+                                        }
+                                    }]
+                                }
+                            }
+                };
+                myChart1 = new Chart(field,config1);
+                });
+
+                $("#smallFilesCount").click( function(){
+                if(myChart1!=null){
+                    myChart1.destroy();
+                    }
+                var config1 = {
+                    type: 'line',
+                    data: {
+                            labels: dataLabels,
+                            datasets: [{
+                                    data: smallFiles,
+                                    label: "Small Files Count",
+                                    borderColor: "#663300",
+                                    fill: true
+                                        }
+                                        ]
+                          },
+                    options: {
+                                title: {
+                                        display: true,
+                                        text: 'Small Files Count Over Time (< 1MB)'
+                                       },
+                                scales: {
+                                    xAxes: [{
+                                        type: "time",
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Date'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true
+                                        },
+                                        gridLines: {
+                                            display: true,
+                                            drawBorder: true
+                                        },
+                                        ticks: {
+                                            display: true,
+                                            beginAtZero: true,
+                                            callback: function (tick, index, ticks) {
+                                                return nFormatter(tick, 3);
+                                            }
+                                        }
+                                    }]
+                                }
+                            }
+                };
+                myChart1 = new Chart(field,config1);
+                });
+
+                $("#mediumFilesCount").click( function(){
+                if(myChart1!=null){
+                    myChart1.destroy();
+                    }
+                var config1 = {
+                    type: 'line',
+                    data: {
+                            labels: dataLabels,
+                            datasets: [{
+                                    data: mediumFiles,
+                                    label: "Medium Files Count",
+                                    borderColor: "#663300",
+                                    fill: true
+                                        }
+                                        ]
+                          },
+                    options: {
+                                title: {
+                                        display: true,
+                                        text: 'Medium Files Count Over Time (< 128MB)'
+                                       },
+                                scales: {
+                                    xAxes: [{
+                                        type: "time",
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Date'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true
+                                        },
+                                        gridLines: {
+                                            display: true,
+                                            drawBorder: true
+                                        },
+                                        ticks: {
+                                            display: true,
+                                            beginAtZero: true,
+                                            callback: function (tick, index, ticks) {
+                                                return nFormatter(tick, 3);
+                                            }
+                                        }
+                                    }]
+                                }
+                            }
+                };
+                myChart1 = new Chart(field,config1);
+                });
+
+                $("#diskspace").click( function() {
+                    if(myChart1!=null){
+                        myChart1.destroy();
+                    }
+                    var config1 = {
+                        type: 'line',
+                        data: {
+                                labels: dataLabels,
+                                datasets: [{
+                                        data: diskspace,
+                                        label: "Diskspace Consumed",
+                                        borderColor: "#663300",
+                                        fill: true
+                                 }]
+                              },
+                        options: {
+                                title: {
+                                        display: true,
+                                        text: 'Diskspace Consumed Over Time'
+                                       },
+                                scales: {
+                                    xAxes: [{
+                                        type: "time",
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Date'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true
+                                        },
+                                        gridLines: {
+                                            display: true,
+                                            drawBorder: true
+                                        },
+                                        ticks: {
+                                            display: true,
+                                            beginAtZero: true,
+                                            callback: function (tick, index, ticks) {
+                                                return nFormatter(tick, 3);
+                                            }
+                                        }
+                                    }]
+                                }
+                            }
+                };
+                myChart1 = new Chart(field,config1);
+                });
+
+                $("#fileCount").click( function(){
+                if(myChart1!=null){
+                    myChart1.destroy();
+                    }
+                var config1 = {
+                    type: 'line',
+                    data: {
+                            labels: dataLabels,
+                            datasets: [{
+                                    data: numFiles,
+                                    label: "File Count",
+                                    borderColor: "#663300",
+                                    fill: true
+                                        }
+                                        ]
+                          },
+                    options: {
+                                title: {
+                                        display: true,
+                                        text: 'Total Files Over Time'
+                                       },
+                                scales: {
+                                    xAxes: [{
+                                        type: "time",
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Date'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true
+                                        },
+                                        gridLines: {
+                                            display: true,
+                                            drawBorder: true
+                                        },
+                                        ticks: {
+                                            display: true,
+                                            beginAtZero: true,
+                                            callback: function (tick, index, ticks) {
+                                                return nFormatter(tick, 3);
+                                            }
+                                        }
+                                    }]
+                                }
+                            }
+                };
+                myChart1 = new Chart(field,config1);
+                });
+
+                $("#dirCount").click( function(){
+                if(myChart1!=null){
+                    myChart1.destroy();
+                    }
+                var config1 = {
+                    type: 'line',
+                    data: {
+                            labels: dataLabels,
+                            datasets: [{
+                                    data: numDirs,
+                                    label: "Directory Count",
+                                    borderColor: "#663300",
+                                    fill: true
+                                        }
+                                        ]
+                          },
+                    options: {
+                                title: {
+                                        display: true,
+                                        text: 'Total Directories Over Time'
+                                       },
+                                scales: {
+                                    xAxes: [{
+                                        type: "time",
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Date'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true
+                                        },
+                                        gridLines: {
+                                            display: true,
+                                            drawBorder: true
+                                        },
+                                        ticks: {
+                                            display: true,
+                                            beginAtZero: true,
+                                            callback: function (tick, index, ticks) {
+                                                return nFormatter(tick, 3);
+                                            }
+                                        }
+                                    }]
+                                }
+                            }
+                };
+                myChart1 = new Chart(field,config1);
+                });
+
+                });
+
+            },
+            error: function(response) {
+                $("#loaderDiv1").hide();
+                console.log("error");
+                console.log(response);
+                swal({
+                    title: "",
+                    text: response.responseText,
+                    type: "error",
+                    showCancelButton: false,
+                    closeOnConfirm: true,
+                });
+            }
+        });
+
+        $('.btn btn-primary dropdown-toggle').dropdown();
+        $('#selectedFilter li > a').click(function(){
+        $('#text').text($(this).html());
+        });
+
+        function timeConverter(unixtime){
+            var d = new Date(unixtime);
+            return d.toString();
+        }
+
+       $(function(){
+            $('.datepicker').datepicker({
+                format: 'mm-dd-yyyy'
+             });
+        });
+    </script>
+
+</body>
+</html>
+
