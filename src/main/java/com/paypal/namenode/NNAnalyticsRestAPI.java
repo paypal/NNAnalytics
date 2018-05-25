@@ -351,11 +351,11 @@ public class NNAnalyticsRestAPI {
 
       boolean isInit = nnLoader.isInit();
       boolean isHistorical = nnLoader.isHistorical();
-      boolean isSuggestive = nnLoader.isSuggestive();
+      boolean isProvidingSuggestions = nnLoader.getSuggestionsEngine().isLoaded();
       sb.append("Current system time (ms): ").append(Time.now()).append("\n");
       sb.append("Ready to service queries: ").append(isInit).append("\n");
       sb.append("Ready to service history: ").append(isHistorical).append("\n");
-      sb.append("Ready to service suggestions: ").append(isSuggestive).append("\n\n");
+      sb.append("Ready to service suggestions: ").append(isProvidingSuggestions).append("\n\n");
       if (isInit) {
         long allSetSize = nnLoader.getINodeSet(NNAConstants.SET.all.name()).size();
         long fileSetSize = nnLoader.getINodeSet(NNAConstants.SET.files.name()).size();
@@ -370,7 +370,7 @@ public class NNAnalyticsRestAPI {
             .append("\n\n");
       }
       sb.append("Cached directories for analysis::\n");
-      Set<String> dirs = nnLoader.getDirectoriesForAnalysis();
+      Set<String> dirs = nnLoader.getSuggestionsEngine().getDirectoriesForAnalysis();
       sb.append("Cached directories size: ").append(dirs.size()).append("\n");
       for (String dir : dirs) {
         sb.append(dir).append("\n");
@@ -1263,7 +1263,7 @@ public class NNAnalyticsRestAPI {
       res.header("Access-Control-Allow-Origin", "*");
       res.header("Content-Type", "application/json");
       String username = req.queryMap("username").value();
-      return nnLoader.getSuggestionsAsJson(username);
+      return nnLoader.getSuggestionsEngine().getSuggestionsAsJson(username);
     });
 
         /* DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by NNA. */
@@ -1275,7 +1275,7 @@ public class NNAnalyticsRestAPI {
       if (sum == null || sum.isEmpty()) {
         sum = "count";
       }
-      return nnLoader.getDirectoriesAsJson(directory, sum);
+      return nnLoader.getSuggestionsEngine().getDirectoriesAsJson(directory, sum);
     });
 
         /* DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by NNA. */
@@ -1286,14 +1286,14 @@ public class NNAnalyticsRestAPI {
       if (sum == null || sum.isEmpty()) {
         sum = "count";
       }
-      return nnLoader.getFileAgeAsJson(sum);
+      return nnLoader.getSuggestionsEngine().getFileAgeAsJson(sum);
     });
 
         /* ADDDIRECTORY endpoint is an admin-level endpoint meant to add a directory for cached analysis by NNA. */
     get("/addDirectory", (req, res) -> {
       res.header("Access-Control-Allow-Origin", "*");
       String directory = req.queryMap("dir").value();
-      nnLoader.addDirectoryToAnalysis(directory);
+      nnLoader.getSuggestionsEngine().addDirectoryToAnalysis(directory);
       res.status(HttpStatus.SC_OK);
       res.body(directory + " added for analysis.");
       return res;
@@ -1303,7 +1303,7 @@ public class NNAnalyticsRestAPI {
     get("/removeDirectory", (req, res) -> {
       res.header("Access-Control-Allow-Origin", "*");
       String directory = req.queryMap("dir").value();
-      nnLoader.removeDirectoryFromAnalysis(directory);
+      nnLoader.getSuggestionsEngine().removeDirectoryFromAnalysis(directory);
       res.status(HttpStatus.SC_OK);
       res.body(directory + " removed from analysis.");
       return res;
@@ -1315,7 +1315,7 @@ public class NNAnalyticsRestAPI {
       res.header("Content-Type", "application/json");
       String user = req.queryMap("user").value();
       String sum = req.queryMap("sum").value();
-      return nnLoader.getQuotaAsJson(user, sum);
+      return nnLoader.getSuggestionsEngine().getQuotaAsJson(user, sum);
     });
 
         /* USERS endpoint is an admin-level endpoint meant to dump the cached set of detected users by NNA. */
@@ -1323,7 +1323,7 @@ public class NNAnalyticsRestAPI {
       res.header("Access-Control-Allow-Origin", "*");
       res.header("Content-Type", "application/json");
       String suggestion = req.queryMap("suggestion").value();
-      return nnLoader.getUsersAsJson(suggestion);
+      return nnLoader.getSuggestionsEngine().getUsersAsJson(suggestion);
     });
 
         /* TOP endpoint is an admin-level endpoint meant to dump the cached set of top issues by NNA. */
@@ -1334,7 +1334,7 @@ public class NNAnalyticsRestAPI {
       if (limit == null) {
         limit = 10;
       }
-      return nnLoader.getIssuesAsJson(limit, false);
+      return nnLoader.getSuggestionsEngine().getIssuesAsJson(limit, false);
     });
 
         /* BOTTOM endpoint is an admin-level endpoint meant to dump the cached set of bottom issues by NNA.
@@ -1346,7 +1346,7 @@ public class NNAnalyticsRestAPI {
       if (limit == null) {
         limit = 10;
       }
-      return nnLoader.getIssuesAsJson(limit, true);
+      return nnLoader.getSuggestionsEngine().getIssuesAsJson(limit, true);
     });
 
         /* HISTORY endpoint returns a set of data points from DB-stored suggestion snapshots. */
@@ -1364,7 +1364,7 @@ public class NNAnalyticsRestAPI {
     get("/token", (req, res) -> {
       res.header("Access-Control-Allow-Origin", "*");
       res.header("Content-Type", "application/json");
-      return nnLoader.getTokens();
+      return nnLoader.getSuggestionsEngine().getTokens();
     });
 
         /* SAVENAMESPACE endpoint is an admin-level endpoint meant to dump the in-memory INode set

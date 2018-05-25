@@ -102,15 +102,6 @@ public class HSQLDriver {
     con.commit();
   }
 
-  public void checkLoginTable(Map<String, Long> cachedLogins) throws SQLException {
-    ResultSet rset = con.getMetaData().getTables(null, null, "LOGIN", null);
-    if (rset.next()) {
-      LOG.info("Old LOGIN table discovered. Moving to MapDB.");
-      cachedLogins.putAll(fetchLogins());
-      rebuildTable("LOGIN");
-    }
-  }
-
   public void logHistoryPerUser(Map<String, Long> cachedValues,
       Map<String, Map<String, Long>> cachedMaps,
       Set<String> users) throws SQLException {
