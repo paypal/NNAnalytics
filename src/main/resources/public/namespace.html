@@ -1,0 +1,204 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="./favicon.ico">
+
+
+    <title>NNAnalytics NameSpace</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Sweetalert core CSS -->
+    <link href="./css/sweetalert.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./css/nna.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container" id="headnav">
+    <div id="navbar"></div>
+    <div class="container">
+        <div class="row form-group">
+            <div class="col-xs-12" style="height:40px">
+                <ul class="nav nav-pills nav-justified thumbnail setup-panel">
+                    <li class="active"  onclick="showFetchNameSpace()"><a href="#tab-1" onmouseover='this.style.textDecoration="underline"'
+                                                                          onmouseout='this.style.textDecoration="none"'>
+                        <h4 class="list-group-item-heading">Fetch Namespace</h4>
+                    </a></li>
+                    <li class="active" onclick="showSaveNameSpace()"><a href="#tab-2" onmouseover='this.style.textDecoration="underline"'
+                                                                        onmouseout='this.style.textDecoration="none"'>
+                        <h4 class="list-group-item-heading">Save Namespace</h4>
+                    </a></li>
+                    <li class="active" onclick="showReloadNameSpace()"><a href="#tab-3" onmouseover='this.style.textDecoration="underline"'
+                                                                          onmouseout='this.style.textDecoration="none"'>
+                        <h4 class="list-group-item-heading">Reload Namespace</h4>
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div> <!-- /container -->
+
+    <form class="container" id="form1">
+        <div class="row setup-content" id="tab-1"  style="display: none; ">
+            <div class="col-xs-12">
+                <div class="col-md-12 well text-center">
+                    <div class="jumbotron">
+                        <p>
+                            Fetch the latest Namespace information from active Cluster.
+                        </p>
+                        <p>
+                            Pressing the button below will make a call to the active NameNode against your production HDFS cluster and pull the latest FsImage from it.
+                            All previous local FsImages will be deleted after this call and only the latest will remain. This will not load the new image afterwards.
+                        </p>
+                        <br />
+                        <div style="width:50%;margin:0 auto;text-align:center;">
+                            <button type="button" class="btn btn-info" onclick="getFetchNamespaceDetails('./fetchNamespace')">Fetch Namespace</button>
+                        </div>
+                        <br />
+                        <img style="margin:auto;display:none" id="loaderDiv1" src="images/loader.gif" />
+                        <div style="width:50%;margin:0 auto;text-align:center;" id="fetchDetails"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <form class="container" id="form2">
+        <div class="row setup-content" id="tab-2" style="display: none;">
+            <div class="col-xs-12">
+                <div class="col-md-12 well text-center">
+                    <div class="jumbotron">
+                        <p>
+                            Save the current in-memory state as an FsImage in local storage.
+                        </p>
+                        <p>
+                            Pressing the button below will dump the in-memory namespace state as an FsImage to local storage.
+                            Only the newly created FsImage and the latest old local FsImage will remain in local storage afterwards.
+                            This will not cause any sort of re-load of the system nor make any calls to the active production HDFS cluster.
+                        </p>
+                        <br />
+                        <div style="width:50%;margin:0 auto;text-align:center;">
+                            <button type="button" class="btn btn-info" onclick="getSaveNamespaceDetails('./saveNamespace')">Save current in-memory </button>
+                        </div>
+                        <br />
+                        <img style="margin:auto;display:none" id="loaderDiv2" src="images/loader.gif" />
+                        <div style="width:50%;margin:0 auto;text-align:center;" id="saveDetails"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <form class="container" id="form3">
+        <div class="row setup-content" id="tab-3" style="display: none;">
+            <div class="col-xs-12">
+                <div class="col-md-12 well text-center">
+                    <div class="jumbotron">
+                        <p>
+                            Reload the in-memory state from latest FsImage in local storage.
+                        </p>
+                        <p>
+                            Pressing the button below will clear the in-memory namespace state and read the latest FsImage from local storage.
+                            No new FsImage will be created from this process. No calls to the active production HDFS cluster will be made from this process.
+                            You will lose access to queries until the FsImage loading process, like the bootstrap state, is complete.
+                        </p>
+                        <br />
+                        <div style="width:50%;margin:0 auto;text-align:center;">
+                            <button type="button" class="btn btn-info" onclick="getReloadNamespaceDetails('./reloadNamespace')">Reload FSImage</button>
+                        </div>
+                        <br />
+                        <img style="margin:auto;display:none" id="loaderDiv3" src="images/loader.gif" />
+                        <div style="width:50%;margin:0 auto;text-align:center;" id="reloadDetails"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="./js/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="./js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="./js/bootstrap.min.js"></script>
+    <script src="./js/sweetalert.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="./js/Chart.bundle.min.js"></script>
+    <script src="./js/cycle.js"></script>
+    <script type="text/javascript">$(document).ready(function(){ $('#navbar').load('navbar.html'); });</script>
+    <script src="./js/nna.utility.js"></script>
+
+    <script>
+
+function showSaveNameSpace() {
+    var x = document.getElementById('tab-1');
+    x.style.display = 'none';
+
+    var y = document.getElementById('tab-2');
+    y.style.display = 'block';
+
+    var z = document.getElementById('tab-3');
+    z.style.display = 'none';
+}
+
+function showFetchNameSpace() {
+    var x = document.getElementById('tab-1');
+    x.style.display = 'block';
+
+    var y = document.getElementById('tab-2');
+    y.style.display = 'none';
+
+    var z = document.getElementById('tab-3');
+    z.style.display = 'none';
+
+}
+
+function showReloadNameSpace() {
+    var x = document.getElementById('tab-1');
+    x.style.display = 'none';
+
+    var y = document.getElementById('tab-2');
+    y.style.display = 'none';
+
+    var z = document.getElementById('tab-3');
+    z.style.display = 'block';
+}
+
+function disableSaveNameSpace(){
+ var x = document.getElementById("headnav");
+}
+
+</script>
+</div>
+</body>
+</html>
+

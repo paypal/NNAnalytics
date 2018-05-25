@@ -1,0 +1,440 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./css/nna.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container">
+    <div id="navbar"></div>
+
+    <!-- Main component for a primary marketing message or call to action -->
+    <div class="jumbotron">
+        <h1>Welcome to NNAnalytics</h1>
+        <div id="connection"></div>
+        <p>
+            Get insight into your Hadoop clusters' data distribution.
+        </p>
+        <img style="margin:auto;display:block" id="loaderDiv1" src="images/loader.gif" />
+        <canvas id="count" width="800" height="400"></canvas>
+        <br />
+        <div align="center">
+            <button id="bar-chart1" class="btn btn-primary btn-md">BAR</button>
+            <button id="pie-chart1" class="btn btn-primary btn-md">PIE</button>
+            <button id="doughnut-chart1" class="btn btn-primary btn-md">DOUGHNUT</button>
+            <button id="polararea-chart1" class="btn btn-primary btn-md">POLAR AREA</button>
+            <button id="raw1" class="btn btn-primary btn-md">RAW</button>
+        </div>
+        <br />
+        <br />
+        <img style="margin:auto;display:block" id="loaderDiv2" src="images/loader.gif" />
+        <canvas id="consumed" width="800" height="400"></canvas>
+        <br />
+        <div align="center">
+            <button id="bar-chart2" class="btn btn-primary btn-md">BAR</button>
+            <button id="pie-chart2" class="btn btn-primary btn-md">PIE</button>
+            <button id="doughnut-chart2" class="btn btn-primary btn-md">DOUGHNUT</button>
+            <button id="polararea-chart2" class="btn btn-primary btn-md">POLAR AREA</button>
+            <button id="raw2" class="btn btn-primary btn-md">RAW</button>
+        </div>
+    </div>
+
+</div> <!-- /container -->
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="./js/vendor/jquery.min.js"><\/script>')</script>
+<script src="./js/bootstrap.min.js"></script>
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="./js/Chart.bundle.min.js"></script>
+<script src="./js/cycle.js"></script>
+<script type="text/javascript">$(document).ready(function(){ $('#navbar').load('navbar.html'); });</script>
+<script type="text/javascript">$(document).ready(function(){  $("head").append("header.html");});</script>
+<script src="./js/nna.utility.js"></script>
+<script type="text/javascript">getClusterName();</script>
+
+<script>
+        var countCtx = document.getElementById("count");
+        var consumedCtx = document.getElementById("consumed");
+
+        var myChart1;
+        var myDataset1;
+        var myChart2;
+        var myDataset2;
+        var config1 = {  type: 'bar',
+                        options: {
+                            scales: {
+                                xAxes: [{
+                                    display: true,
+                                  scaleLabel: {
+                                    display: true
+                                  },
+                                  gridLines: {
+                                    display: true,
+                                    drawBorder: true
+                                  },
+                                  ticks: {
+                                    display: true
+                                  }
+                                }],
+                                yAxes: [{
+                                    display: true,
+                                  scaleLabel: {
+                                    display: true
+                                  },
+                                  gridLines: {
+                                    display: true,
+                                    drawBorder: true
+                                  },
+                                  ticks: {
+                                    display: true,
+                                    beginAtZero: true,
+                                    callback: function (tick, index, ticks) {
+                                        return nFormatter(tick, 3);
+                                    }
+                                  }
+                                }]
+                            }
+                        }
+                    };
+        var config2 = {  type: 'bar',
+                        options: {
+                            scales: {
+                                xAxes: [{
+                                    display: true,
+                                  scaleLabel: {
+                                    display: true
+                                  },
+                                  gridLines: {
+                                    display: true,
+                                    drawBorder: true
+                                  },
+                                  ticks: {
+                                    display: true
+                                  }
+                                }],
+                                yAxes: [{
+                                    display: true,
+                                  scaleLabel: {
+                                    display: true
+                                  },
+                                  gridLines: {
+                                    display: true,
+                                    drawBorder: true
+                                  },
+                                  ticks: {
+                                    display: true,
+                                    beginAtZero: true,
+                                    callback: function (tick, index, ticks) {
+                                        return nFormatter(tick, 3);
+                                    }
+                                  }
+                                }]
+                            }
+                        }
+                    };
+        var configCopy1 = jQuery.extend(true, {}, config1);
+        var configCopy2 = jQuery.extend(true, {}, config2);
+
+        $('#pie-chart1').on('click', function(e) {
+            myChart1.destroy();
+            config1 = jQuery.extend(true, {}, configCopy1);
+            config1.type = 'pie'; // The new chart type
+            config1.data = myDataset1;
+            config1.options.showScale = false;
+            config1.options.scales.xAxes[0].scaleLabel.labelString = myDataset1.xlabel;
+            config1.options.scales.yAxes[0].scaleLabel.labelString = myDataset1.ylabel;
+            config1.options.scales.xAxes[0].scaleLabel.display = true;
+            config1.options.scales.yAxes[0].scaleLabel.display = true;
+            config1.options.scales.yAxes[0].gridLines.display = false;
+            config1.options.scales.xAxes[0].gridLines.display = false;
+            config1.options.scales.yAxes[0].gridLines.drawBorder = false;
+            config1.options.scales.xAxes[0].gridLines.drawBorder = false;
+            config1.options.scales.yAxes[0].ticks.display = false;
+            config1.options.scales.xAxes[0].ticks.display = false;
+            config1.options.scaleShowGridLines = false;
+            config1.options.scaleShowHorizontalLines = false;
+            config1.options.scaleShowVerticalLines = false;
+            myChart1 = new Chart(countCtx, config1);
+        });
+
+        $('#bar-chart1').on('click', function(e) {
+            myChart1.destroy();
+            config1 = jQuery.extend(true, {}, configCopy1);
+            config1.type = 'bar'; // The new chart type
+            config1.data = myDataset1;
+            config1.options.showScale = true;
+            config1.options.scales.xAxes[0].scaleLabel.labelString = myDataset1.xlabel;
+            config1.options.scales.yAxes[0].scaleLabel.labelString = myDataset1.ylabel;
+            config1.options.scales.xAxes[0].scaleLabel.display = true;
+            config1.options.scales.yAxes[0].scaleLabel.display = true;
+            config1.options.scales.yAxes[0].gridLines.display = true;
+            config1.options.scales.xAxes[0].gridLines.display = true;
+            config1.options.scales.yAxes[0].gridLines.drawBorder = true;
+            config1.options.scales.xAxes[0].gridLines.drawBorder = true;
+            config1.options.scales.yAxes[0].ticks.display = true;
+            config1.options.scales.xAxes[0].ticks.display = true;
+            config1.options.scaleShowGridLines = true;
+            config1.options.scaleShowHorizontalLines = true;
+            config1.options.scaleShowVerticalLines = true;
+            myChart1 = new Chart(countCtx, config1);
+        });
+
+        $('#doughnut-chart1').on('click', function(e) {
+            myChart1.destroy();
+            config1 = jQuery.extend(true, {}, configCopy1);
+            config1.type = 'doughnut'; // The new chart type
+            config1.data = myDataset1;
+            config1.options.showScale = false;
+            config1.options.scales.xAxes[0].scaleLabel.labelString = myDataset1.xlabel;
+            config1.options.scales.yAxes[0].scaleLabel.labelString = myDataset1.ylabel;
+            config1.options.scales.xAxes[0].scaleLabel.display = true;
+            config1.options.scales.yAxes[0].scaleLabel.display = true;
+            config1.options.scales.yAxes[0].gridLines.display = false;
+            config1.options.scales.xAxes[0].gridLines.display = false;
+            config1.options.scales.yAxes[0].gridLines.drawBorder = false;
+            config1.options.scales.xAxes[0].gridLines.drawBorder = false;
+            config1.options.scales.yAxes[0].ticks.display = false;
+            config1.options.scales.xAxes[0].ticks.display = false;
+            config1.options.scaleShowGridLines = false;
+            config1.options.scaleShowHorizontalLines = false;
+            config1.options.scaleShowVerticalLines = false;
+            myChart1 = new Chart(countCtx, config1);
+        });
+
+        $('#polararea-chart1').on('click', function(e) {
+            myChart1.destroy();
+            config1 = jQuery.extend(true, {}, configCopy1);
+            config1.type = 'polarArea'; // The new chart type
+            config1.data = myDataset1;
+            config1.options.showScale = false;
+            config1.options.scales.xAxes[0].scaleLabel.labelString = myDataset1.xlabel;
+            config1.options.scales.yAxes[0].scaleLabel.labelString = myDataset1.ylabel;
+            config1.options.scales.xAxes[0].scaleLabel.display = true;
+            config1.options.scales.yAxes[0].scaleLabel.display = true;
+            config1.options.scales.yAxes[0].gridLines.display = false;
+            config1.options.scales.xAxes[0].gridLines.display = false;
+            config1.options.scales.yAxes[0].gridLines.drawBorder = false;
+            config1.options.scales.xAxes[0].gridLines.drawBorder = false;
+            config1.options.scales.yAxes[0].ticks.display = false;
+            config1.options.scales.xAxes[0].ticks.display = false;
+            config1.options.scaleShowGridLines = false;
+            config1.options.scaleShowHorizontalLines = false;
+            config1.options.scaleShowVerticalLines = false;
+            myChart1 = new Chart(countCtx, config1);
+        });
+
+        $('#raw1').on('click', function(e) {
+            var data = printObject(myDataset1);
+            var myWindow = window.open("data:text/plain," + encodeURIComponent(data), "_blank", "width=800,height=600");
+            myWindow.focus();
+        });
+
+        $('#pie-chart2').on('click', function(e) {
+            myChart2.destroy();
+            config2 = jQuery.extend(true, {}, configCopy2);
+            config2.type = 'pie'; // The new chart type
+            config2.data = myDataset2;
+            config2.options.showScale = false;
+            config2.options.scales.xAxes[0].scaleLabel.labelString = myDataset2.xlabel;
+            config2.options.scales.yAxes[0].scaleLabel.labelString = myDataset2.ylabel;
+            config2.options.scales.xAxes[0].scaleLabel.display = true;
+            config2.options.scales.yAxes[0].scaleLabel.display = true;
+            config2.options.scales.yAxes[0].gridLines.display = false;
+            config2.options.scales.xAxes[0].gridLines.display = false;
+            config2.options.scales.yAxes[0].gridLines.drawBorder = false;
+            config2.options.scales.xAxes[0].gridLines.drawBorder = false;
+            config2.options.scales.yAxes[0].ticks.display = false;
+            config2.options.scales.xAxes[0].ticks.display = false;
+            config2.options.scaleShowGridLines = false;
+            config2.options.scaleShowHorizontalLines = false;
+            config2.options.scaleShowVerticalLines = false;
+            myChart2 = new Chart(consumedCtx, config2);
+        });
+
+        $('#bar-chart2').on('click', function(e) {
+            myChart2.destroy();
+            config2 = jQuery.extend(true, {}, configCopy2);
+            config2.type = 'bar'; // The new chart type
+            config2.data = myDataset2;
+            config2.options.showScale = true;
+            config2.options.scales.xAxes[0].scaleLabel.labelString = myDataset2.xlabel;
+            config2.options.scales.yAxes[0].scaleLabel.labelString = myDataset2.ylabel;
+            config2.options.scales.xAxes[0].scaleLabel.display = true;
+            config2.options.scales.yAxes[0].scaleLabel.display = true;
+            config2.options.scales.yAxes[0].gridLines.display = true;
+            config2.options.scales.xAxes[0].gridLines.display = true;
+            config2.options.scales.yAxes[0].gridLines.drawBorder = true;
+            config2.options.scales.xAxes[0].gridLines.drawBorder = true;
+            config2.options.scales.yAxes[0].ticks.display = true;
+            config2.options.scales.xAxes[0].ticks.display = true;
+            config2.options.scaleShowGridLines = true;
+            config2.options.scaleShowHorizontalLines = true;
+            config2.options.scaleShowVerticalLines = true;
+            myChart2 = new Chart(consumedCtx, config2);
+        });
+
+        $('#doughnut-chart2').on('click', function(e) {
+            myChart2.destroy();
+            config2 = jQuery.extend(true, {}, configCopy2);
+            config2.type = 'doughnut'; // The new chart type
+            config2.data = myDataset2;
+            config2.options.showScale = false;
+            config2.options.scales.xAxes[0].scaleLabel.labelString = myDataset2.xlabel;
+            config2.options.scales.yAxes[0].scaleLabel.labelString = myDataset2.ylabel;
+            config2.options.scales.xAxes[0].scaleLabel.display = true;
+            config2.options.scales.yAxes[0].scaleLabel.display = true;
+            config2.options.scales.yAxes[0].gridLines.display = false;
+            config2.options.scales.xAxes[0].gridLines.display = false;
+            config2.options.scales.yAxes[0].gridLines.drawBorder = false;
+            config2.options.scales.xAxes[0].gridLines.drawBorder = false;
+            config2.options.scales.yAxes[0].ticks.display = false;
+            config2.options.scales.xAxes[0].ticks.display = false;
+            config2.options.scaleShowGridLines = false;
+            config2.options.scaleShowHorizontalLines = false;
+            config2.options.scaleShowVerticalLines = false;
+            myChart2 = new Chart(consumedCtx, config2);
+        });
+
+        $('#polararea-chart2').on('click', function(e) {
+            myChart2.destroy();
+            config2 = jQuery.extend(true, {}, configCopy2);
+            config2.type = 'polarArea'; // The new chart type
+            config2.data = myDataset2;
+            config2.options.showScale = false;
+            config2.options.scales.xAxes[0].scaleLabel.labelString = myDataset2.xlabel;
+            config2.options.scales.yAxes[0].scaleLabel.labelString = myDataset2.ylabel;
+            config2.options.scales.xAxes[0].scaleLabel.display = true;
+            config2.options.scales.yAxes[0].scaleLabel.display = true;
+            config2.options.scales.yAxes[0].gridLines.display = false;
+            config2.options.scales.xAxes[0].gridLines.display = false;
+            config2.options.scales.yAxes[0].gridLines.drawBorder = false;
+            config2.options.scales.xAxes[0].gridLines.drawBorder = false;
+            config2.options.scales.yAxes[0].ticks.display = false;
+            config2.options.scales.xAxes[0].ticks.display = false;
+            config2.options.scaleShowGridLines = false;
+            config2.options.scaleShowHorizontalLines = false;
+            config2.options.scaleShowVerticalLines = false;
+            myChart2 = new Chart(consumedCtx, config2);
+        });
+
+        $('#raw2').on('click', function(e) {
+            var data = printObject(myDataset2);
+            var myWindow = window.open("data:text/plain," + encodeURIComponent(data), "_blank", "width=800,height=600");
+            myWindow.focus();
+        });
+
+        $.ajax({
+            type: 'GET',
+            url: "./histogram" + window.location.search + "&sum=count",
+            dataType: 'json',
+            beforeSend: function() {
+                $("#loaderDiv1").show();
+            },
+            success: function(response) {
+                $("#loaderDiv1").hide();
+                console.log("success");
+                console.log(response);
+                dataset = response;
+
+
+                $.each(dataset.datasets,function(index,data){
+                    dataset.datasets[index]['backgroundColor'] = [];
+
+                    //Add a new point for each piece of data, passing any required data to draw.
+                    console.log(index);
+                    console.log(data)
+                    $.each(data.data, function(index2, value) {
+                       console.log(value)
+                        dataset.datasets[index]['backgroundColor'][index2] = getRandomColor();
+                    });
+                },this);
+
+                config1.data = dataset;
+                config1.options.scales.xAxes[0].scaleLabel.labelString = dataset.xlabel;
+                config1.options.scales.yAxes[0].scaleLabel.labelString = dataset.ylabel;
+                myDataset1 = dataset;
+                myChart1 = new Chart(countCtx, config1);
+            },
+            error: function(response) {
+                $("#loaderDiv1").hide();
+                console.log("error");
+                console.log(response);
+                displayAlert(response);
+            }
+        });
+
+        $.ajax({
+            type: 'GET',
+            url: "./histogram" + window.location.search + "&sum=diskspaceConsumed",
+            dataType: 'json',
+            beforeSend: function() {
+                $("#loaderDiv2").show();
+            },
+            success: function(response) {
+                $("#loaderDiv2").hide();
+                console.log("success");
+                console.log(response);
+                dataset = response;
+
+                $.each(dataset.datasets,function(index,data){
+                    dataset.datasets[index]['backgroundColor'] = [];
+
+                    //Add a new point for each piece of data, passing any required data to draw.
+                    console.log(index);
+                    console.log(data)
+                    $.each(data.data, function(index2, value) {
+                       console.log(value)
+                        dataset.datasets[index]['backgroundColor'][index2] = getRandomColor();
+                    });
+                },this);
+
+                config2.data = dataset;
+                config2.options.scales.xAxes[0].scaleLabel.labelString = dataset.xlabel;
+                config2.options.scales.yAxes[0].scaleLabel.labelString = dataset.ylabel;
+                myDataset2 = dataset;
+                myChart2 = new Chart(consumedCtx, config2);
+            },
+            error: function(response) {
+                $("#loaderDiv2").hide();
+                console.log("error");
+                console.log(response);
+                displayAlert(response);
+            }
+        });
+
+    </script>
+    <script src="./js/nna.utility.js"></script>
+
+</body>
+</html>
+

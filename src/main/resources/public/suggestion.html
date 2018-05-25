@@ -1,0 +1,1161 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html" xmlns="http://www.w3.org/1999/html"
+      xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="./favicon.ico">
+
+
+    <title>NNAnalytics Home</title>
+
+    <!-- Custom styles for this template -->
+    <link href="./css/nna.css" rel="stylesheet">
+
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.css" rel="stylesheet">
+
+    <!-- Sweetalert core CSS -->
+    <link href="./css/sweetalert.css" rel="stylesheet">
+
+</head>
+
+<body>
+<div class="container">
+
+    <div id="navbar"></div>
+
+    <div id="top_jumbotron"></div>
+
+    <!-- Main component for a primary marketing message or call to action -->
+    <div class="jumbotron">
+        <h1>NNAnalytics Suggestions</h1>
+        <div id="connection"></div>
+        <p id="welcome">
+            Get useful suggestions on your Hadoop clusters' data distribution.
+        </p>
+        <p>
+            Click on the below buttons for more suggestions and useful URLs.
+        </p>
+        <p>
+            <button type="button" id="0" class="btn btn-info btn-xs" onClick="document.getElementById('total').scrollIntoView();" ><b>Totals</b></button>
+            <button type="button" id="1" class="btn btn-success btn-xs" onClick="document.getElementById('emptyFiles').scrollIntoView();" ><b>Empty Files</b></button>
+            <button type="button" id="2" class="btn btn-success btn-xs" onClick="document.getElementById('emptyDirs').scrollIntoView();" ><b>Empty Directories</b></button>
+            <button type="button" id="3" class="btn btn-success btn-xs" onClick="document.getElementById('tinyFiles').scrollIntoView();"><b>Tiny Files</b></button>
+            <button type="button" id="4" class="btn btn-success btn-xs" onClick="document.getElementById('smallFiles').scrollIntoView();"><b>Small Files</b></button>
+            <button type="button" id="5" class="btn btn-info btn-xs" onClick="document.getElementById('mediumFiles').scrollIntoView();" ><b>Medium Files</b></button>
+            <button type="button" id="6" class="btn btn-info btn-xs" onClick="document.getElementById('largeFiles').scrollIntoView();" ><b>Large Files</b></button>
+            <button type="button" id="7" class="btn btn-info btn-xs" onClick="document.getElementById('oldFiles').scrollIntoView();" ><b>Old Files</b></button>
+            <button type="button" id="8" class="btn btn-success btn-xs" onClick="document.getElementById('dirQuotas').scrollIntoView();" ><b>Quotas</b></button>
+        </p>
+        <p class="list-group-item-heading">
+        <table style="table-layout:fixed;">
+            <tr>
+                <td class="metrics-dashboard hasTooltip" width="160px" id="empty" title="Number of bad INodes."><img src='images/usedmemory.png' height="20px" width="20px" class="metrics-icons" alt='used resources'/></td>
+                <td class="metrics-dashboard hasTooltip" width="160px" id="total" title="Percentage of bad INodes."><img src='images/wastedmemory.png' height="20px" width="20px" class="metrics-icons" alt='wasted resources'/></td>
+                <td class="metrics-dashboard hasTooltip" width="160px" id="time" title="Time taken to analyze."><img src='images/runtime.png' height="20px" width="20px" class="metrics-icons" alt='refresh duration'/></td>
+                <td class="metrics-dashboard hasTooltip" width="200px" id="report" title="Report is fresh as of:"><img src='images/runtime.png' height="20px" width="20px" class="metrics-icons" alt='refresh time'/></td>
+            </tr>
+        </table>
+        </p>
+        <div class="col-md-30" align="right">
+            <form class="navbar-form" role="search">
+                <div class="input-group add-on">
+                    <input class="form-control" placeholder="Search By User" name="username" id="user" type="text">
+                    <div class="input-group-btn">
+                        <button class="btn btn-default" type="submit"><i class="glyphicon glyphicon-search"></i></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> <!-- /container -->
+<div class="container">
+    <div class="list-group">
+
+        <a class = "list-group-item list-group-item-info" id="totals">
+            <h4 class="list-group-item-heading">Totals</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Total Capacity</td>
+                    <td id="total1"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Consumed on Cluster</td>
+                    <td id="total2"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Consumed Percentage on Cluster</td>
+                    <td id="total3"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Consumed in Last 24H</td>
+                    <td id="total4"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Consumed Percent Growth in Last 24H</td>
+                    <td id="total5"></td>
+                </tr>
+                <tr>
+                    <td>Number of Files on Cluster</td>
+                    <td id="total6"></td>
+                </tr>
+                <tr>
+                    <td>Total Files Percentage on Cluster</td>
+                    <td id="total7"></td>
+                </tr>
+                <tr>
+                    <td>Average Diskspace Consumed per File on Cluster</td>
+                    <td id="total8"></td>
+                </tr>
+                <tr>
+                    <td>Number of Directories on Cluster</td>
+                    <td id="total9"></td>
+                </tr>
+                <tr>
+                    <td>Total Directories Percentage on Cluster</td>
+                    <td id="total10"></td>
+                </tr>
+                <tr>
+                    <td>Average Diskspace Consumed per Directory on Cluster</td>
+                    <td id="total11"></td>
+                </tr>
+                <tr>
+                    <td>Last Delegation Token Issue Date on Cluster</td>
+                    <td id="total12"></td>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+
+        <a class = "list-group-item list-group-item-success" id="emptyFiles">
+            <h4 class="list-group-item-heading">Empty Files</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Number of Empty Files</td>
+                    <td id="emptyFile1"></td>
+                </tr>
+                <tr>
+                    <td>Empty File Percentage on Cluster</td>
+                    <td id="emptyFile2"></td>
+                </tr>
+                <tr>
+                    <td>Number of Empty Files Created in Last 24H</td>
+                    <td id="emptyFile3"></td>
+                </tr>
+                <tr>
+                    <td>Empty File Percent Growth in Last 24H</td>
+                    <td id="emptyFile4"></td>
+                </tr>
+                <tr>
+                    <td>Number of Empty Files Last Accessed in Over 1YR</td>
+                    <td id="emptyFile5"></td>
+                </tr>
+                <tr>
+                    <td>Empty File Last Accessed in Over 1YR Percent Growth </td>
+                    <td id="emptyFile6"></td>
+                </tr>
+                <tr>
+                    <td>Memory Used by Empty Files</td>
+                    <td id="emptyFile7"></td>
+                </tr>
+                <tr>
+                    <td>Memory Used by Empty Files in Last 24H</td>
+                    <td id="emptyFile8"></td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#emptyFilesTip"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+
+        <a class = "list-group-item list-group-item-success" id="emptyDirs">
+            <h4 class="list-group-item-heading">Empty Directories</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Number of Empty Directories</td>
+                    <td id="emptyDir1"></td>
+                </tr>
+                <tr>
+                    <td>Empty Directories Percentage on Cluster</td>
+                    <td id="emptyDir2"></td>
+                </tr>
+                <tr>
+                    <td>Number of Empty Directories Created in Last 24H</td>
+                    <td id="emptyDir3"></td>
+                </tr>
+                <tr>
+                    <td>Empty Directories Percent Growth in Last 24H</td>
+                    <td id="emptyDir4"></td>
+                </tr>
+                <tr>
+                    <td>Number of Empty Directories over 1YR Old</td>
+                    <td id="emptyDir5"></td>
+                </tr>
+                <tr>
+                    <td>Empty Directories over 1YR Old Percent Growth</td>
+                    <td id="emptyDir6"></td>
+                </tr>
+                <tr>
+                    <td>Memory Used by Empty Directories</td>
+                    <td id="emptyDir7"></td>
+                </tr>
+                <tr>
+                    <td>Memory Used by Empty Directories in Last 24H</td>
+                    <td id="emptyDir8"></td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#emptyDirsTip"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+
+        <a class = "list-group-item list-group-item-success" id="tinyFiles">
+            <h4 class="list-group-item-heading">Tiny Files (> 0B && < 1KB)</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Number of Tiny Files</td>
+                    <td id="tinyFile1"></td>
+                </tr>
+                <tr>
+                    <td>Tiny Files Percentage on Cluster</td>
+                    <td id="tinyFile2"></td>
+                </tr>
+                <tr>
+                    <td>Number of Tiny Files Created in Last 24H</td>
+                    <td id="tinyFile3"></td>
+                </tr>
+                <tr>
+                    <td>Tiny Files Percent Growth in Last 24H</td>
+                    <td id="tinyFile4"></td>
+                </tr>
+                <tr>
+                    <td>Number of Tiny Files Last Accessed in Over 1YR</td>
+                    <td id="tinyFile5"></td>
+                </tr>
+                <tr>
+                    <td>Tiny Files Last Accessed in Over 1YR Percent Growth </td>
+                    <td id="tinyFile6"></td>
+                </tr>
+                <tr>
+                    <td>Memory Used by Tiny Files</td>
+                    <td id="tinyFile7"></td>
+                </tr>
+                <tr>
+                    <td>Memory Used by Tiny Files in Last 24H</td>
+                    <td id="tinyFile8"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Used by Tiny Files</td>
+                    <td id="tinyFile9"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Used by Tiny Files in Last 24H</td>
+                    <td id="tinyFile10"></td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#tinyFileCrushTip"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+
+        <a class = "list-group-item list-group-item-success" id="smallFiles">
+            <h4 class="list-group-item-heading">Small Files (> 1KB && < 1MB)</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Number of Small Files</td>
+                    <td id="smallFile1"></td>
+                </tr>
+                <tr>
+                    <td>Small Files Percentage on Cluster</td>
+                    <td id="smallFile2"></td>
+                </tr>
+                <tr>
+                    <td>Number of Small Files Created in Last 24H</td>
+                    <td id="smallFile3"></td>
+                </tr>
+                <tr>
+                    <td>Small Files Percent Growth in Last 24H</td>
+                    <td id="smallFile4"></td>
+                </tr>
+                <tr>
+                    <td>Number of Small Files Last Accessed in Over 1YR</td>
+                    <td id="smallFile5"></td>
+                </tr>
+                <tr>
+                    <td>Small Files Last Accessed in Over 1YR Percent Growth</td>
+                    <td id="smallFile6"></td>
+                </tr>
+                <tr>
+                    <td>Memory Used by Small Files</td>
+                    <td id="smallFile7"></td>
+                </tr>
+                <tr>
+                    <td>Memory Used by Small Files in Last 24H</td>
+                    <td id="smallFile8"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Used by Small Files</td>
+                    <td id="smallFile9"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Used by Small Files in Last 24H</td>
+                    <td id="smallFile10"></td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#smallFileCrushTip"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+
+        <a class = "list-group-item list-group-item-info" id="mediumFiles">
+            <h4 class="list-group-item-heading">Medium Files (> 1MB && < 128MB)</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Number of Medium Files</td>
+                    <td id="mediumFiles1"></td>
+                </tr>
+                <tr>
+                    <td>Medium Files Percentage on Cluster</td>
+                    <td id="mediumFiles2"></td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#mediumFileTip"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+
+        <a class = "list-group-item list-group-item-info" id="largeFiles">
+            <h4 class="list-group-item-heading">Large Files (> 128MB)</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Number of Large Files</td>
+                    <td id="largeFiles1"></td>
+                </tr>
+                <tr>
+                    <td>Large Files Percentage on Cluster</td>
+                    <td id="largeFiles2"></td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#largeFileTip"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+
+        <a class = "list-group-item list-group-item-info" id="oldFiles">
+            <h4 class="list-group-item-heading">Old Files</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Number of Files Older than 1 Yr</td>
+                    <td id="oldFiles1"></td>
+                </tr>
+                <tr>
+                    <td>Files Older than 1 Yr Percentage on Cluster</td>
+                    <td id="oldFiles2"></td>
+                </tr>
+                <tr>
+                    <td>Number of Files Older than 2 Yrs</td>
+                    <td id="oldFiles3"></td>
+                </tr>
+                <tr>
+                    <td>Files Older than 2 Yrs Percentage on Cluster</td>
+                    <td id="oldFiles4"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Used by Files Older than 1 Yr</td>
+                    <td id="oldFiles5"></td>
+                </tr>
+                <tr>
+                    <td>Diskspace Used by Files Older than 2 Yrs</td>
+                    <td id="oldFiles6"></td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#oldFileTip"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+
+        <a class = "list-group-item list-group-item-info" id="dirQuotas">
+            <h4 class="list-group-item-heading">Quotas</h4>
+            <table class="list-group-item-text table table-condensed left-table" style="table-layout:fixed;">
+                <tbody>
+                <tr>
+                    <td>Directories with Diskspace Quotas</td>
+                    <td id="quotas1"></td>
+                </tr>
+                <tr>
+                    <td>Directories over 85% Used Diskspace Quota</td>
+                    <td id="quotas2"></td>
+                </tr>
+                <tr>
+                    <td>Directories with Namespace Quotas</td>
+                    <td id="quotas3"></td>
+                </tr>
+                <tr>
+                    <td>Directories over 85% Used Namespace Quota</td>
+                    <td id="quotas4"></td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#quotas"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </a>
+    </div>
+</div>
+
+<div class="modal fade" id="emptyFilesTip" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Empty files are typically generated by jobs, such as _SUCCESS or _DONE files.<br />
+                    In the case of most job-created files you can simply delete them.<br />
+                    If your job continues to output many empty part files it is likely you have over-tuned your job; consider reducing your mappers and reducers.<br />
+                    In the event that your application uses these files, it is recommended you instead find an alternate way to record the event rather than as an empty file.<br />
+                    One example is to keep a log and append to it instead.<br />
+                    <br />
+                    <a target="_blank" id="emptyFilesDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="emptyFiles24hDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="emptyFilesAccess">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="100emptyFiles">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="1yearOldFiles">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="allEmptyFiles">Test</a>
+                    <br />
+                    <br />
+                    <!-- SCHEDULE DELETE FOR FIRST 100 EMPTY FILES<br />
+                    <a target="_blank" id="delete100EmptyFiles">Test</a>
+                    <br />
+                    <br />
+                    SCHEDULE DELETE FOR ALL EMPTY FILES OLDER THAN 1 YEAR<br />
+                    <a target="_blank" id="delete1yearEmptyFiles">Test</a>
+                    <br />
+                    <br />
+                    SCHEDULE DELETE ALL EMPTY FILES<br />
+                    <a target="_blank" id="deleteAllEmptyFiles">Test</a> -->
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="emptyDirsTip" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Empty directories are typically just unused or uncleaned directories.<br />
+                    Simply delete them unless you actually plan to use them.<br />
+                    <br />
+                    <a target="_blank" id="emptyDirsDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="emptyDirs24hDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="100emptyDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="1yearEmptyDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="allEmptyDirs">Test</a>
+                    <br />
+                    <br />
+                    <!--SCHEDULE DELETE FOR FIRST 100 EMPTY DIRS<br />-->
+                    <!--<a target="_blank" id="delete100EmptyDirs">Test</a>-->
+                    <!--<br />-->
+                    <!--<br />-->
+                    <!--SCHEDULE DELETE FOR ALL EMPTY FILES OLDER THAN 1 YEAR<br />-->
+                    <!--<a target="_blank" id="deleteOldEmptyDirs">Test</a>-->
+                    <!--<br />-->
+                    <!--<br />-->
+                    <!--SCHEDULE DELETE ALL EMPTY FILES<br />-->
+                    <!--<a target="_blank" id="deleteAllEmptyDirs">Test</a>-->
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="tinyFileCrushTip" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Be very careful with generating too many of these files!<br>
+                    These are a great source of burden on the NameNode and DataNodes during balancing.<br />
+                    If you have old datasets with tiny files it is recommended to HAR or GZIP the directories containing them.<br />
+                    Pig, Hive, and MapReduce have support for reading HARs (Hadoop Archives).<br />
+                    You should also consider tuning your mappers or reducers, or adding a reduce phase to minimize the number of final files.<br />
+                    <br />
+                    <a target="_blank" id="tinyFilesDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="tinyFiles24hDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="tinyFilesAccess">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="tinyFilesRepl">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="100tinyFiles">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="1yearOldTinyFiles">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="allTinyFiles">Test</a>
+                    <br />
+                    <br />
+                    USE FILE CRUSH TO BUNCH TINY FILES<br />
+                    <b><a target="_blank">https://github.com/edwardcapriolo/filecrush</a></b>
+                    <br />
+                    <br />
+                    USE HADOOP ARCHIVES TO BUNCH TINY FILES<br />
+                    <b><a target="_blank">https://hadoop.apache.org/docs/current/hadoop-archives/HadoopArchives.html</a></b>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="smallFileCrushTip" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Be very careful with generating too many of these files!<br>
+                    These are a great source of burden on the NameNode and DataNodes during balancing.<br />
+                    Unlike tiny files, small files typically come in large quantities from jobs and ingest.<br />
+                    You should consider tuning your mappers or reducers, or adding a reduce phase to minimize the number of final files if possible.<br />
+                    In most cases a post-cleanup job that compacts and archives will be necessary.<br />
+                    <br />
+                    <a target="_blank" id="smallFilesDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="smallFiles24hDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="smallFilesAccess">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="smallFilesRepl">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="100smallFiles">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="1yearOldSmallFiles">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="allSmallFiles">Test</a>
+                    <br />
+                    <br />
+                    USE FILE CRUSH TO BUNCH SMALL FILES<br />
+                    <b><a target="_blank">https://github.com/edwardcapriolo/filecrush</a></b>
+                    <br />
+                    <br />
+                    USE HADOOP ARCHIVES TO BUNCH SMALL FILES<br />
+                    <b><a target="_blank">https://hadoop.apache.org/docs/current/hadoop-archives/HadoopArchives.html</a></b>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="mediumFileTip" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    These files are just shy of being perfect for storing in HDFS.<br />
+                    While tiny and small files are higher priority, if you find yourself with many medium files then consider archiving or concat'ing your files.<br />
+                    You should consider tuning your mappers or reducers, or adding a reduce phase to minimize the number of final files if possible.<br />
+                    In most cases a post-cleanup job that compacts and archives will be necessary.<br />
+                    <br />
+                    <a target="_blank" id="mediumFilesDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="mediumFiles24hDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="mediumFilesAccess">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="mediumFilesRepl">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="1yearOldMediumFiles">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="allMediumFiles">Test</a>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="largeFileTip" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Files that are larger than the default block size for HDFS are perfect for storage.<br />
+                    In most cases all you need to consider in this case is the storage cost.<br />
+                    If this is an older or backed-up dataset, consider reducing your replication factor of files down to 2.<br />
+                    It may also be worth considering making it read-only so that no one can modify it.<br />
+                    <br />
+                    <a target="_blank" id="largeFilesDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="largeFiles24hDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="largeFilesAccess">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="largeFilesRepl">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="1yearOldLargeFiles">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="allLargeFiles">Test</a>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="oldFileTip" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    There is no problem with long term storage in HDFS.<br />
+                    In most cases all you need to consider in this case is the storage cost.<br />
+                    If this is an older or backed-up dataset, consider reducing your replication factor of files down to 2.<br />
+                    It may also be worth considering making it read-only so that no one can modify it.<br />
+                    Another consideration is to ask it to be moved to archive (COLD) storage tier.<br />
+                    <br />
+                    <a target="_blank" id="oldFiles1yrDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="oldFiles2yrDirs">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="allOldFiles1yr">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="allOldFiles2yr">Test</a>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="quotas" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Your cluster administrators may have set quotas on your directories.<br />
+                    In most cases all you need to do is observe you are not close to your quota limit.<br />
+                    If you are close to your namespace limit you can remedy by reducing your file count.<br />
+                    If you are close to your diskspace limit you can remedy by deleting large or old files.<br />
+                    Another consideration is to ask for your quota limits to be raised.<br />
+                    <br />
+                    <a target="_blank" id="dsQuotaCached">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="nsQuotaCached">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="dsQuota">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="nsQuota">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="dsQuotaUsed">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="nsQuotaUsed">Test</a>
+                    <br />
+                    <br />
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/jquery.min.js"></script>
+<script src="./js/sweetalert.min.js"></script>
+<script>window.jQuery || document.write('<script src="./js/vendor/jquery.min.js"><\/script>')</script>
+<script src="./js/bootstrap.min.js"></script>
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="./js/Chart.bundle.min.js"></script>
+<script src="./js/nna.utility.js"></script>
+<script type="text/javascript">getClusterName();</script>
+<script type="text/javascript">listIssues();</script>
+<script type="text/javascript">$(document).ready(function(){ $('#navbar').load('navbar.html'); });</script>
+<script>
+    $.ajax({
+            type: 'GET',
+            url: "./suggestions" + window.location.search,
+            dataType: 'json',
+            success: function(data) {
+                console.log("success");
+                console.log(data);
+                var time = data["timeTaken"];
+                var report = data["reportTime"];
+                var capacity = data["capacity"];
+                var diskspace = data["diskspace"];
+                var diskspace24h = data["diskspace24h"];
+                var lastLogin = data["lastLogin"];
+                var numFiles = data["numFiles"];
+                var numDirs = data["numDirs"];
+                var emptyFiles = data["emptyFiles"];
+                var emptyFilesMem = data["emptyFilesMem"];
+                var mediumFiles = data["mediumFiles"];
+                var emptyDirs = data["emptyDirs"];
+                var emptyDirsMem = data["emptyDirsMem"];
+                var tinyFiles = data["tinyFiles"];
+                var tinyFilesMem = data["tinyFilesMem"];
+                var tinyFilesDs = data["tinyFilesDs"];
+                var totalFiles = data["totalFiles"];
+                var totalDirs = data["totalDirs"];
+                var smallFiles = data["smallFiles"];
+                var smallFilesMem = data["smallFilesMem"];
+                var smallFilesDs = data["smallFilesDs"];
+                var emptyFiles24h = data["emptyFiles24h"];
+                var emptyFiles1yr = data["emptyFiles1yr"];
+                var emptyDirs24h = data["emptyDirs24h"];
+                var emptyDirs1yr = data["emptyDirs1yr"];
+                var emptyFilesMem24h = data["emptyFiles24hMem"];
+                var emptyDirsMem24h = data["emptyDirs24hMem"];
+                var tinyFiles24h = data["tinyFiles24h"];
+                var tinyFiles1yr = data["tinyFiles1yr"];
+                var tinyFilesMem24h = data["tinyFiles24hMem"];
+                var tinyFilesDs24h = data["tinyFiles24hDs"];
+                var smallFiles24h = data["smallFiles24h"];
+                var smallFiles1yr = data["smallFiles1yr"];
+                var smallFilesMem24h = data["smallFiles24hMem"];
+                var smallFilesDs24h = data["smallFiles24hDs"];
+                var mediumFiles = data["mediumFiles"];
+                var largeFiles = data["largeFiles"];
+                var oldFiles1yr = data["oldFiles1yr"];
+                var oldFiles1yrDs = data["oldFiles1yrDs"];
+                var oldFiles2yr = data["oldFiles2yr"];
+                var oldFiles2yrDs = data["oldFiles2yrDs"];
+                var nsQuotaCount = data["nsQuotaCount"];
+                var dsQuotaCount = data["dsQuotaCount"];
+                var nsQuotaThreshCount = data["nsQuotaThreshCount"];
+                var dsQuotaThreshCount = data["dsQuotaThreshCount"];
+                var totalBad = emptyFiles + emptyDirs + tinyFiles + smallFiles;
+                var totalDF = totalFiles + totalDirs;
+                var username =  window.location.search;
+
+                $('#total1').html(nFormatter(capacity,2));
+                $('#total2').html(nFormatter(diskspace,2));
+                $('#total3').html(getPercentage(diskspace,capacity) +"%");
+                $('#total4').html(nFormatter(diskspace24h,2));
+                $('#total5').html(getPercentage(diskspace24h,diskspace) +"%");
+                $('#total6').html(nFormatter(numFiles, 2));
+                $('#total7').html(getPercentage(numFiles,totalFiles) +"%");
+                $('#total8').html(nFormatter(diskspace/numFiles));
+                $('#total9').html(nFormatter(numDirs, 2));
+                $('#total10').html(getPercentage(numDirs,totalDirs) +"%");
+                $('#total11').html(nFormatter(diskspace/numDirs));
+                if(lastLogin == 0 || lastLogin == null) {
+                    $('#total12').html("N/A");
+                } else {
+                    $('#total12').html(msToDate(lastLogin));
+                }
+
+                $('#emptyFile1').html(emptyFiles);
+                $('#emptyFile2').html(getPercentage(emptyFiles,numFiles) +"%");
+                $('#emptyFile3').html(emptyFiles24h);
+                $('#emptyFile4').html(getPercentage(emptyFiles24h,emptyFiles) +"%");
+                $('#emptyFile5').html(emptyFiles1yr);
+                $('#emptyFile6').html(getPercentage(emptyFiles1yr,emptyFiles) +"%");
+                $('#emptyFile7').html(nFormatter(emptyFilesMem, 2));
+                $('#emptyFile8').html(nFormatter(emptyFilesMem24h,2));
+
+                $('#emptyDir1').html(emptyDirs);
+                $('#emptyDir2').html(getPercentage(emptyDirs,numDirs) +"%");
+                $('#emptyDir3').html(emptyDirs24h);
+                $('#emptyDir4').html(getPercentage(emptyDirs24h,emptyDirs) +"%");
+                $('#emptyDir5').html(emptyDirs1yr);
+                $('#emptyDir6').html(getPercentage(emptyDirs1yr,emptyDirs) +"%");
+                $('#emptyDir7').html(nFormatter(emptyDirsMem,2));
+                $('#emptyDir8').html(nFormatter(emptyDirsMem24h,2));
+
+                $('#tinyFile1').html(tinyFiles);
+                $('#tinyFile2').html(getPercentage(tinyFiles,numFiles) +"%");
+                $('#tinyFile3').html(tinyFiles24h);
+                $('#tinyFile4').html(getPercentage(tinyFiles24h,tinyFiles) +"%");
+                $('#tinyFile5').html(tinyFiles1yr);
+                $('#tinyFile6').html(getPercentage(tinyFiles1yr,tinyFiles) +"%");
+                $('#tinyFile7').html(nFormatter(tinyFilesMem,2));
+                $('#tinyFile8').html(nFormatter(tinyFilesMem24h,2));
+                $('#tinyFile9').html(nFormatter(tinyFilesDs,2));
+                $('#tinyFile10').html(nFormatter(tinyFilesDs24h,2));
+
+                $('#smallFile1').html(smallFiles);
+                $('#smallFile2').html(getPercentage(smallFiles,numFiles) +"%");
+                $('#smallFile3').html(smallFiles24h);
+                $('#smallFile4').html(getPercentage(smallFiles24h,smallFiles) +"%");
+                $('#smallFile5').html(smallFiles1yr);
+                $('#smallFile6').html(getPercentage(smallFiles1yr,smallFiles) +"%");
+                $('#smallFile7').html(nFormatter(smallFilesMem,2));
+                $('#smallFile8').html(nFormatter(smallFilesMem24h,2));
+                $('#smallFile9').html(nFormatter(smallFilesDs,2));
+                $('#smallFile10').html(nFormatter(smallFilesDs24h,2));
+
+                $('#mediumFiles1').html(mediumFiles);
+                $('#mediumFiles2').html(getPercentage(mediumFiles,numFiles) +"%");
+
+                $('#largeFiles1').html(largeFiles);
+                $('#largeFiles2').html(getPercentage(largeFiles,numFiles) +"%");
+                
+                $('#oldFiles1').html(oldFiles1yr);
+                $('#oldFiles2').html(getPercentage(oldFiles1yr,numFiles) +"%");
+                $('#oldFiles3').html(oldFiles2yr);
+                $('#oldFiles4').html(getPercentage(oldFiles2yr,numFiles) +"%");
+                $('#oldFiles5').html(nFormatter(oldFiles1yrDs,2));
+                $('#oldFiles6').html(nFormatter(oldFiles2yrDs,2));
+
+                $('#quotas1').html(dsQuotaCount);
+                $('#quotas2').html(dsQuotaThreshCount);
+                $('#quotas3').html(nsQuotaCount);
+                $('#quotas4').html(nsQuotaThreshCount);
+
+                $('#emptyFiles').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(emptyFiles,numFiles),"emptyFile"));
+                $('#emptyDirs').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(emptyDirs,numDirs),"emptyDir"));
+                $('#tinyFiles').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(tinyFiles,numFiles) ,"tinyFile"));
+                $('#smallFiles').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(smallFiles,numFiles),"smallFile"));
+                $('#dirQuotas').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(nsQuotaThreshCount,nsQuotaCount),"quotas"));
+                $('#dirQuotas').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(dsQuotaThreshCount,dsQuotaCount),"quotas"));
+
+                $('#1').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(emptyFiles,numFiles),"emptyFile"));
+                $('#2').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(emptyDirs,numDirs),"emptyDir"));
+                $('#3').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(tinyFiles,numFiles) ,"tinyFile"));
+                $('#4').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(smallFiles,numFiles),"smallFile"));
+                $('#8').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(nsQuotaThreshCount,nsQuotaCount),"quotas"));
+                $('#8').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(dsQuotaThreshCount,dsQuotaCount),"quotas"));
+
+                $('#empty').append(" "+totalBad+" INodes");
+                $('#total').append(" "+(totalBad/totalDF*100).toFixed(2)+"%");
+                $('#time').append(" "+msToTime(time));
+                $('#report').append(" "+msToDate(report));
+
+                var usr = getUrlParameter("username");
+                if(usr.length > 0) {
+                     $('#welcome').html("<p>Page is customized for user: <b>"+usr+"</b></p>");
+                }
+            },
+            error: function(response) {
+                console.log("error");
+                console.log(response);
+                displayAlert(response);
+            }
+        });
+
+        var url = window.location.origin+"/";
+
+        document.getElementById("emptyFilesDirs").href = getModalSpecificURL('histogram?set=files&filters=fileSize:eq:0&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("emptyFilesDirs").innerHTML = "<b>LIST DIRECTORIES WITH EMPTY FILES COUNT</b>";
+
+        document.getElementById("emptyFiles24hDirs").href = getModalSpecificURL('histogram?set=files&filters=fileSize:eq:0,modTime:hoursAgo:24&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("emptyFiles24hDirs").innerHTML = "<b>LIST DIRECTORIES WITH LAST 24H EMPTY FILES COUNT</b>";
+
+        document.getElementById("emptyDirsDirs").href = getModalSpecificURL('histogram?set=dirs&filters=dirNumChildren:eq:0&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("emptyDirsDirs").innerHTML = "<b>LIST DIRECTORIES WITH EMPTY DIRECTORIES COUNT</b>";
+
+        document.getElementById("emptyDirs24hDirs").href = getModalSpecificURL('histogram?set=dirs&filters=dirNumChildren:eq:0,modTime:hoursAgo:24&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("emptyDirs24hDirs").innerHTML = "<b>LIST DIRECTORIES WITH LAST 24H EMPTY DIRECTORIES COUNT</b>";
+
+        document.getElementById("tinyFilesDirs").href = getModalSpecificURL('histogram?set=files&filters=fileSize:lte:1024,fileSize:gt:0&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("tinyFilesDirs").innerHTML = "<b>LIST DIRECTORIES WITH TINY FILES COUNT</b>";
+
+        document.getElementById("tinyFiles24hDirs").href = getModalSpecificURL('histogram?set=files&filters=fileSize:lte:1024,fileSize:gt:0,modTime:hoursAgo:24&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("tinyFiles24hDirs").innerHTML = "<b>LIST DIRECTORIES WITH LAST 24H TINY FILES COUNT</b>";
+
+        document.getElementById("smallFilesDirs").href = getModalSpecificURL('histogram?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("smallFilesDirs").innerHTML = "<b>LIST DIRECTORIES WITH SMALL FILES COUNT</b>";
+
+        document.getElementById("smallFiles24hDirs").href = getModalSpecificURL('histogram?set=files&filters=modTime:hoursAgo:24,fileSize:lte:1048576,fileSize:gt:1024&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("smallFiles24hDirs").innerHTML = "<b>LIST DIRECTORIES WITH LAST 24H SMALL FILES COUNT</b>";
+
+        document.getElementById("mediumFilesDirs").href = getModalSpecificURL('histogram?set=files&filters=fileSize:lte:134217728,fileSize:gt:1048576&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("mediumFilesDirs").innerHTML = "<b>LIST DIRECTORIES WITH MEDIUM FILES COUNT</b>";
+
+        document.getElementById("mediumFiles24hDirs").href = getModalSpecificURL('histogram?set=files&filters=modTime:hoursAgo:24,fileSize:gt:134217728&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("mediumFiles24hDirs").innerHTML = "<b>LIST DIRECTORIES WITH LAST 24H MEDIUM FILES COUNT</b>";
+
+        document.getElementById("largeFilesDirs").href = getModalSpecificURL('histogram?set=files&filters=fileSize:gt:134217728&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("largeFilesDirs").innerHTML = "<b>LIST DIRECTORIES WITH LARGE FILES COUNT</b>";
+
+        document.getElementById("largeFiles24hDirs").href = getModalSpecificURL('histogram?set=files&filters=modTime:hoursAgo:24,fileSize:lte:134217728,fileSize:gt:1048576&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("largeFiles24hDirs").innerHTML = "<b>LIST DIRECTORIES WITH LAST 24H LARGE FILES COUNT</b>";
+
+        document.getElementById("emptyFilesAccess").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:eq:0&type=accessTime&sum=count');
+        document.getElementById("emptyFilesAccess").innerHTML = "<b>EMPTY FILES AGE HISTOGRAM</b>";
+
+        document.getElementById("tinyFilesAccess").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:lte:1024,fileSize:gt:0&type=accessTime&sum=count');
+        document.getElementById("tinyFilesAccess").innerHTML = "<b>TINY FILES AGE HISTOGRAM</b>";
+
+        document.getElementById("smallFilesAccess").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&type=accessTime&sum=count');
+        document.getElementById("smallFilesAccess").innerHTML = "<b>SMALL FILES AGE HISTOGRAM</b>";
+
+        document.getElementById("mediumFilesAccess").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:lte:134217728,fileSize:gt:1048576&type=accessTime&sum=count');
+        document.getElementById("mediumFilesAccess").innerHTML = "<b>MEDIUM FILES AGE HISTOGRAM</b>";
+
+        document.getElementById("largeFilesAccess").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:gt:134217728&type=accessTime&sum=count');
+        document.getElementById("largeFilesAccess").innerHTML = "<b>LARGE FILES AGE HISTOGRAM</b>";
+
+        document.getElementById("tinyFilesRepl").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:lte:1024,fileSize:gt:0&type=fileReplica&sum=count');
+        document.getElementById("tinyFilesRepl").innerHTML = "<b>TINY FILES REPLICATION FACTORS</b>";
+
+        document.getElementById("smallFilesRepl").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&type=fileReplica&sum=count');
+        document.getElementById("smallFilesRepl").innerHTML = "<b>SMALL FILES REPLICATION FACTORS</b>";
+
+        document.getElementById("mediumFilesRepl").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:lte:134217728,fileSize:gt:1048576&type=fileReplica&sum=count');
+        document.getElementById("mediumFilesRepl").innerHTML = "<b>MEDIUM FILES REPLICATION FACTORS</b>";
+
+        document.getElementById("largeFilesRepl").href = getModalSpecificURL('custom.html?set=files&filters=fileSize:gt:134217728&type=fileReplica&sum=count');
+        document.getElementById("largeFilesRepl").innerHTML = "<b>LARGE FILES REPLICATION FACTORS</b>";
+
+        document.getElementById("100emptyFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:eq:0&limit=100');
+        document.getElementById("100emptyFiles").innerHTML = "<b>LIST 100 RANDOM EMPTY FILES</b>";
+
+        document.getElementById("1yearOldFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:eq:0,accessTime:olderThanYears:1');
+        document.getElementById("1yearOldFiles").innerHTML = "<b>LIST ALL EMPTY FILES OLDER THAN 1 YEAR</b>";
+
+        document.getElementById("allEmptyFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:eq:0');
+        document.getElementById("allEmptyFiles").innerHTML = "<b>LIST ALL EMPTY FILES</b>";
+
+        document.getElementById("100emptyDirs").href = getModalSpecificURL('filter?set=dirs&filters=dirNumChildren:eq:0&limit=100');
+        document.getElementById("100emptyDirs").innerHTML ="<b>LIST 100 RANDOM EMPTY DIRECTORIES</b>";
+
+        document.getElementById("1yearEmptyDirs").href = getModalSpecificURL('filter?set=dirs&filters=dirNumChildren:eq:0,modTime:olderThanYears:1');
+        document.getElementById("1yearEmptyDirs").innerHTML = "<b>LIST ALL EMPTY DIRECTORIES OLDER THAN 1 YEAR</b>";
+
+        document.getElementById("allEmptyDirs").href = getModalSpecificURL('filter?set=dirs&filters=dirNumChildren:eq:0');
+        document.getElementById("allEmptyDirs").innerHTML = "<b>LIST ALL EMPTY DIRECTORIES</b>";
+
+        document.getElementById("100tinyFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:lte:1024,fileSize:gt:0&limit=100');
+        document.getElementById("100tinyFiles").innerHTML = "<b>LIST 100 RANDOM TINY FILES</b>";
+
+        document.getElementById("1yearOldTinyFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:lte:1024,fileSize:gt:0,accessTime:olderThanYears:1');
+        document.getElementById("1yearOldTinyFiles").innerHTML = "<b>LIST ALL TINY FILES OLDER THAN 1 YEAR</b>";
+
+        document.getElementById("allTinyFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:lte:1024,fileSize:gt:0');
+        document.getElementById("allTinyFiles").innerHTML = "<b>LIST ALL TINY FILES</b>";
+
+        document.getElementById("100smallFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&limit=100');
+        document.getElementById("100smallFiles").innerHTML = "<b>LIST 100 RANDOM SMALL FILES</b>";
+
+        document.getElementById("1yearOldSmallFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024,accessTime:olderThanYears:1');
+        document.getElementById("1yearOldSmallFiles").innerHTML = "<b>LIST ALL SMALL FILES OLDER THAN 1 YEAR</b>";
+
+        document.getElementById("allSmallFiles").href = getModalSpecificURL('filter?set=files&filters=fileSiz:lte:1048576,fileSize:gt:1024');
+        document.getElementById("allSmallFiles").innerHTML = "<b>LIST ALL SMALL FILES</b>";
+
+        document.getElementById("1yearOldMediumFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:lte:134217728,fileSize:gt:1048576,accessTime:olderThanYears:1');
+        document.getElementById("1yearOldMediumFiles").innerHTML = "<b>LIST ALL MEDIUM FILES OLDER THAN 1 YEAR</b>";
+
+        document.getElementById("allMediumFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:lte:134217728,fileSize:gt:1048576');
+        document.getElementById("allMediumFiles").innerHTML = "<b>LIST ALL MEDIUM FILES</b>";
+
+        document.getElementById("1yearOldLargeFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:gt:134217728,accessTime:olderThanYears:1');
+        document.getElementById("1yearOldLargeFiles").innerHTML = "<b>LIST ALL LARGE FILES OLDER THAN 1 YEAR</b>";
+
+        document.getElementById("allLargeFiles").href = getModalSpecificURL('filter?set=files&filters=fileSize:gt:134217728');
+        document.getElementById("allLargeFiles").innerHTML = "<b>LIST ALL LARGE FILES</b>";
+
+        document.getElementById("oldFiles1yrDirs").href = getModalSpecificURL('histogram?set=files&filters=accessTime:olderThanYears:1&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("oldFiles1yrDirs").innerHTML = "<b>LIST DIRECTORIES WITH FILES OLDER THAN 1 YEAR</b>";
+
+        document.getElementById("oldFiles2yrDirs").href = getModalSpecificURL('histogram?set=files&filters=accessTime:olderThanYears:2&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
+        document.getElementById("oldFiles2yrDirs").innerHTML = "<b>LIST DIRECTORIES WITH FILES OLDER THAN 2 YEARS</b>";
+
+        document.getElementById("allOldFiles1yr").href = getModalSpecificURL('filter?set=files&filters=accessTime:olderThanYears:1');
+        document.getElementById("allOldFiles1yr").innerHTML = "<b>LIST ALL FILES OLDER THAN 1 YEAR</b>";
+
+        document.getElementById("allOldFiles2yr").href = getModalSpecificURL('filter?set=files&filters=accessTime:olderThanYears:2');
+        document.getElementById("allOldFiles2yr").innerHTML = "<b>LIST ALL FILES OLDER THAN 2 YEARS</b>";
+
+        document.getElementById("dsQuotaCached").href = 'quotas?sum=dsQuotaRatioUsed&user=' + getUrlParameter("username");
+        document.getElementById("dsQuotaCached").innerHTML = "<b>GET CACHED DISKSPACE QUOTA USED PERCENTAGE</b>";
+
+        document.getElementById("nsQuotaCached").href = 'quotas?sum=nsQuotaRatioUsed&user=' + getUrlParameter("username");
+        document.getElementById("nsQuotaCached").innerHTML = "<b>GET CACHED NAMESPACE QUOTA USED PERCENTAGE</b>";
+
+        document.getElementById("dsQuota").href = getModalSpecificURL('histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuota&sortDescending=true&histogramOutput=csv');
+        document.getElementById("dsQuota").innerHTML = "<b>LIST DIRECTORIES BY DISKSPACE QUOTA ASSIGNED</b>";
+
+        document.getElementById("nsQuota").href = getModalSpecificURL('histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuota&sortDescending=true&histogramOutput=csv');
+        document.getElementById("nsQuota").innerHTML = "<b>LIST DIRECTORIES BY NAMESPACE QUOTA ASSIGNED</b>";
+
+        document.getElementById("dsQuotaUsed").href = getModalSpecificURL('histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuotaUsed&sortDescending=true&histogramOutput=csv');
+        document.getElementById("dsQuotaUsed").innerHTML = "<b>LIST DIRECTORIES BY DISKSPACE QUOTA USED</b>";
+
+        document.getElementById("nsQuotaUsed").href = getModalSpecificURL('histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuotaUsed&sortDescending=true&histogramOutput=csv');
+        document.getElementById("nsQuotaUsed").innerHTML = "<b>LIST DIRECTORIES BY NAMESPACE QUOTA USED</b>";
+</script>
+</body>
+</html>
+

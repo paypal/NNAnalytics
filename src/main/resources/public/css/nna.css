@@ -1,0 +1,101 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+body {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+.navbar {
+  margin-bottom: 20px;
+}
+.navbar-brand {
+    color: #424242 !important;
+}
+.collapsing {
+  padding-bottom:75px;
+  height: auto;
+  -webkit-transition-timing-function: ease;
+       -o-transition-timing-function: ease;
+          transition-timing-function: ease;
+  -webkit-transition-duration: .35s;
+       -o-transition-duration: .35s;
+          transition-duration: .35s;
+  -webkit-transition-property: height, visibility;
+       -o-transition-property: height, visibility;
+          transition-property: height, visibility;
+}
+.collapse.in {
+  display: block;
+}
+.collapse {
+  height:auto !important;
+  }
+.in .navbar-collapse {
+      display: block;
+}
+.navbar-collapse {
+  display:none;
+}
+.in .navbar-collapse {
+  display: block;
+}
+.navbar-collapse {
+  display: none;
+}
+.navbar-nav {
+  float: none !important;
+  margin-left:95px !important;
+  width:96%;
+}
+.in .navbar-nav {
+  margin: 7.5px 0 !important;
+}
+tr.collapse.in {
+  display: table-row;
+}
+button.navbar-toggle.collapsed {
+  float:right;
+}
+tbody.collapse.in {
+  display: table-row-group;
+}
+#issues_container {
+  background-color: rgba(255, 0, 0, 0.65);
+  padding: 8px;
+}
+.jumboback {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 1px 0px 10px;
+  border-radius: inherit;
+  box-shadow: 2px 2px 4px #333;
+   background: rgba(255, 255, 255, 0.75);
+}
+.jumboback tr, .jumboback th {
+  text-align:center;
+  width:33.33%;
+}
+.jumbotron table {
+  width:80% !important;
+  max-width:500px;
+}
+@media (max-width: 767px) {
+  .list-group td:first-child {
+    width: 75% !important;
+  }
+}

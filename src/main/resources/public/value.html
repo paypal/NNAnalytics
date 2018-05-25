@@ -1,0 +1,95 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Sweetalert core CSS -->
+    <link href="./css/sweetalert.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./css/nna.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div id="navbar"></div>
+
+    <!-- Main component for a primary marketing message or call to action -->
+    <div class="jumbotron">
+        <h1>Welcome to NNAnalytics</h1>
+        <div id="connection"></div>
+        <p>
+            Get insight into the your Hadoop clusters' data distribution.
+        </p>
+        <img style="margin:auto;display:block" id="loaderDiv" src="images/loader.gif" />
+        <br />
+        <div id="value"></div>
+    </div>
+
+</div> <!-- /container -->
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="./js/vendor/jquery.min.js"><\/script>')</script>
+<script src="./js/bootstrap.min.js"></script>
+<script src="./js/sweetalert.min.js"></script>
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="./js/Chart.bundle.min.js"></script>
+<script src="./js/cycle.js"></script>
+<script type="text/javascript">$(document).ready(function(){ $('#navbar').load('navbar.html'); });</script>
+<script type="text/javascript">$(document).ready(function(){  $("head").append("header.html");});</script>
+<script src="./js/nna.utility.js"></script>
+<script type="text/javascript">getClusterName();</script>
+
+<script>
+    $.ajax({
+            type: 'GET',
+            url: "./filter" + window.location.search,
+            dataType: 'text',
+            beforeSend: function() {
+                $("#loaderDiv").show();
+            },
+            success: function(response) {
+                $("#loaderDiv").hide();
+                console.log("success");
+                console.log(response);
+                $('#value').html("Exact result: " + response + "<br />Simplified result: " + nFormatter(response,2));
+            },
+            error: function(response) {
+                $("#loaderDiv").hide();
+                console.log("error");
+                console.log(response);
+                displayAlert(response);
+            }
+        });
+</script>
+
+</body>
+</html>
+

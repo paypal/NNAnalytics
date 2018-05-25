@@ -1,0 +1,183 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+      <!-- Static navbar -->
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="./">NNAnalytics</a>
+          </div>
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+              <li class="dropdown">
+                <a target="_blank" href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Admin<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a target="_blank" href="./loadingStatus">Loading Status</a></li>
+                  <li><a target="_blank" href="./config">Configuration</a></li>
+                  <li><a target="_blank" href="./listOperations">Operations</a></li>
+                  <li><a target="_blank" href="./endpoints">Endpoints</a></li>
+                  <li><a target="_blank" href="./system">System</a></li>
+                  <li><a target="_blank" href="./threads">Threads</a></li>
+                  <li><a target="_blank" href="./info">Info</a></li>
+                  <li><a target="_blank" href="./log">Log</a></li>
+                  <li><a target="_blank" href="./namespace.html">Namespace</a></li>
+                </ul>
+              </li>
+              <li><a target="_blank" href="./suggestion.html">Suggestions</a></li>
+              <li><a target="_blank" href="./history.html">History</a></li>
+
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Averages<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a target="_blank" href="./division.html?set1=files&sum1=blockSize&set2=files&sum2=numBlocks">Block Size Preference (No Replication)</a></li>
+                  <li><a target="_blank" href="./division.html?set1=files&sum1=fileSize&set2=files&sum2=numBlocks">Block Size Space (No Replication)</a></li>
+                  <li><a target="_blank" href="./division.html?set1=files&sum1=diskspaceConsumed&set2=files&sum2=numReplicas">Block Size Space (With Replication)</a></li>
+                  <li><a target="_blank" href="./division.html?set1=files&sum1=fileSize&set2=files&sum2=count">File Size</a></li>
+                  <li><a target="_blank" href="./division.html?set1=files&sum1=diskspaceConsumed&set2=files&sum2=count">File Diskspace Used</a></li>
+                  <li><a target="_blank" href="./division.html?set1=files&sum1=count&set2=dirs&sum2=count">Number of Files Per Directory</a></li>
+                  <li><a target="_blank" href="./division.html?set1=files&sum1=fileSize&set2=dirs&sum2=count">File Sizes Per Directory</a></li>
+                  <li><a target="_blank" href="./division.html?set1=files&sum1=diskspaceConsumed&set2=dirs&sum2=count">Average Diskspace Used Per Directory</a></li>
+                  <!--<li class="dropdown-header">Nav header</li>-->
+                  <!--<li><a href="#">Separated link</a></li>-->
+                  <!--<li><a href="#">One more separated link</a></li>-->
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a target="_blank" href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Totals<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a target="_blank" href="./value.html?set=files&filters=fileSize:eq:0&sum=count">Sum of all Empty Files</a></li>
+                  <li><a target="_blank" href="./value.html?set=dirs&filters=dirNumChildren:eq:0&sum=count">Sum of all Empty Directories</a></li>
+                  <li><a target="_blank" href="./value.html?set=files&sum=numBlocks">Sum of all Blocks</a></li>
+                  <li><a target="_blank" href="./value.html?set=files&sum=numReplicas">Sum of all Replicas</a></li>
+                  <li><a target="_blank" href="./value.html?set=files&filters=isWithSnapshot:eq:true&sum=count">Sum of all Snapshot'd Files</a></li>
+                  <li><a target="_blank" href="./value.html?set=files&sum=diskspaceConsumed">Total Diskspace Used</a></li>
+                  <li><a target="_blank" href="./value.html?set=all&sum=memoryConsumed">Total NameNode Memory Used</a></li>
+                  <li><a target="_blank" href="./value.html?set=files&filters=isWithSnapshot:eq:true&sum=diskspaceConsumed">Total Snapshot'd Diskspace</a></li>
+                  <!--<li class="dropdown-header">Nav header</li>-->
+                  <!--<li><a href="#">Separated link</a></li>-->
+                  <!--<li><a href="#">One more separated link</a></li>-->
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Last 24 Hours<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=parentDir&sum=count&sortDescending=true&top=10&parentDirDepth=3">Directories (ParentDepth=3) by File Count</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=parentDir&sum=diskspaceConsumed&sortDescending=true&top=10&parentDirDepth=3">Directories (ParentDepth=3) by Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24,fileSize:eq:0&type=parentDir&sum=count&sortDescending=true&top=10&parentDirDepth=3">Directories (ParentDepth=3) by Empty Files</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=parentDir&sum=count&sortDescending=true&top=10">Directories by File Count</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=parentDir&sum=diskspaceConsumed&sortDescending=true&top=10">Directories by Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24,fileSize:eq:0&type=parentDir&sum=count&sortDescending=true&top=10">Directories by Empty Files</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=user&sum=count&sortDescending=true&top=10">Users by File Count</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=user&sum=diskspaceConsumed&sortDescending=true&top=10">Users by Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24,fileSize:eq:0&type=user&sum=count&sortDescending=true&top=10">Users by Empty Files</a></li>
+                  <li><a target="_blank" href="./custom.html?set=dirs&filters=modTime:hoursAgo:24,dirNumChildren:eq:0&type=user&sum=count&sortDescending=true&top=10">Users by Empty Directories</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=user&sum=numReplicas&sortDescending=true&top=10">Users by Block Replicas</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=storageType&sum=count&sortDescending=true&top=10">StoragePolicy by File Count</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=storageType&sum=diskspaceConsumed&sortDescending=true&top=10">StoragePolicy by Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:hoursAgo:24&type=fileType&sum=count&sortDescending=true">File Type Count</a></li>
+                  <!--<li class="dropdown-header">Nav header</li>-->
+                  <!--<li><a href="#">Separated link</a></li>-->
+                  <!--<li><a href="#">One more separated link</a></li>-->
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Last 7 Days<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=parentDir&sum=count&sortDescending=true&top=10&parentDirDepth=3">Directories (ParentDepth=3) by File Count</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=parentDir&sum=diskspaceConsumed&sortDescending=true&top=10&parentDirDepth=3">Directories (ParentDepth=3) by Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7,fileSize:eq:0&type=parentDir&sum=count&sortDescending=true&top=10&parentDirDepth=3">Directories (ParentDepth=3) by Empty Files</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=parentDir&sum=count&sortDescending=true&top=10">Directories by File Count</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=parentDir&sum=diskspaceConsumed&sortDescending=true&top=10">Directories by Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7,fileSize:eq:0&type=parentDir&sum=count&sortDescending=true&top=10">Directories by Empty Files</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=user&sum=count&sortDescending=true&top=10">Users by File Count</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=user&sum=diskspaceConsumed&sortDescending=true&top=10">Users by Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7,fileSize:eq:0&type=user&sum=count&sortDescending=true&top=10">Users by Empty Files</a></li>
+                  <li><a target="_blank" href="./custom.html?set=dirs&filters=modTime:daysAgo:7,dirNumChildren:eq:0&type=user&sum=count&sortDescending=true&top=10">Users by Empty Directories</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=user&sum=numReplicas&sortDescending=true&top=10">Users by Block Replicas</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=storageType&sum=count&sortDescending=true&top=10">StoragePolicy by File Count</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=storageType&sum=diskspaceConsumed&sortDescending=true&top=10">StoragePolicy by Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=modTime:daysAgo:7&type=fileType&sum=count&sortDescending=true">File Type Count</a></li>
+                  <!--<li class="dropdown-header">Nav header</li>-->
+                  <!--<li><a href="#">Separated link</a></li>-->
+                  <!--<li><a href="#">One more separated link</a></li>-->
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">User<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a target="_blank" href="./custom.html?set=files&filters=fileSize:eq:0&type=user&sum=count&sortDescending=true&top=10">Empty Files</a></li>
+                  <li><a target="_blank" href="./custom.html?set=dirs&filters=dirNumChildren:eq:0&type=user&sum=count&sortDescending=true&top=10">Empty Directories</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=fileSize:lte:1024,fileSize:gt:0&type=user&sum=count&sortDescending=true&top=10">Very Small Files (< 1KB)</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=fileSize:lte:1048576,fileSize:gt:0&type=user&sum=count&sortDescending=true&top=10">Small Files (< 1MB)</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=fileSize:lte:134217728,fileSize:gt:0&type=user&sum=count&sortDescending=true&top=10">Small Files (< 128MB)</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=fileSize:lte:268435456,fileSize:gt:0&type=user&sum=count&sortDescending=true&top=10">Small Files (< 256MB)</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&type=user&sum=count&sortDescending=true&top=10">Total Files</a></li>
+                  <li><a target="_blank" href="./custom.html?set=dirs&type=user&sum=count&sortDescending=true&top=10">Total Directories</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&type=user&sum=diskspaceConsumed&sortDescending=true&top=10">Diskspace</a></li>
+                  <li><a target="_blank" href="./custom.html?set=all&type=user&sum=memoryConsumed&sortDescending=true&top=10">Memory</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=fileSize:gt:0&type=user&sum=numBlocks&sortDescending=true&top=10">Blocks</a></li>
+                  <li><a target="_blank" href="./custom.html?set=files&filters=fileSize:gt:0&type=user&sum=numReplicas&sortDescending=true&top=10">Replicas</a></li>
+                  <!--<li class="dropdown-header">Nav header</li>-->
+                  <!--<li><a href="#">Separated link</a></li>-->
+                  <!--<li><a href="#">One more separated link</a></li>-->
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Reports<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a target="_blank" href="./report.html?set=files&type=fileSize">File Size</a></li>
+                  <li><a target="_blank" href="./report.html?set=files&type=storageType">Storage Policy</a></li>
+                  <li><a target="_blank" href="./report.html?set=files&type=fileReplica">File Replica</a></li>
+                  <li><a target="_blank" href="./report.html?set=files&type=fileType">File Type</a></li>
+                  <li><a target="_blank" href="./report.html?set=files&type=accessTime">Access Time</a></li>
+                  <li><a target="_blank" href="./report.html?set=files&type=modTime">Modification Time</a></li>
+                  <li><a target="_blank" href="./report.html?set=files&type=memoryConsumed">Memory</a></li>
+                  <li><a target="_blank" href="./report.html?set=files&type=parentDir&sortDescending=true&top=10&parentDirDepth=3">Directories (ParentDepth=3)</a></li>
+                  <li><a target="_blank" href="./report.html?set=files&type=parentDir&sortDescending=true&top=10">Directories</a></li>
+                  <!--<li class="dropdown-header">Nav header</li>-->
+                  <!--<li><a href="#">Separated link</a></li>-->
+                  <!--<li><a href="#">One more separated link</a></li>-->
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Transforms<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a target="_blank" href="./transform.html?set=files&type=fileReplica&sum=diskspaceConsumed&transformConditions=fileReplica:notEq:2&transformFields=fileReplica&transformOutputs=2">Equalize Replication 2</a></li>
+                  <li><a target="_blank" href="./transform.html?set=files&type=fileReplica&sum=diskspaceConsumed&transformConditions=fileReplica:notEq:3&transformFields=fileReplica&transformOutputs=3">Equalize Replication 3</a></li>
+                  <li><a target="_blank" href="./transform.html?set=files&type=fileReplica&sum=diskspaceConsumed&transformConditions=fileReplica:gt:3&transformFields=fileReplica&transformOutputs=3">Max Replication 3</a></li>
+                  <!--<li class="dropdown-header">Nav header</li>-->
+                  <!--<li><a href="#">Separated link</a></li>-->
+                  <!--<li><a href="#">One more separated link</a></li>-->
+                </ul>
+              </li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div><!--/.container-fluid -->
+      </nav>
+</html>
+
