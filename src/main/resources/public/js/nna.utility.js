@@ -408,3 +408,23 @@ function listIssues() {
 function Object_values(obj) {
     return Object.keys(obj).map(e => obj[e])
 }
+
+//shows admin menu in Navbar if user has admin credentials
+function checkIfAdmin() {
+    var proxy = getUrlParameter("proxy");
+    var urlPath = "./credentials";
+    if(proxy.length != 0) {
+        urlPath += "?proxy=" + proxy;
+    }
+
+    $.ajax({
+       type: 'GET',
+       url: urlPath,
+       dataType: 'text',
+
+       success: function(json) {
+          var isAdmin = json.includes("ADMIN");
+          $("li.admin-menu").show();
+       }
+    });
+}
