@@ -119,12 +119,6 @@ configurations {
     compile.extendsFrom(outboundDep)
     all*.exclude group: 'org.mortbay.jetty', module: 'servlet-api'
     all*.exclude group: 'javax.servlet', module: 'servlet-api'
-    outboundDep.resolutionStrategy {
-        force group: 'com.google.guava', name: 'guava', version: '11.0.2'
-    }
-    testCompile.resolutionStrategy {
-        force group: 'com.google.guava', name: 'guava', version: '11.0.2'
-    }
 }
 
 dependencies {
@@ -140,8 +134,12 @@ dependencies {
     outboundDep group: 'javax.mail', name: 'mail', version: '1.4.7'
     outboundDep group: 'org.hsqldb', name: 'hsqldb', version: '2.4.0'
     outboundDep group: 'org.mapdb', name: 'mapdb', version: '3.0.5'
+    outboundDep(group: 'com.google.guava', name: 'guava', version: '11.0.2') {
+        force = true
+    }
     outboundDep group: 'org.apache.hadoop', name: 'hadoop-common', version: "${hadoopVersion}"
     outboundDep group: 'org.apache.hadoop', name: 'hadoop-hdfs', version: "${hadoopVersion}"
+    testCompile group: 'org.apache.hadoop', name: 'hadoop-common', version: "${hadoopVersion}", classifier: 'tests'
     testCompile group: 'org.apache.hadoop', name: 'hadoop-hdfs', version: "${hadoopVersion}", classifier: 'tests'
     testCompile group: 'junit', name: 'junit', version: '4.11'
     testCompile group: 'org.jmockit', name: 'jmockit', version: '1.22'

@@ -58,6 +58,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
@@ -123,20 +124,18 @@ public class NNAnalyticsRestAPI {
 
   public static final Logger LOG = LoggerFactory.getLogger(NNAnalyticsRestAPI.class.getName());
 
-  private static final NNLoader nnLoader = new NNLoader();
-  private static final HSQLDriver hsqlDriver = new HSQLDriver();
-  private static final TransferFsImageWrapper transferFsImage =
-      new TransferFsImageWrapper(nnLoader);
-  private static final List<BaseQuery> runningQueries =
-      Collections.synchronizedList(new LinkedList<>());
-  private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-  private static final SecurityContext secContext = new SecurityContext();
+  private final NNLoader nnLoader = new NNLoader();
+  private final HSQLDriver hsqlDriver = new HSQLDriver();
+  private final TransferFsImageWrapper transferFsImage = new TransferFsImageWrapper(nnLoader);
+  private final List<BaseQuery> runningQueries = Collections.synchronizedList(new LinkedList<>());
+  private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+  private final SecurityContext secContext = new SecurityContext();
 
-  private static final ExecutorService operationService = Executors.newFixedThreadPool(1);
-  private static final ExecutorService internalService = Executors.newFixedThreadPool(2);
-  private static final Map<String, BaseOperation> runningOperations =
+  private final ExecutorService operationService = Executors.newFixedThreadPool(1);
+  private final ExecutorService internalService = Executors.newFixedThreadPool(2);
+  private final Map<String, BaseOperation> runningOperations =
       Collections.synchronizedMap(new HashMap<>());
-  private static final AtomicBoolean savingNamespace = new AtomicBoolean(false);
+  private final AtomicBoolean savingNamespace = new AtomicBoolean(false);
 
   /**
    * This is the main launching call for use in production. Should not accept any arguments --
@@ -150,12 +149,21 @@ public class NNAnalyticsRestAPI {
   public static void main(String[] args)
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
-      initAuth(null, null);
-      initRestServer();
-      initLoader(null, null);
+      NNAnalyticsRestAPI main = new NNAnalyticsRestAPI();
+      main.initAuth(null, null);
+      main.initRestServer();
+      main.initLoader(null, null);
     } catch (Throwable e) {
       LOG.info("FATAL: {}", e);
     }
+  }
+
+  public NNAnalyticsRestAPI() {}
+
+  @VisibleForTesting
+  public NNLoader initLoader(GSet<INode, INodeWithAdditionalFields> inodes, Boolean historical)
+      throws Exception {
+    return initLoader(inodes, historical, null);
   }
 
   /**
@@ -165,15 +173,21 @@ public class NNAnalyticsRestAPI {
    * @param inodes Optional parameter if you wish to initialize NNLoader with your own set of
    *     INodes.
    * @param historical Optional parameter whether to load up embedded SQL DB for historical
-   *     tracking; null means default to configuration.
+   *     tracking; null means default to configuration. tracking; null means default to
+   *     configuration.
+   * @param configuration Optional parameter for whether you want to load with predetermined
+   *     configuration; null means to load configuration from classpath.
    * @return An initialized NNLoader with predetermined INodes else INodes loaded from local
    *     FSImage.
    * @throws Exception SQLException, InterruptedException, NoSuchFieldException,
    *     IllegalAccessException
    */
   @VisibleForTesting
-  public static NNLoader initLoader(
-      GSet<INode, INodeWithAdditionalFields> inodes, Boolean historical) throws Exception {
+  public NNLoader initLoader(
+      GSet<INode, INodeWithAdditionalFields> inodes,
+      Boolean historical,
+      Configuration configuration)
+      throws Exception {
     SecurityConfiguration conf = new SecurityConfiguration();
     hsqlDriver.dropConnection();
     if (historical != null) {
@@ -181,7 +195,7 @@ public class NNAnalyticsRestAPI {
     } else {
       nnLoader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
     }
-    nnLoader.load(inodes);
+    nnLoader.load(inodes, configuration);
     nnLoader.initReloadThreads(internalService, conf);
     return nnLoader;
   }
@@ -197,7 +211,7 @@ public class NNAnalyticsRestAPI {
    *     authorization; null means default to configuration.
    */
   @VisibleForTesting
-  public static void initAuth(Boolean overrideAuthentication, Boolean overrideAuthorization) {
+  public void initAuth(Boolean overrideAuthentication, Boolean overrideAuthorization) {
     SecurityConfiguration secConf = new SecurityConfiguration();
     if (overrideAuthentication != null) {
       secConf.overrideLdapEnabled(overrideAuthentication);
@@ -284,7 +298,7 @@ public class NNAnalyticsRestAPI {
    * instances in tests.
    */
   @VisibleForTesting
-  public static void initRestServer() {
+  public void initRestServer() {
     /* This is the call to load everything under ./resources/public as HTML resources. */
     Spark.staticFileLocation("/public");
 
@@ -1616,7 +1630,7 @@ public class NNAnalyticsRestAPI {
           lock.writeLock().lock();
           try {
             nnLoader.clear();
-            nnLoader.load(null);
+            nnLoader.load(null, null);
             res.body("Reload complete.");
           } catch (Throwable e) {
             res.body("Reload failed: " + e);

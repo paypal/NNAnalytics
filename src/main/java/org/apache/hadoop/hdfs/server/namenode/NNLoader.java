@@ -1800,16 +1800,24 @@ public class NNLoader {
   }
 
   @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
-  public void load(GSet<INode, INodeWithAdditionalFields> preloadedInodes)
+  public void load(
+      GSet<INode, INodeWithAdditionalFields> preloadedInodes, Configuration configuration)
       throws InterruptedException, NoSuchFieldException, IllegalAccessException {
     /*
      * Configuration standard is: /etc/hadoop/conf.
      * Goal is to let configuration tell us where the FsImage and EditLogs are for loading.
      */
 
-    conf = new Configuration();
-    conf.addResource("hdfs-default.xml");
-    conf.addResource("hdfs-site.xml");
+    suggestionsEngine.start();
+    if (conf == null) {
+      if (configuration != null) {
+        conf = configuration;
+      } else {
+        conf = new Configuration();
+        conf.addResource("hdfs-default.xml");
+        conf.addResource("hdfs-site.xml");
+      }
+    }
     long start = System.currentTimeMillis();
 
     GSetParallelWrapper<INode, INodeWithAdditionalFields> gsetMap;
@@ -1946,9 +1954,14 @@ public class NNLoader {
   }
 
   public void clear() {
+    suggestionsEngine.stop();
     if (namesystem != null) {
       try {
+        namesystem.stopStandbyServices();
+        namesystem.getFSImage().getStorage().unlockAll();
         namesystem.shutdown();
+      } catch (IOException e) {
+        LOG.info("Failed to shutdown namesystem: " + e);
       } finally {
         namesystem = null;
       }

@@ -40,6 +40,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
+import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -60,6 +61,7 @@ public class TestNNAnalytics {
 
   private static HttpHost hostPort;
   private static HttpClient client;
+  private static NNLoader nn;
 
   public static void main(String[] args) throws Exception {
     beforeClass();
@@ -73,14 +75,16 @@ public class TestNNAnalytics {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    NNAnalyticsRestAPI.initAuth(false, false);
-    NNAnalyticsRestAPI.initRestServer();
-    NNAnalyticsRestAPI.initLoader(gset, true);
+    NNAnalyticsRestAPI nna = new NNAnalyticsRestAPI();
+    nna.initAuth(false, false);
+    nna.initRestServer();
+    nn = nna.initLoader(gset, false);
     hostPort = new HttpHost("localhost", 4567);
   }
 
   @AfterClass
   public static void tearDown() {
+    nn.clear();
     Spark.stop();
   }
 

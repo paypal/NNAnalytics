@@ -57,29 +57,18 @@ public class SuggestionsEngine {
 
   private final CacheManager cacheManager;
 
-  private final Map<String, Long> cachedValues;
-  private final Map<String, Map<String, Long>> cachedMaps;
-  private final Map<String, Long> cachedLogins;
-  private final Set<String> cachedUsers;
-  private final Set<String> cachedDirs;
-  private final Map<String, Map<String, Long>> cachedUserNsQuotas;
-  private final Map<String, Map<String, Long>> cachedUserDsQuotas;
+  private Map<String, Long> cachedValues;
+  private Map<String, Map<String, Long>> cachedMaps;
+  private Map<String, Long> cachedLogins;
+  private Set<String> cachedUsers;
+  private Set<String> cachedDirs;
+  private Map<String, Map<String, Long>> cachedUserNsQuotas;
+  private Map<String, Map<String, Long>> cachedUserDsQuotas;
 
-  private final AtomicBoolean loaded;
+  private AtomicBoolean loaded;
 
   public SuggestionsEngine() {
     this.cacheManager = new CacheManager();
-
-    this.cachedDirs = Collections.synchronizedSet(cacheManager.getCachedSet("cachedDirs"));
-    this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));
-    this.cachedValues = Collections.synchronizedMap(cacheManager.getCachedMap("cachedValues"));
-    this.cachedLogins = Collections.synchronizedMap(cacheManager.getCachedMap("cachedLogins"));
-    this.cachedMaps = Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedMaps"));
-    this.cachedUserNsQuotas =
-        Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserNsQuotas"));
-    this.cachedUserDsQuotas =
-        Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserDsQuotas"));
-
     this.loaded = new AtomicBoolean(false);
   }
 
@@ -678,5 +667,22 @@ public class SuggestionsEngine {
     issuesMap.put("dirCount24h", sliceFunc.apply(topDirCount24h));
     issuesMap.put("dirDiskspace24h", sliceFunc.apply(topDirDiskspace24h));
     return Histograms.toJson(issuesMap);
+  }
+
+  public void stop() {
+    cacheManager.stop();
+  }
+
+  public void start() {
+    cacheManager.start();
+    this.cachedDirs = Collections.synchronizedSet(cacheManager.getCachedSet("cachedDirs"));
+    this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));
+    this.cachedValues = Collections.synchronizedMap(cacheManager.getCachedMap("cachedValues"));
+    this.cachedLogins = Collections.synchronizedMap(cacheManager.getCachedMap("cachedLogins"));
+    this.cachedMaps = Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedMaps"));
+    this.cachedUserNsQuotas =
+        Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserNsQuotas"));
+    this.cachedUserDsQuotas =
+        Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserDsQuotas"));
   }
 }

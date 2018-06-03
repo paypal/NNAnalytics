@@ -35,13 +35,7 @@ import org.mapdb.Serializer;
  */
 public class CacheManager {
 
-  private final DB cache =
-      DBMaker.fileDB("/usr/local/nn-analytics/db/nna_cache")
-          .fileMmapEnable()
-          .transactionEnable()
-          .closeOnJvmShutdown()
-          .cleanerHackEnable()
-          .make();
+  private DB cache;
 
   public CacheManager() {}
 
@@ -59,5 +53,19 @@ public class CacheManager {
 
   public void commit() {
     cache.commit();
+  }
+
+  public void stop() {
+    cache.close();
+  }
+
+  public void start() {
+    cache =
+        DBMaker.fileDB("/usr/local/nn-analytics/db/nna_cache")
+            .fileMmapEnable()
+            .transactionEnable()
+            .closeOnJvmShutdown()
+            .cleanerHackEnable()
+            .make();
   }
 }
