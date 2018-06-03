@@ -45,8 +45,9 @@ public class TestAuthorization {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-    GSetGenerator.clear();
-    GSet<INode, INodeWithAdditionalFields> gset = GSetGenerator.getGSet((short) 3, 10, 500);
+    GSetGenerator gSetGenerator = new GSetGenerator();
+    gSetGenerator.clear();
+    GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
     NNAnalyticsRestAPI.initAuth(false, true);
     NNAnalyticsRestAPI.initRestServer();
     NNAnalyticsRestAPI.initLoader(gset, false);

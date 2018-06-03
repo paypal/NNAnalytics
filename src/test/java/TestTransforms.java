@@ -47,8 +47,9 @@ public class TestTransforms {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-    GSetGenerator.clear();
-    gset = GSetGenerator.getGSet((short) 2, 3, 100);
+    GSetGenerator gSetGenerator = new GSetGenerator();
+    gSetGenerator.clear();
+    gset = gSetGenerator.getGSet((short) 2, 3, 100);
     NNAnalyticsRestAPI.initAuth(false, false);
     NNAnalyticsRestAPI.initRestServer();
     loader = NNAnalyticsRestAPI.initLoader(gset, false);

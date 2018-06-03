@@ -39,8 +39,9 @@ public class TestINodeTransfer {
 
   @BeforeClass
   public static void beforeClass() {
-    GSetGenerator.clear();
-    gset = GSetGenerator.getGSet((short) 3, 10, 100);
+    GSetGenerator gSetGenerator = new GSetGenerator();
+    gSetGenerator.clear();
+    gset = gSetGenerator.getGSet((short) 3, 10, 100);
   }
 
   /* This is busted. If we uncomment this everything else breaks. :S. */
