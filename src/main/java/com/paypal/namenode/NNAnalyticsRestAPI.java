@@ -141,6 +141,11 @@ public class NNAnalyticsRestAPI {
   /**
    * This is the main launching call for use in production. Should not accept any arguments --
    * service is dictated by configuration files.
+   *
+   * @param args main argument although its not used
+   * @throws InterruptedException InterruptedException
+   * @throws IllegalAccessException IllegalAccessException
+   * @throws NoSuchFieldException NoSuchFieldException
    */
   public static void main(String[] args)
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
@@ -163,6 +168,7 @@ public class NNAnalyticsRestAPI {
    * tracking; null means default to configuration.
    * @return An initialized NNLoader with predetermined INodes else INodes loaded from local
    * FSImage.
+   * @throws Exception SQLException, InterruptedException, NoSuchFieldException, IllegalAccessException
    */
   @VisibleForTesting
   public static NNLoader initLoader(GSet<INode, INodeWithAdditionalFields> inodes,

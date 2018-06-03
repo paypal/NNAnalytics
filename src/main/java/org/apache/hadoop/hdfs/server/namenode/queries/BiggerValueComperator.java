@@ -24,6 +24,13 @@ import java.util.Map;
 
 class BiggerValueComperator implements Comparator<Map.Entry<String, Long>>, Serializable {
 
+  /**
+   * compares the given value of the map entry.
+   *
+   * @param o1 first map entry containing value to be compared
+   * @param o2 second map entry containing value to be compared
+   * @return -1 if first is bigger, 0 if both are equal value, 1 if second is bigger.
+   */
   @Override
   public int compare(Map.Entry<String, Long> o1, Map.Entry<String, Long> o2) {
     long result = o2.getValue() - o1.getValue();
