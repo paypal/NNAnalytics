@@ -33,6 +33,7 @@ interface Operation {
   void close();
 
   /**
+   * @param numOfLast number of at most paths
    * @return the list of, at most length 'numOfLast', inode paths that operations were attempted on.
    */
   List<String> lastPerformed(int numOfLast);

@@ -54,6 +54,7 @@ public class TransferFsImageWrapper {
   /**
    * This is meant to download the latest FSImage without relying on FSNamesystem or other running
    * HDFS classes within NNLoader.
+   * @throws IOException if FileSystem can not be initialized
    */
   public void downloadMostRecentImage() throws IOException {
     FileSystem fileSystem = nnLoader.getFileSystem();

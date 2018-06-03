@@ -38,7 +38,13 @@ public class Histograms {
   public static final Logger LOG = NNLoader.LOG;
 
   /**
-   * Result is JSON that can be utilized by Chart.js for rendering on HTML canvas pages.
+   * converts given histogram along with title, x and y lables to json string for Chart.js
+   *
+   * @param histogram data points of histogram
+   * @param title title to be used for chart
+   * @param ylabel xlabel to be used for chart
+   * @param xlabel ylabel to be used for chart
+   * @return json string containing data points to be used as input to Chart.js for rendering on HTML canvas pages.
    */
   public static String toChartJsJson(Map<String, Long> histogram, String title, String ylabel,
       String xlabel) {
@@ -66,7 +72,9 @@ public class Histograms {
   }
 
   /**
-   * Result is a pure JSON set.
+   * converts given set of values to json string.
+   * @param set set of values to be converted to json
+   * @return json string
    */
   public static String toJson(Object set) {
     long s1 = System.currentTimeMillis();
@@ -78,7 +86,11 @@ public class Histograms {
   }
 
   /**
-   * Result is a pure CSV of the parameter histogram.
+   * converts given histogram data points to csv string
+   *
+   * @param histogram data points of histogram
+   * @param find      specifies field to be included as date (accessTime or modTime)
+   * @return csv string of histogram
    */
   public static String toCSV(Map<String, Long> histogram, String find) {
     long s1 = System.currentTimeMillis();
@@ -110,7 +122,10 @@ public class Histograms {
   }
 
   /**
-   * Result is a pure CSV of the parameter histogram.
+   * This function converts histogram map to csv string
+   *
+   * @param histogram data points of histogram
+   * @return csv string of the input histogram.
    */
   public static String toCSV(Map<String, List<Long>> histogram) {
     long s1 = System.currentTimeMillis();
@@ -136,6 +151,10 @@ public class Histograms {
   /**
    * Result is a histogram with only the top 'top' number of results. Top being those with the
    * highest long values in the positive direction.
+   *
+   * @param histogram data points of histogram
+   * @param top       the number of top(largest) elements by value to be included from given histogram
+   * @return sliced histogram with top elements
    */
   public static Map<String, Long> sliceToTop(Map<String, Long> histogram, int top) {
     return slice(histogram, new BiggerValueComperator(), top);
@@ -144,6 +163,10 @@ public class Histograms {
   /**
    * Result is a histogram with only the bottom 'bottom' number of results. Bottom being those with
    * the lowest long values in the negative direction.
+   *
+   * @param histogram data points of histogram
+   * @param bottom    the number of bottom(smallest) elements by value to include from given histogram
+   * @return sliced histogram with bottom elements
    */
   public static Map<String, Long> sliceToBottom(Map<String, Long> histogram, int bottom) {
     return slice(histogram, new BiggerValueComperator().reversed(), bottom);
@@ -159,10 +182,12 @@ public class Histograms {
   }
 
   /**
-   * Result is a sorted histogram based on the input and the keys that go with the input. As long as
+   * Creates sorted histogram from given list of keys and values corresponding to the keys. As long as
    * the keys are in sorted order the output histogram will be as well.
    *
-   * Ex: <"key1", "key2"> and [100,200] results into <"key1":100,"key2":200>.
+   * @param keys      list of keys for histogram ex: ["key1", "key2"]
+   * @param histogram corresponding values for the given keys ex: [100,200]
+   * @return map of input key and value as histogram ex: ["key1":100,"key2":200]
    */
   public static Map<String, Long> sortByKeys(List<String> keys,
       long[] histogram) {
@@ -181,10 +206,12 @@ public class Histograms {
   }
 
   /**
-   * Result is a mapped histogram based on the input and the keys that go with the input. The Map
+   * Creates a mapped histogram based on the input and the keys that go with the input. The Map
    * key's values are used an integers to index into the parameter long array.
    *
-   * Ex: <"key1":1L,"key2":0L> and [100,200] results into <"key1":200,"key2":100>.
+   * @param binKeyMap map of key and value index in histogram, ex: ["key1":1L,"key2":0L]
+   * @param histogram list of values for the keys, ex: [100,200]
+   * @return map of input key and value as histogram, ex: ["key1":200,"key2":100].
    */
   public static Map<String, Long> mapByKeys(Map<String, Long> binKeyMap,
       long[] histogram) {
@@ -205,12 +232,13 @@ public class Histograms {
     return sortedHistogram;
   }
 
-  /**
-   * Result is a mapped histogram based on the input and the keys that go with the input. Long array
-   * values are used as keys; any "0" values in array are not mapped.
-   *
-   * Ex: [100,0,200,300] results into <"0":100,"2":200,"2+":300>.
-   */
+    /**
+     * Creates a mapped histogram based on the input and the keys that go with the input. Long array
+     * values are used as keys; any "0" values in array are not mapped.
+     *
+     * @param histogram list of long data point values, ex: [100,0,200,300]
+     * @return mapped histogram based on the input and the keys that go with the input, ex: ["0":100,"2":200,"2+":300].
+     */
   public static Map<String, Long> mapToNonEmptyIndex(long[] histogram) {
     if (histogram.length == 0) {
       return Collections.emptyMap();
@@ -233,6 +261,12 @@ public class Histograms {
 
   /**
    * Result is a histogram sorted by its values.
+   *
+   * @param <K>       the type of the map keys
+   * @param <V>       the type of the map values
+   * @param map       map values to be sorted
+   * @param ascending indicates whether ascending or descending sort order
+   * @return sorted map
    */
   public static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map,
       boolean ascending) {

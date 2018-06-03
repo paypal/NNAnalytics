@@ -1792,11 +1792,14 @@ public class NNLoader {
   }
 
   /**
-   * Result is a histogram with only entries that satisfy the conditional String. Conditional String
+   * Creates histogram with only entries that satisfy the conditional String. Conditional String
    * ex: 'gte:1000' should create a histogram where all entries have values greater than or equal to
    * 1000L.
-   *
    * NOTE: Modifies the parameter histogram.
+   *
+   * @param histogram              data points of histogram
+   * @param histogramConditionsStr conditional string to filter out the given histogram
+   * @return filtered histogram as per the given conditional string
    */
   public Map<String, Long> removeKeysOnConditional(Map<String, Long> histogram,
       String histogramConditionsStr) {
@@ -1826,6 +1829,9 @@ public class NNLoader {
    * 1000L.
    *
    * NOTE: Modifies the parameter histogram.
+   * @param histogram              data points of histogram
+   * @param histogramConditionsStr conditional string to filter out the given histogram
+   * @return filtered histogram as per the given conditional string
    */
   public Map<String, List<Long>> removeKeysOnConditional2(Map<String, List<Long>> histogram,
       String histogramConditionsStr) {
