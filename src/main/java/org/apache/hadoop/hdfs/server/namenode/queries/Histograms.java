@@ -80,8 +80,7 @@ public class Histograms {
     long s1 = System.currentTimeMillis();
     String gson = new Gson().toJson(set);
     long e1 = System.currentTimeMillis();
-    LOG.info("Time to convert object to JSON of " + gson.length() + " chars took: " + (e1 - s1)
-        + " ms.");
+    LOG.info("Time to convert object to JSON of {} chars took: {} ms.", gson.length(), (e1 - s1));
     return gson;
   }
 
@@ -116,8 +115,7 @@ public class Histograms {
 
     long e1 = System.currentTimeMillis();
     String csv = sb.toString();
-    LOG.info("Time to dump histogram to CSV String of " + csv.length() + " chars took: " + (e1 - s1)
-        + " ms.");
+    LOG.info("Time to dump histogram to CSV String of {} chars took: {} ms.", csv.length(), (e1 - s1));
     return csv;
   }
 
@@ -143,8 +141,7 @@ public class Histograms {
     long e1 = System.currentTimeMillis();
     String csv = sb.toString();
     LOG.info(
-        "Time to dump histogram2 to CSV String of " + csv.length() + " chars took: " + (e1 - s1)
-            + " ms.");
+        "Time to dump histogram2 to CSV String of {} chars took: {} ms.", csv.length(), (e1 - s1));
     return csv;
   }
 

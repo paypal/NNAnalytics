@@ -154,7 +154,7 @@ public class NNAnalyticsRestAPI {
       initRestServer();
       initLoader(null, null);
     } catch (Throwable e) {
-      LOG.info("FATAL: " + e);
+      LOG.info("FATAL: {}", e);
     }
   }
 
@@ -614,7 +614,7 @@ public class NNAnalyticsRestAPI {
           long sumValue2 = nnLoader.sum(inodes2, sum2);
           float division = (float) sumValue1 / (float) sumValue2;
 
-          LOG.info("The result of " + sumValue1 + " dividied by " + sumValue2 + " is: " + division);
+          LOG.info("The result of {} dividied by {} is: {}", sumValue1, sumValue2, division);
           String message;
           if (division > 100) {
             message = String.valueOf(((long) division));
@@ -629,7 +629,7 @@ public class NNAnalyticsRestAPI {
               }
               MailOutput.write(subject, message, emailHost, emailsTo, emailsCC, emailFrom);
             } catch (Exception e) {
-              LOG.info("Failed to email output with exception: " + e);
+              LOG.info("Failed to email output with exception: {}", e);
             }
           }
           res.body(message);
@@ -694,10 +694,10 @@ public class NNAnalyticsRestAPI {
               }
               MailOutput.write(subject, message, emailHost, emailsTo, emailsCC, emailFrom);
             } catch (Exception e) {
-              LOG.info("Failed to email output with exception: " + e);
+              LOG.info("Failed to email output with exception: {}", e);
             }
           }
-          LOG.info("Returning filter result: " + message + ".");
+          LOG.info("Returning filter result: {}.", message);
           res.body(message);
         } else if (sums.length > 1 && sumStr != null) {
           StringBuilder message = new StringBuilder();
@@ -857,7 +857,7 @@ public class NNAnalyticsRestAPI {
         }
 
         long endTime = System.currentTimeMillis();
-        LOG.info("Performing histogram: " + histType + " took: " + (endTime - startTime) + " ms.");
+        LOG.info("Performing histogram: {} took: {} ms.", histType, (endTime - startTime));
 
         // Email out.
         if (emailsTo != null && emailsTo.length != 0 && emailHost != null && emailFrom != null) {
@@ -872,7 +872,7 @@ public class NNAnalyticsRestAPI {
             MailOutput
                 .write(subject, histogram, highlightKeys, emailHost, emailsTo, emailsCC, emailFrom);
           } catch (Exception e) {
-            LOG.info("Failed to email output with exception: " + e);
+            LOG.info("Failed to email output with exception: {}", e);
           }
         }
 
@@ -1033,7 +1033,7 @@ public class NNAnalyticsRestAPI {
         }
 
         long endTime = System.currentTimeMillis();
-        LOG.info("Performing histogram2: " + histType + " took: " + (endTime - startTime) + " ms.");
+        LOG.info("Performing histogram2: {} took: {} ms.", histType, (endTime - startTime));
 
         // Return final histogram to Web UI as output type.
         NNAConstants.HISTOGRAM_OUTPUT output = NNAConstants.HISTOGRAM_OUTPUT.valueOf(outputType);
@@ -1134,7 +1134,7 @@ public class NNAnalyticsRestAPI {
             operationObj.close();
           } catch (IllegalStateException e) {
             operationObj.abort();
-            LOG.info("Aborted operation due to: " + e);
+            LOG.info("Aborted operation due to: {}", e);
           }
           runningOperations.remove(operationObj.identity());
         });
@@ -1240,7 +1240,7 @@ public class NNAnalyticsRestAPI {
         }
         operation.abort();
 
-        LOG.info("Aborted Operation: " + operation.identity());
+        LOG.info("Aborted Operation: {}", operation.identity());
 
         int totalToPerform = operation.totalToPerform();
         int numPerformed = operation.numPerformed();
@@ -1524,7 +1524,7 @@ public class NNAnalyticsRestAPI {
           runningQueries.remove(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
         }
       }
-      LOG.info("EXCEPTION encountered: " + ex);
+      LOG.info("EXCEPTION encountered: {}", ex);
       LOG.info(Arrays.toString(ex.getStackTrace()));
     });
 

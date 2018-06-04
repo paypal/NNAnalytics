@@ -224,8 +224,8 @@ public class NNLoader {
             "You did not specify a set to use. Please check /sets for available sets.");
     }
     long end = System.currentTimeMillis();
-    LOG.info("Fetching set of: " + set + " had result size: " + inodes.size() + " and took: " + (end
-        - start) + " ms.");
+    LOG.info("Fetching set of: {} had result size: {} and took: {} ms.", set, inodes.size(), (end
+        - start));
     return inodes;
   }
 
@@ -251,7 +251,7 @@ public class NNLoader {
   public void dumpLog(Integer charsLimitVar, HttpServletResponse resp)
       throws IOException {
     int charLimit = (charsLimitVar != null) ? charsLimitVar : 4000;
-    LOG.info("Dumping last " + charLimit + " chars of logging to a client.");
+    LOG.info("Dumping last {} chars of logging to a client.", charLimit);
     long start = System.currentTimeMillis();
     PrintWriter writer = resp.getWriter();
     String logPath = System.getProperty("hadoop.log.dir", "/var/log/nn-analytics");
@@ -272,7 +272,7 @@ public class NNLoader {
       LOG.info("Closed response.");
     }
     long end = System.currentTimeMillis();
-    LOG.info("Dumping the log response took " + (end - start) + "ms.");
+    LOG.info("Dumping the log response took {} ms.", (end - start));
   }
 
   public Collection<INode> combinedFilter(Collection<INode> inodes,
@@ -300,8 +300,8 @@ public class NNLoader {
       return stream.collect(Collectors.toList());
     } finally {
       long end = System.currentTimeMillis();
-      LOG.info("Performing filters: " + Arrays.asList(filters) + ", with filterOps: " +
-          Arrays.asList(filterOps) + " took: " + (end - start) + " ms.");
+      LOG.info("Performing filters: {} with filterOps: {} took: {} ms.", Arrays.asList(filters),
+          Arrays.asList(filterOps), (end - start));
     }
   }
 
@@ -331,7 +331,7 @@ public class NNLoader {
       }
     } finally {
       long end = System.currentTimeMillis();
-      LOG.info("Performing find: " + Arrays.asList(findOps) + ", took: " + (end - start) + " ms.");
+      LOG.info("Performing find: {} took: {} ms.", Arrays.asList(findOps), (end - start));
     }
 
     return optional.<Collection<INode>>map(Collections::singleton).orElseGet(Collections::emptySet);
@@ -373,8 +373,7 @@ public class NNLoader {
               "\nPossible filters and operations available at /filters and /filterOps.");
     } finally {
       long end = System.currentTimeMillis();
-      LOG.info("Obtaining filter: " + filter + ", with filterOps: " + Arrays.asList(filterOps) +
-          " took: " + (end - start) + " ms.");
+      LOG.info("Obtaining filter: {} with filterOps:{} took: {} ms.", filter, Arrays.asList(filterOps), (end - start));
     }
   }
 
@@ -385,7 +384,7 @@ public class NNLoader {
       return sumFunction.apply(inodes);
     } finally {
       long endTime = System.currentTimeMillis();
-      LOG.info("Performing sum: " + sum + " took: " + (endTime - startTime) + " ms.");
+      LOG.info("Performing sum: {} took: {} ms.", sum, (endTime - startTime));
     }
   }
 
@@ -709,7 +708,7 @@ public class NNLoader {
       Map<String, Function<INode, Long>> transformMap,
       String transformKey) {
     if (transformMap.containsKey(transformKey)) {
-      LOG.info("Function transformed for: " + transformKey);
+      LOG.info("Function transformed for: {}", transformKey);
       return transformMap.get(transformKey);
     }
     return stdFunc;
@@ -804,7 +803,7 @@ public class NNLoader {
     long[] sums = inodes.parallelStream().mapToLong(sumFunc::apply).toArray();
 
     long end = System.currentTimeMillis();
-    LOG.info("Fetching " + sum + " data took: " + (end - start) + " ms.");
+    LOG.info("Fetching {} data took: {} ms.", sum, (end - start));
 
     return new long[][]{data, sums};
   }
@@ -839,22 +838,22 @@ public class NNLoader {
               }
             }
         );
-        LOG.info("Histogram returned an array of size: " + histogram.length);
+        LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
-      LOG.info("Encountered exception during loading:\n" + e);
+      LOG.info("Encountered exception during loading:\n {}", e);
       for (StackTraceElement stacktrace : e.getStackTrace()) {
         LOG.info(stacktrace.toString());
       }
       throw e;
     }
     long end1 = System.currentTimeMillis();
-    LOG.info("Histogram took: " + (end1 - start1) + " ms.");
-    LOG.info("Histogram result has size: " + histogram.length + ".");
+    LOG.info("Histogram took: {} ms.", (end1 - start1));
+    LOG.info("Histogram result has size: {}.", histogram.length);
     if (histogram.length > 100) {
       LOG.info("It is too big to console out.");
     } else {
-      LOG.info("Result is: " + java.util.Arrays.toString(histogram));
+      LOG.info("Result is: {}", java.util.Arrays.toString(histogram));
     }
     return Histograms.mapToNonEmptyIndex(histogram);
   }
@@ -902,22 +901,22 @@ public class NNLoader {
               }
             }
         );
-        LOG.info("Histogram returned an array of size: " + histogram.length);
+        LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
-      LOG.info("Encountered exception during loading:\n" + e);
+      LOG.info("Encountered exception during loading:\n {}", e);
       for (StackTraceElement stacktrace : e.getStackTrace()) {
         LOG.info(stacktrace.toString());
       }
       throw e;
     }
     long end1 = System.currentTimeMillis();
-    LOG.info("Histogram (with find) took: " + (end1 - start1) + " ms.");
-    LOG.info("Histogram (with find) result has size: " + histogram.length);
+    LOG.info("Histogram (with find) took: {} ms.",(end1 - start1));
+    LOG.info("Histogram (with find) result has size: {} ", histogram.length);
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: " + java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
     }
     return Histograms.mapToNonEmptyIndex(histogram);
   }
@@ -952,22 +951,22 @@ public class NNLoader {
               }
             }
         );
-        LOG.info("Histogram returned an array of size: " + histogram.length);
+        LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
-      LOG.info("Encountered exception during loading:\n" + e);
+      LOG.info("Encountered exception during loading:\n {}", e);
       for (StackTraceElement stacktrace : e.getStackTrace()) {
         LOG.info(stacktrace.toString());
       }
       throw e;
     }
     long end1 = System.currentTimeMillis();
-    LOG.info("Histogram took: " + (end1 - start1) + " ms.");
-    LOG.info("Histogram result has size: " + histogram.length);
+    LOG.info("Histogram took: {} ms.", (end1 - start1));
+    LOG.info("Histogram result has size: {}", histogram.length);
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: " + java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
     }
     return Histograms.mapByKeys(binKeyMap, histogram);
   }
@@ -1020,7 +1019,7 @@ public class NNLoader {
           }
         }
         histogram = Arrays.stream(bigHistogram).mapToLong(BigInteger::longValue).toArray();
-        LOG.info("Histogram returned an array of size: " + histogram.length);
+        LOG.info("Histogram returned an array of size: {}", histogram.length);
       } else {
         histogram = new long[binKeyMap.size() + 1];
         Arrays.fill(histogram, -1L);
@@ -1053,22 +1052,22 @@ public class NNLoader {
         if (histogram[binKeyMap.size()] == -1) {
           histogram[binKeyMap.size()] = 0;
         }
-        LOG.info("Histogram returned an array of size: " + histogram.length);
+        LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
-      LOG.info("Encountered exception during loading:\n" + e);
+      LOG.info("Encountered exception during loading:\n {}", e);
       for (StackTraceElement stacktrace : e.getStackTrace()) {
         LOG.info(stacktrace.toString());
       }
       throw e;
     }
     long end1 = System.currentTimeMillis();
-    LOG.info("Histogram (with find) took: " + (end1 - start1) + " ms.");
-    LOG.info("Histogram (with find) result has size: " + histogram.length);
+    LOG.info("Histogram (with find) took: {} ms.", (end1 - start1));
+    LOG.info("Histogram (with find) result has size: {}", histogram.length);
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: " + java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
     }
     return Histograms.mapByKeys(binKeyMap, histogram);
   }
@@ -1105,22 +1104,22 @@ public class NNLoader {
               }
             }
         );
-        LOG.info("Histogram returned an array of size: " + histogram.length);
+        LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
-      LOG.info("Encountered exception during loading:\n" + e);
+      LOG.info("Encountered exception during loading:\n {}", e);
       for (StackTraceElement stacktrace : e.getStackTrace()) {
         LOG.info(stacktrace.toString());
       }
       throw e;
     }
     long end1 = System.currentTimeMillis();
-    LOG.info("Histogram took: " + (end1 - start1) + " ms.");
-    LOG.info("Histogram result has size: " + histogram.length);
+    LOG.info("Histogram took: {} ms.", (end1 - start1));
+    LOG.info("Histogram result has size: {}", histogram.length);
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: " + java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
     }
     return Histograms.sortByKeys(keys, histogram);
   }
@@ -1171,7 +1170,7 @@ public class NNLoader {
           }
         }
         histogram = Arrays.stream(bigHistogram).mapToLong(BigInteger::longValue).toArray();
-        LOG.info("Histogram returned an array of size: " + histogram.length);
+        LOG.info("Histogram returned an array of size: {}", histogram.length);
       } else {
         histogram = new long[binsArray.length + 1];
         IntStream.range(0, data.length).parallel().forEach(idx ->
@@ -1201,22 +1200,22 @@ public class NNLoader {
               }
             }
         );
-        LOG.info("Histogram returned an array of size: " + histogram.length);
+        LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
-      LOG.info("Encountered exception during loading:\n" + e);
+      LOG.info("Encountered exception during loading:\n {}", e);
       for (StackTraceElement stacktrace : e.getStackTrace()) {
         LOG.info(stacktrace.toString());
       }
       throw e;
     }
     long end1 = System.currentTimeMillis();
-    LOG.info("Histogram (with find) took: " + (end1 - start1) + " ms.");
-    LOG.info("Histogram (with find) result has size: " + histogram.length);
+    LOG.info("Histogram (with find) took: {} ms.", (end1 - start1));
+    LOG.info("Histogram (with find) result has size: {}", histogram.length);
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: " + java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
     }
     return Histograms.sortByKeys(keys, histogram);
   }
@@ -1355,7 +1354,7 @@ public class NNLoader {
       Integer limit,
       HttpServletResponse resp)
       throws IOException {
-    LOG.info("Dumping a list of " + inodes.size() + " INodes to a client.");
+    LOG.info("Dumping a list of {} INodes to a client.", inodes.size());
     long start = System.currentTimeMillis();
     PrintWriter writer = resp.getWriter();
     try {
@@ -1374,7 +1373,7 @@ public class NNLoader {
       LOG.info("Closed response.");
     }
     long end = System.currentTimeMillis();
-    LOG.info("Sending the entire response took " + (end - start) + "ms.");
+    LOG.info("Sending the entire response took {} ms.", (end - start));
   }
 
   public Map<String, Long> byUserHistogram(Collection<INode> inodes, String sum, String find) {
@@ -1646,17 +1645,16 @@ public class NNLoader {
 
     GSetParallelWrapper<INode, INodeWithAdditionalFields> gsetMap;
     if (preloadedInodes == null) {
-      LOG.info("Setting: " + DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY + " to: " + false);
+      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
 
-      LOG.info("Setting: " + DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY + " to: " + (-1));
+      LOG.info("Setting: {} to: {} ", DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, (-1));
       conf.setInt(DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, -1);
 
-      LOG.info("Setting: " + DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY + " to: " + false);
+      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
 
-      LOG.info("Setting: " + DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY
-          + " to: /usr/local/nn-analytics/dfs/name");
+      LOG.info("Setting: {} to: /usr/local/nn-analytics/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
       conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, "/usr/local/nn-analytics/dfs/name");
 
       String nameserviceId = DFSUtil.getOnlyNameServiceIdOrNull(conf);
@@ -1666,28 +1664,28 @@ public class NNLoader {
         /* Hack for 2.4.0 support. attempt to override with internal nameservices. */
         nameserviceId = conf.get("dfs.internal.nameservices");
 
-        LOG.info("Setting: " + DFSConfigKeys.DFS_NAMESERVICE_ID + " to: " + nameserviceId);
+        LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_NAMESERVICE_ID, nameserviceId);
         conf.set(DFSConfigKeys.DFS_NAMESERVICE_ID, nameserviceId);
       }
 
       UserGroupInformation.setConfiguration(conf);
       reloadKeytab();
 
-      LOG.info("Loading with configuration: " + conf.toString());
+      LOG.info("Loading with configuration: {}", conf.toString());
       LOG.info(
-          "FileSystem seen as: " + conf.get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY));
-      LOG.info("Loading image from: " + conf.get(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY));
+          "FileSystem seen as: {}", conf.get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY));
+      LOG.info("Loading image from: {}", conf.get(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY));
       long start1 = System.currentTimeMillis();
       try {
         namesystem = FSNamesystem.loadFromDisk(conf);
         namesystem.setSafeMode(HdfsConstants.SafeModeAction.SAFEMODE_ENTER);
       } catch (IOException e) {
-        LOG.info("Failed to load namesystem: " + e);
+        LOG.info("Failed to load namesystem: {}", e);
         return;
       }
       long end1 = System.currentTimeMillis();
-      LOG.info("FSImage loaded in: " + (end1 - start1) + " ms.");
-      LOG.info("Loaded in " + namesystem.getFilesTotal() + " INodes.");
+      LOG.info("FSImage loaded in: {} ms.", (end1 - start1));
+      LOG.info("Loaded in {} Inodes", namesystem.getFilesTotal());
 
       namesystem.writeLock();
       tokenExtractor = new TokenExtractor(namesystem.dtSecretManager, namesystem);
@@ -1709,8 +1707,7 @@ public class NNLoader {
     dirs = StreamSupport.stream(gsetMap.spliterator(), true).filter(INode::isDirectory)
         .collect(Collectors.toConcurrentMap(node -> node, node -> node));
     long e1 = System.currentTimeMillis();
-    LOG.info("Filtering " + files.size() + " files and " + dirs.size() + " dirs took: " + (e1 - s1)
-        + " ms.");
+    LOG.info("Filtering {} files and {} dirs took: {} ms.", files.size(), dirs.size(), (e1 - s1));
 
     if (preloadedInodes == null) {
       // Start tailing and updating security credentials threads.
@@ -1727,12 +1724,12 @@ public class NNLoader {
         namesystem.startStandbyServices(conf);
         versionLoader.setNamesystem(namesystem);
       } catch (Throwable e) {
-        LOG.info("ERROR: Failed to start EditLogTailer: " + e);
+        LOG.info("ERROR: Failed to start EditLogTailer: {}", e);
       }
     }
 
     long end = System.currentTimeMillis();
-    LOG.info("NNLoader bootstrap'd in: " + (end - start) + " ms.");
+    LOG.info("NNLoader bootstrap'd in: {} ms.", (end - start));
     inited.set(true);
   }
 
@@ -1817,8 +1814,8 @@ public class NNLoader {
     keys.forEach(histogram::remove);
 
     long e1 = System.currentTimeMillis();
-    LOG.info("Removing " + keys.size() + " keys from histogram of size " + originalHistSize +
-        " using conditional String: '" + histogramConditionsStr + "', took: " + (e1 - s1) + " ms.");
+    LOG.info("Removing {} keys from histogram of size {} using conditional String:'{}', took: {} ms.", keys.size(), originalHistSize,
+        histogramConditionsStr, (e1 - s1));
 
     return histogram;
   }
@@ -1850,8 +1847,8 @@ public class NNLoader {
     keys.forEach(histogram::remove);
 
     long e1 = System.currentTimeMillis();
-    LOG.info("Removing " + keys.size() + " keys from histogram2 of size " + originalHistSize +
-        " using conditional String: '" + histogramConditionsStr + "', took: " + (e1 - s1) + " ms.");
+    LOG.info("Removing {} keys from histogram2 of size {} using conditional String:'{}', took: {} ms.", keys.size(), originalHistSize,
+            histogramConditionsStr, (e1 - s1));
 
     return histogram;
   }
@@ -1942,7 +1939,7 @@ public class NNLoader {
         try {
           suggestionsEngine.reloadSuggestions(this);
         } catch (Throwable e) {
-          LOG.info("Suggestion reload failed: " + e);
+          LOG.info("Suggestion reload failed: {}", e);
           for (StackTraceElement element : e.getStackTrace()) {
             LOG.info(element.toString());
           }

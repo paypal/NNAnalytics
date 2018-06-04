@@ -102,7 +102,7 @@ public class SecurityContext {
       return;
     }
     if (!init) {
-      LOG.info("Request occurred before initialized from: " + req.ip());
+      LOG.info("Request occurred before initialized from: {}", req.ip());
       throw new AuthenticationException("Please wait for initialization.");
     }
 
@@ -119,11 +119,11 @@ public class SecurityContext {
         res.header("Set-Cookie", "nna-jwt-token=" + generate);
 
         manager.save(true, userProfile, false);
-        LOG.info("Login success via [TOKEN] for: " + req.ip());
+        LOG.info("Login success via [TOKEN] for: {}", req.ip());
 
         currentUser.set(userProfile.getId());
       } catch (Exception e) {
-        LOG.info("Login failed via [TOKEN] for: " + req.ip());
+        LOG.info("Login failed via [TOKEN] for: {}", req.ip());
         throw new AuthenticationException(e);
       }
     } else if (login != null && login.startsWith("Basic ")) {
@@ -132,7 +132,7 @@ public class SecurityContext {
           Charset.defaultCharset());
       String[] split = nameAndPassword.split(":");
       if (split.length != 2) {
-        LOG.info("Login failed via [BASIC] for: " + req.ip());
+        LOG.info("Login failed via [BASIC] for: {}", req.ip());
         throw new AuthenticationException(
             "Bad username / password provided. Should be username:password.");
       }
@@ -145,11 +145,11 @@ public class SecurityContext {
 
       if (localOnlyUsers.allows(user)) {
         if (localOnlyUsers.authenticate(user, password)) {
-          LOG.info("Login success via [LOCAL] for: " + req.ip());
+          LOG.info("Login success via [LOCAL] for: {}", req.ip());
           currentUser.set(user);
           return;
         } else {
-          LOG.info("Login failed via [LOCAL] for: " + req.ip());
+          LOG.info("Login failed via [LOCAL] for: {}", req.ip());
           throw new AuthenticationException("Authentication required.");
         }
       }
@@ -171,7 +171,7 @@ public class SecurityContext {
       }
 
       if (authFailedEx != null) {
-        LOG.info("Login failed via [BASIC] for: " + req.ip());
+        LOG.info("Login failed via [BASIC] for: {}", req.ip());
         throw authFailedEx;
       }
 
@@ -181,11 +181,11 @@ public class SecurityContext {
       res.header("Set-Cookie", "nna-jwt-token=" + generate);
 
       manager.save(true, userProfile, false);
-      LOG.info("Login success via [BASIC] for: " + req.ip());
+      LOG.info("Login success via [BASIC] for: {}", req.ip());
 
       currentUser.set(userProfile.getId());
     } else {
-      LOG.info("Login failed via [NULL] for: " + req.ip());
+      LOG.info("Login failed via [NULL] for: {}", req.ip());
       throw new AuthenticationException("Authentication required.");
     }
   }

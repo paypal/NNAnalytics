@@ -86,7 +86,7 @@ public class GSetGenerator {
         gset.put(root);
         DIRS_MADE++;
         generateGSet(gset, root, numFilesPerDir, numDirsPerDepth, depth);
-        LOG.info("Generated GSet size is: " + gset.size());
+        LOG.info("Generated GSet size is: {}", gset.size());
         assert FILES_MADE + DIRS_MADE == gset.size();
       } catch (IOException ignored) { /* Defaults not expected to throw Exceptions */ }
     }

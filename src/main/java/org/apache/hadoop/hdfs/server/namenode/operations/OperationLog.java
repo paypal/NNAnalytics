@@ -103,7 +103,7 @@ class OperationLog {
         }
       };
       if (gzipLog) {
-        LOG.info("Will write log for large op: " + identity + ", as GZIP.");
+        LOG.info("Will write log for large op: {}, as GZIP.", identity);
         fileStream = new StreamingGZIPOutputStream(plainTextStream);
       } else {
         fileStream = plainTextStream;
