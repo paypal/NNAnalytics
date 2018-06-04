@@ -42,7 +42,7 @@ public class SetReplication extends BaseOperation {
       return false;
     }
     String path = nextToOperate.getFullPathName();
-    LOG.info("About to setRep: " + path);
+    LOG.info("About to setRep: {}", path);
     boolean file = nextToOperate.isFile();
     boolean success = true;
     String inodeType;

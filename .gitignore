@@ -1,5 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
+.project
+.classpath
 *.iml
 .gradle/
 build/

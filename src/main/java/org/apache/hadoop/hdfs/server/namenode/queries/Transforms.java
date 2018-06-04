@@ -83,7 +83,7 @@ public class Transforms {
       return compoundMethods(transformMap, loader);
     } finally {
       long end = System.currentTimeMillis();
-      LOG.info("Fetching transform map took: " + (end - start) + " ms.");
+      LOG.info("Fetching transform map took: {} ms.", (end - start));
     }
   }
 

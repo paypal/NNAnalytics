@@ -416,8 +416,8 @@ public class SuggestionsEngine {
     cachedMaps.put("dsQuotaThreshCountsUsers", dsQuotaThreshCountsUsers);
 
     long e2 = System.currentTimeMillis();
-    LOG.info("Sync-switch of suggestions took: " + (e2 - s2) + " ms.");
-    LOG.info("Reloading suggestions matrices took: " + timeTaken + " ms.");
+    LOG.info("Sync-switch of suggestions took: {} ms.", (e2 - s2));
+    LOG.info("Reloading suggestions matrices took: {} ms.", timeTaken);
     loaded.set(true);
 
     HSQLDriver historyDbDriver = nnLoader.getEmbeddedHistoryDatabaseDriver();
@@ -426,10 +426,10 @@ public class SuggestionsEngine {
       try {
         historyDbDriver.logHistoryPerUser(cachedValues, cachedMaps, cachedUsers);
       } catch (SQLException e) {
-        LOG.info("Failed to write historical data due to: " + e);
+        LOG.info("Failed to write historical data due to: {}", e);
       }
       long e3 = System.currentTimeMillis();
-      LOG.info("Writing to embedded SQL DB took: " + (e3 - s3) + " ms.");
+      LOG.info("Writing to embedded SQL DB took: {} ms.", (e3 - s3));
     } else {
       LOG.info("No historical data written as it is disabled.");
     }
@@ -438,10 +438,10 @@ public class SuggestionsEngine {
     try {
       cacheManager.commit();
     } catch (Exception e) {
-      LOG.info("Failed to write cache data due to: " + e);
+      LOG.info("Failed to write cache data due to: {}", e);
     }
     long e4 = System.currentTimeMillis();
-    LOG.info("Writing to embedded MapDB took: " + (e4 - s4) + " ms.");
+    LOG.info("Writing to embedded MapDB took: {} ms.", (e4 - s4));
   }
 
   public String getTokens() {

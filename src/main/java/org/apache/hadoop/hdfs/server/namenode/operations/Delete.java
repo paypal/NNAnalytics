@@ -38,7 +38,7 @@ public class Delete extends BaseOperation {
       return false;
     }
     String path = nextToOperate.getFullPathName();
-    LOG.info("About to delete: " + path);
+    LOG.info("About to delete: {}", path);
     boolean file = nextToOperate.isFile();
     boolean dir = nextToOperate.isDirectory();
     boolean success = true;

@@ -42,7 +42,7 @@ public class SetStoragePolicy extends BaseOperation {
       return false;
     }
     String path = nextToOperate.getFullPathName();
-    LOG.info("About to setStoragePolicy: " + path);
+    LOG.info("About to setStoragePolicy: {}", path);
     boolean file = nextToOperate.isFile();
     boolean dir = nextToOperate.isDirectory();
     boolean success = true;

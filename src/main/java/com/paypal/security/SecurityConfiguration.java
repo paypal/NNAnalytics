@@ -42,7 +42,7 @@ public class SecurityConfiguration {
     try {
       properties.load(input);
     } catch (IOException e) {
-      LOG.info("Failed to load properties file: " + SEC_PROPERTIES + ", due to: " + e);
+      LOG.info("Failed to load properties file: {}, due to: {}", SEC_PROPERTIES, e);
     }
   }
 
