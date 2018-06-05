@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
 import java.text.DecimalFormat;
@@ -39,9 +40,18 @@ public class SpaceSizeHistogram {
     return Collections.unmodifiableList(keys);
   }
 
-  private static final Long[] binsArray = new Long[]{
-      0L, kilobyteBase, megabyteBase, 16L * megabyteBase, 64L * megabyteBase,
-      128L * megabyteBase, 256L * megabyteBase, 512 * megabyteBase, gigabyteBase};
+  private static final Long[] binsArray =
+      new Long[] {
+        0L,
+        kilobyteBase,
+        megabyteBase,
+        16L * megabyteBase,
+        64L * megabyteBase,
+        128L * megabyteBase,
+        256L * megabyteBase,
+        512 * megabyteBase,
+        gigabyteBase
+      };
   private static final List<Long> bins = Arrays.asList(binsArray);
   private static final List<String> keys =
       bins.stream().map(SpaceSizeHistogram::readableFileSize).collect(Collectors.toList());
@@ -50,7 +60,7 @@ public class SpaceSizeHistogram {
     if (size <= 0) {
       return "0 B";
     }
-    String[] units = new String[]{"B", "KB", "MB", "GB", "TB", "PB", "EB"};
+    String[] units = new String[] {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
     int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
     return ONE_DECIMAL_FORMAT.format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
   }

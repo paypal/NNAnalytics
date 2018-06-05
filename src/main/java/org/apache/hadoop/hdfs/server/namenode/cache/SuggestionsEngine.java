@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import com.google.common.collect.Sets;
@@ -41,19 +42,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This is class handles all end-user cached reports that the suggestions UI page uses.
- * All information stored here is present to "CACHE" priviledged users.
- * 
- * The goal of this class is to provide in-depth analysis for users and selected directories
- * that is stored in MapDB mmap'd file caches.
- * 
- * The main logic for this class is in the reloadSuggestions() method call which does 
- * a large analysis and finally updates cache stores.
+ * This is class handles all end-user cached reports that the suggestions UI page uses. All
+ * information stored here is present to "CACHE" priviledged users.
+ *
+ * <p>The goal of this class is to provide in-depth analysis for users and selected directories that
+ * is stored in MapDB mmap'd file caches.
+ *
+ * <p>The main logic for this class is in the reloadSuggestions() method call which does a large
+ * analysis and finally updates cache stores.
  */
 public class SuggestionsEngine {
 
-  public static final Logger LOG =
-      LoggerFactory.getLogger(SuggestionsEngine.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(SuggestionsEngine.class.getName());
 
   private final CacheManager cacheManager;
 
@@ -75,14 +75,14 @@ public class SuggestionsEngine {
     this.cachedValues = Collections.synchronizedMap(cacheManager.getCachedMap("cachedValues"));
     this.cachedLogins = Collections.synchronizedMap(cacheManager.getCachedMap("cachedLogins"));
     this.cachedMaps = Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedMaps"));
-    this.cachedUserNsQuotas = 
+    this.cachedUserNsQuotas =
         Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserNsQuotas"));
     this.cachedUserDsQuotas =
         Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserDsQuotas"));
 
     this.loaded = new AtomicBoolean(false);
   }
-  
+
   public boolean isLoaded() {
     return loaded.get();
   }
@@ -93,10 +93,10 @@ public class SuggestionsEngine {
 
   /**
    * This method should only be called after NNLoader has finished loading the FSImage.
-   * 
-   * Calling this method will issue many queries in the background and update the various
-   * MapDB cached objects.
-   * 
+   *
+   * <p>Calling this method will issue many queries in the background and update the various MapDB
+   * cached objects.
+   *
    * @param nnLoader The main NNLoader and in-memory metadata set.
    */
   public void reloadSuggestions(NNLoader nnLoader) {
@@ -115,8 +115,7 @@ public class SuggestionsEngine {
       e.printStackTrace();
     }
 
-    Map<String, Long> modTimeCount =
-        nnLoader.modTimeHistogram(files, "count", null, "monthly");
+    Map<String, Long> modTimeCount = nnLoader.modTimeHistogram(files, "count", null, "monthly");
     Map<String, Long> modTimeDiskspace =
         nnLoader.modTimeHistogram(files, "diskspaceConsumed", null, "monthly");
 
@@ -127,51 +126,65 @@ public class SuggestionsEngine {
     Set<String> users = Sets.union(fileUsers, dirUsers);
 
     long diskspace = nnLoader.sum(files, "diskspaceConsumed");
-    Collection<INode> files24h = nnLoader.combinedFilter(files, new String[]{"modTime"},
-        new String[]{"hoursAgo:24"});
+    Collection<INode> files24h =
+        nnLoader.combinedFilter(files, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
     long numFiles24h = files24h.size();
     long diskspace24h = nnLoader.sum(files24h, "diskspaceConsumed");
     Map<String, Long> numFiles24hUsers = nnLoader.byUserHistogramCpu(files24h, "count");
-    Map<String, Long> diskspace24hUsers = nnLoader.byUserHistogramCpu(files24h, "diskspaceConsumed");
+    Map<String, Long> diskspace24hUsers =
+        nnLoader.byUserHistogramCpu(files24h, "diskspaceConsumed");
     Map<String, Long> diskspaceUsers = nnLoader.byUserHistogramCpu(files, "diskspaceConsumed");
 
-    Collection<INode> oldFiles1yr = nnLoader.combinedFilter(files, new String[]{"accessTime"},
-        new String[]{"olderThanYears:1"});
+    Collection<INode> oldFiles1yr =
+        nnLoader.combinedFilter(
+            files, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
     Map<String, Long> oldFiles1yrCountUsers = nnLoader.byUserHistogramCpu(oldFiles1yr, "count");
-    Map<String, Long> oldFiles1yrDsUsers = nnLoader.byUserHistogramCpu(oldFiles1yr, "diskspaceConsumed");
-    Collection<INode> oldFiles2yr = nnLoader.combinedFilter(files, new String[]{"accessTime"},
-        new String[]{"olderThanYears:2"});
+    Map<String, Long> oldFiles1yrDsUsers =
+        nnLoader.byUserHistogramCpu(oldFiles1yr, "diskspaceConsumed");
+    Collection<INode> oldFiles2yr =
+        nnLoader.combinedFilter(
+            files, new String[] {"accessTime"}, new String[] {"olderThanYears:2"});
     Map<String, Long> oldFiles2yrCountUsers = nnLoader.byUserHistogramCpu(oldFiles2yr, "count");
-    Map<String, Long> oldFiles2yrDsUsers = nnLoader.byUserHistogramCpu(oldFiles2yr, "diskspaceConsumed");
+    Map<String, Long> oldFiles2yrDsUsers =
+        nnLoader.byUserHistogramCpu(oldFiles2yr, "diskspaceConsumed");
 
-    Collection<INode> emptyFiles = nnLoader.combinedFilter(files, new String[]{"fileSize"},
-        new String[]{"eq:0"});
-    Collection<INode> emptyDirs = nnLoader.combinedFilter(dirs, new String[]{"dirNumChildren"},
-        new String[]{"eq:0"});
-    Collection<INode> tinyFiles = nnLoader.combinedFilter(files, new String[]{"fileSize", "fileSize"},
-        new String[]{"lte:1024", "gt:0"});
-    Collection<INode> smallFiles = nnLoader.combinedFilter(files, new String[]{"fileSize", "fileSize"},
-        new String[]{"lte:1048576", "gt:1024"});
-    Collection<INode> mediumFiles = nnLoader.combinedFilter(files, new String[]{"fileSize", "fileSize"},
-        new String[]{"lte:134217728", "gt:1048576"});
+    Collection<INode> emptyFiles =
+        nnLoader.combinedFilter(files, new String[] {"fileSize"}, new String[] {"eq:0"});
+    Collection<INode> emptyDirs =
+        nnLoader.combinedFilter(dirs, new String[] {"dirNumChildren"}, new String[] {"eq:0"});
+    Collection<INode> tinyFiles =
+        nnLoader.combinedFilter(
+            files, new String[] {"fileSize", "fileSize"}, new String[] {"lte:1024", "gt:0"});
+    Collection<INode> smallFiles =
+        nnLoader.combinedFilter(
+            files, new String[] {"fileSize", "fileSize"}, new String[] {"lte:1048576", "gt:1024"});
+    Collection<INode> mediumFiles =
+        nnLoader.combinedFilter(
+            files,
+            new String[] {"fileSize", "fileSize"},
+            new String[] {"lte:134217728", "gt:1048576"});
 
-    Collection<INode> emptyFiles24h = nnLoader.combinedFilter(emptyFiles, new String[]{"modTime"},
-        new String[]{"hoursAgo:24"});
-    Collection<INode> emptyDirs24h = nnLoader.combinedFilter(emptyDirs, new String[]{"modTime"},
-        new String[]{"hoursAgo:24"});
-    Collection<INode> tinyFiles24h = nnLoader.combinedFilter(tinyFiles, new String[]{"modTime"},
-        new String[]{"hoursAgo:24"});
-    Collection<INode> smallFiles24h = nnLoader.combinedFilter(smallFiles, new String[]{"modTime"},
-        new String[]{"hoursAgo:24"});
+    Collection<INode> emptyFiles24h =
+        nnLoader.combinedFilter(emptyFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
+    Collection<INode> emptyDirs24h =
+        nnLoader.combinedFilter(emptyDirs, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
+    Collection<INode> tinyFiles24h =
+        nnLoader.combinedFilter(tinyFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
+    Collection<INode> smallFiles24h =
+        nnLoader.combinedFilter(smallFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
 
-    Collection<INode> emptyFiles1yr = nnLoader.combinedFilter(emptyFiles, new String[]{"accessTime"},
-        new String[]{"olderThanYears:1"});
-    Collection<INode> emptyDirs1yr = nnLoader.combinedFilter(emptyDirs, new String[]{"modTime"},
-        new String[]{"olderThanYears:1"});
-    Collection<INode> tinyFiles1yr = nnLoader.combinedFilter(tinyFiles, new String[]{"accessTime"},
-        new String[]{"olderThanYears:1"});
-    Collection<INode> smallFiles1yr = nnLoader.combinedFilter(smallFiles, new String[]{"accessTime"},
-        new String[]{"olderThanYears:1"});
+    Collection<INode> emptyFiles1yr =
+        nnLoader.combinedFilter(
+            emptyFiles, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
+    Collection<INode> emptyDirs1yr =
+        nnLoader.combinedFilter(
+            emptyDirs, new String[] {"modTime"}, new String[] {"olderThanYears:1"});
+    Collection<INode> tinyFiles1yr =
+        nnLoader.combinedFilter(
+            tinyFiles, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
+    Collection<INode> smallFiles1yr =
+        nnLoader.combinedFilter(
+            smallFiles, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
 
     long emptyFilesCount = emptyFiles.size();
     long emptyDirsCount = emptyDirs.size();
@@ -217,12 +230,16 @@ public class SuggestionsEngine {
     Map<String, Long> smallFilesUsers = nnLoader.byUserHistogramCpu(smallFiles, "count");
     Map<String, Long> mediumFilesUsers = nnLoader.byUserHistogramCpu(mediumFiles, "count");
     Map<String, Long> largeFilesUsers = new HashMap<>(users.size());
-    users.forEach(u -> {
-      long largeFiles = filesUsers.getOrDefault(u, 0L) - emptyFilesUsers.getOrDefault(u, 0L) -
-          tinyFilesUsers.getOrDefault(u, 0L) - smallFilesUsers.getOrDefault(u, 0L) -
-          mediumFilesUsers.getOrDefault(u, 0L);
-      largeFilesUsers.put(u, largeFiles);
-    });
+    users.forEach(
+        u -> {
+          long largeFiles =
+              filesUsers.getOrDefault(u, 0L)
+                  - emptyFilesUsers.getOrDefault(u, 0L)
+                  - tinyFilesUsers.getOrDefault(u, 0L)
+                  - smallFilesUsers.getOrDefault(u, 0L)
+                  - mediumFilesUsers.getOrDefault(u, 0L);
+          largeFilesUsers.put(u, largeFiles);
+        });
 
     Map<String, Long> emptyFiles24hUsers = nnLoader.byUserHistogramCpu(emptyFiles24h, "count");
     Map<String, Long> emptyDirs24hUsers = nnLoader.byUserHistogramCpu(emptyDirs24h, "count");
@@ -232,18 +249,28 @@ public class SuggestionsEngine {
     Map<String, Long> emptyDirs1yrUsers = nnLoader.byUserHistogramCpu(emptyDirs1yr, "count");
     Map<String, Long> tinyFiles1yrUsers = nnLoader.byUserHistogramCpu(tinyFiles1yr, "count");
     Map<String, Long> smallFiles1yrUsers = nnLoader.byUserHistogramCpu(smallFiles1yr, "count");
-    Map<String, Long> emptyFilesMemUsers = nnLoader.byUserHistogramCpu(emptyFiles, "memoryConsumed");
+    Map<String, Long> emptyFilesMemUsers =
+        nnLoader.byUserHistogramCpu(emptyFiles, "memoryConsumed");
     Map<String, Long> emptyDirsMemUsers = nnLoader.byUserHistogramCpu(emptyDirs, "memoryConsumed");
     Map<String, Long> tinyFilesMemUsers = nnLoader.byUserHistogramCpu(tinyFiles, "memoryConsumed");
-    Map<String, Long> smallFilesMemUsers = nnLoader.byUserHistogramCpu(smallFiles, "memoryConsumed");
-    Map<String, Long> tinyFilesDsUsers = nnLoader.byUserHistogramCpu(tinyFiles, "diskspaceConsumed");
-    Map<String, Long> smallFilesDsUsers = nnLoader.byUserHistogramCpu(smallFiles, "diskspaceConsumed");
-    Map<String, Long> emptyFiles24hMemUsers = nnLoader.byUserHistogramCpu(emptyFiles24h, "memoryConsumed");
-    Map<String, Long> emptyDirs24hMemUsers = nnLoader.byUserHistogramCpu(emptyDirs24h, "memoryConsumed");
-    Map<String, Long> tinyFiles24hMemUsers = nnLoader.byUserHistogramCpu(tinyFiles24h, "memoryConsumed");
-    Map<String, Long> smallFiles24hMemUsers = nnLoader.byUserHistogramCpu(smallFiles24h, "memoryConsumed");
-    Map<String, Long> tinyFiles24hDsUsers = nnLoader.byUserHistogramCpu(tinyFiles24h, "diskspaceConsumed");
-    Map<String, Long> smallFiles24hDsUsers = nnLoader.byUserHistogramCpu(smallFiles24h, "diskspaceConsumed");
+    Map<String, Long> smallFilesMemUsers =
+        nnLoader.byUserHistogramCpu(smallFiles, "memoryConsumed");
+    Map<String, Long> tinyFilesDsUsers =
+        nnLoader.byUserHistogramCpu(tinyFiles, "diskspaceConsumed");
+    Map<String, Long> smallFilesDsUsers =
+        nnLoader.byUserHistogramCpu(smallFiles, "diskspaceConsumed");
+    Map<String, Long> emptyFiles24hMemUsers =
+        nnLoader.byUserHistogramCpu(emptyFiles24h, "memoryConsumed");
+    Map<String, Long> emptyDirs24hMemUsers =
+        nnLoader.byUserHistogramCpu(emptyDirs24h, "memoryConsumed");
+    Map<String, Long> tinyFiles24hMemUsers =
+        nnLoader.byUserHistogramCpu(tinyFiles24h, "memoryConsumed");
+    Map<String, Long> smallFiles24hMemUsers =
+        nnLoader.byUserHistogramCpu(smallFiles24h, "memoryConsumed");
+    Map<String, Long> tinyFiles24hDsUsers =
+        nnLoader.byUserHistogramCpu(tinyFiles24h, "diskspaceConsumed");
+    Map<String, Long> smallFiles24hDsUsers =
+        nnLoader.byUserHistogramCpu(smallFiles24h, "diskspaceConsumed");
 
     Map<String, Long> dirCount = nnLoader.parentDirHistogramCpu(files, 3, "count");
     dirCount = Histograms.sliceToTop(dirCount, 1000);
@@ -255,9 +282,9 @@ public class SuggestionsEngine {
     List<String> commonRoots = tree.getCommonRootsAsStrings();
 
     for (String commonRoot : commonRoots) {
-      Collection<INode> commonINodes = 
-          nnLoader.combinedFilter(files, new String[]{"path"},
-              new String[]{"startsWith:" + commonRoot});
+      Collection<INode> commonINodes =
+          nnLoader.combinedFilter(
+              files, new String[] {"path"}, new String[] {"startsWith:" + commonRoot});
 
       for (String cachedDir : cachedDirs) {
         if (!cachedDir.startsWith(commonRoot)) {
@@ -267,8 +294,9 @@ public class SuggestionsEngine {
         if (cachedDir.equals(commonRoot)) {
           inodes = commonINodes;
         } else {
-          inodes = nnLoader.combinedFilter(commonINodes, new String[]{"path"},
-              new String[]{"startsWith:" + cachedDir});
+          inodes =
+              nnLoader.combinedFilter(
+                  commonINodes, new String[] {"path"}, new String[] {"startsWith:" + cachedDir});
         }
         long count = inodes.size();
         long diskspaceConsumed = nnLoader.sum(inodes, "diskspaceConsumed");
@@ -282,8 +310,9 @@ public class SuggestionsEngine {
     Map<String, Long> dirDs24h = nnLoader.parentDirHistogramCpu(files24h, 3, "diskspaceConsumed");
     dirDs24h = Histograms.sliceToTop(dirDs24h, 1000);
     for (String dir : cachedDirs) {
-      Collection<INode> inodes = nnLoader.combinedFilter(files24h, new String[]{"path"},
-          new String[]{"startsWith:" + dir});
+      Collection<INode> inodes =
+          nnLoader.combinedFilter(
+              files24h, new String[] {"path"}, new String[] {"startsWith:" + dir});
       long count = inodes.size();
       long diskspaceConsumed = nnLoader.sum(inodes, "diskspaceConsumed");
       dirCount24h.put(dir, count);
@@ -299,8 +328,9 @@ public class SuggestionsEngine {
     Map<String, Long> nsQuotaCountsUsers = new HashMap<>();
     Map<String, Long> dsQuotaCountsUsers = new HashMap<>();
     for (String user : users) {
-      Collection<INode> quotaDirs = nnLoader.combinedFilter(dirs, new String[] {"user","hasQuota"},
-          new String[] {"eq:" + user,"eq:true"});
+      Collection<INode> quotaDirs =
+          nnLoader.combinedFilter(
+              dirs, new String[] {"user", "hasQuota"}, new String[] {"eq:" + user, "eq:true"});
       Map<String, Long> nsQuotaRatio = nnLoader.dirQuotaHistogramCpu(quotaDirs, "nsQuotaRatioUsed");
       Map<String, Long> dsQuotaRatio = nnLoader.dirQuotaHistogramCpu(quotaDirs, "dsQuotaRatioUsed");
       long nsThreshExceeded = nsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
@@ -576,17 +606,16 @@ public class SuggestionsEngine {
       userMap.put("oldFiles2yrDs", getCachedMap("oldFiles2yrDsUsers").getOrDefault(user, 0L));
       userMap.put("nsQuotaCount", getCachedMap("nsQuotaCountsUsers").getOrDefault(user, 0L));
       userMap.put("dsQuotaCount", getCachedMap("dsQuotaCountsUsers").getOrDefault(user, 0L));
-      userMap.put("nsQuotaThreshCount", 
-          getCachedMap("nsQuotaThreshCountsUsers").getOrDefault(user, 0L));
-      userMap.put("dsQuotaThreshCount", 
-          getCachedMap("dsQuotaThreshCountsUsers").getOrDefault(user, 0L));
+      userMap.put(
+          "nsQuotaThreshCount", getCachedMap("nsQuotaThreshCountsUsers").getOrDefault(user, 0L));
+      userMap.put(
+          "dsQuotaThreshCount", getCachedMap("dsQuotaThreshCountsUsers").getOrDefault(user, 0L));
       userMap.put("lastLogin", cachedLogins.getOrDefault(user, 0L));
       return Histograms.toJson(userMap);
     }
   }
 
-  public String getDirectoriesAsJson(String directory,
-                                     String sum) {
+  public String getDirectoriesAsJson(String directory, String sum) {
     Map<String, Long> dirMap;
     switch (sum) {
       case "count":
@@ -604,8 +633,7 @@ public class SuggestionsEngine {
     return Histograms.toJson(dirMap);
   }
 
-  public String getIssuesAsJson(Integer limit,
-                                boolean ascending) {
+  public String getIssuesAsJson(Integer limit, boolean ascending) {
     Map<String, Map<String, Long>> issuesMap = new LinkedHashMap<>();
     Map<String, Long> topEmptyFileUsers =
         Histograms.sortByValue(getCachedMap("emptyFilesUsers"), ascending);
@@ -625,16 +653,17 @@ public class SuggestionsEngine {
         Histograms.sortByValue(getCachedMap("smallFiles24hUsers"), ascending);
     Map<String, Long> topOldFiles1yrUsers =
         Histograms.sortByValue(getCachedMap("oldFiles1yrUsers"), ascending);
-    Map<String, Long> topDirCount =
-        Histograms.sortByValue(getCachedMap("dirCount"), ascending);
-    Map<String, Long> topDirDiskspace =
-        Histograms.sortByValue(getCachedMap("dirDs"), ascending);
+    Map<String, Long> topDirCount = Histograms.sortByValue(getCachedMap("dirCount"), ascending);
+    Map<String, Long> topDirDiskspace = Histograms.sortByValue(getCachedMap("dirDs"), ascending);
     Map<String, Long> topDirCount24h =
         Histograms.sortByValue(getCachedMap("dirCount24h"), ascending);
     Map<String, Long> topDirDiskspace24h =
         Histograms.sortByValue(getCachedMap("dirDs24h"), ascending);
-    Function<Map<String, Long>, Map<String, Long>> sliceFunc = (histogramMap) -> (ascending ?
-        Histograms.sliceToBottom(histogramMap, limit) : Histograms.sliceToTop(histogramMap, limit));
+    Function<Map<String, Long>, Map<String, Long>> sliceFunc =
+        (histogramMap) ->
+            (ascending
+                ? Histograms.sliceToBottom(histogramMap, limit)
+                : Histograms.sliceToTop(histogramMap, limit));
     issuesMap.put("emptyFiles", sliceFunc.apply(topEmptyFileUsers));
     issuesMap.put("emptyDirs", sliceFunc.apply(topEmptyDirUsers));
     issuesMap.put("tinyFiles", sliceFunc.apply(topTinyFilesUsers));

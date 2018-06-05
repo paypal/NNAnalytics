@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
@@ -53,8 +54,7 @@ public class TestNoHistorical {
     hostPort = new HttpHost("localhost", 4567);
   }
 
-  public static void main(String[] args)
-      throws Exception {
+  public static void main(String[] args) throws Exception {
     beforeClass();
     while (true) {
       // Let the server run.
@@ -76,7 +76,8 @@ public class TestNoHistorical {
     HttpGet get = new HttpGet("http://localhost:4567/history");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(400));
-    assertThat(IOUtils.toString(res.getEntity().getContent()),
+    assertThat(
+        IOUtils.toString(res.getEntity().getContent()),
         containsString("DB connection is not open."));
   }
 }

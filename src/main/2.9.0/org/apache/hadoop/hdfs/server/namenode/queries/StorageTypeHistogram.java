@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
 import java.util.Arrays;
@@ -27,10 +28,10 @@ import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
 public class StorageTypeHistogram {
 
   /* We can lower the number of days to improve performance on multi-filter bin'ing. */
-  private static final BlockStoragePolicy[] keys0 = BlockStoragePolicySuite.createDefaultSuite()
-      .getAllPolicies();
-  public static final List<String> keys = Arrays.stream(keys0).map(BlockStoragePolicy::getName)
-      .collect(Collectors.toList());
-  public static final List<Long> bins = Arrays.stream(keys0).map(k -> ((long) k.getId()))
-      .collect(Collectors.toList());
+  private static final BlockStoragePolicy[] keys0 =
+      BlockStoragePolicySuite.createDefaultSuite().getAllPolicies();
+  public static final List<String> keys =
+      Arrays.stream(keys0).map(BlockStoragePolicy::getName).collect(Collectors.toList());
+  public static final List<Long> bins =
+      Arrays.stream(keys0).map(k -> ((long) k.getId())).collect(Collectors.toList());
 }

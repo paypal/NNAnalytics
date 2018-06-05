@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import java.util.Map;
@@ -26,24 +27,24 @@ import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 
 /**
- * This class is simply a wrapper around MapDB classes for easier storage and possible
- * future abstraction if something better is discovered.
- * 
- * Any memory objects returned from this class are backed by mmap'd files and fsync'd upon
+ * This class is simply a wrapper around MapDB classes for easier storage and possible future
+ * abstraction if something better is discovered.
+ *
+ * <p>Any memory objects returned from this class are backed by mmap'd files and fsync'd upon
  * calling commit.
  */
 public class CacheManager {
-  
-  private final DB cache = DBMaker
-      .fileDB("/usr/local/nn-analytics/db/nna_cache")
-      .fileMmapEnable()
-      .transactionEnable()
-      .closeOnJvmShutdown()
-      .cleanerHackEnable()
-      .make();
+
+  private final DB cache =
+      DBMaker.fileDB("/usr/local/nn-analytics/db/nna_cache")
+          .fileMmapEnable()
+          .transactionEnable()
+          .closeOnJvmShutdown()
+          .cleanerHackEnable()
+          .make();
 
   public CacheManager() {}
-  
+
   public Map<String, Map<String, Long>> getCachedMapToMap(String mapToMapName) {
     return cache.hashMap(mapToMapName, Serializer.STRING, new MapSerializer()).createOrOpen();
   }
@@ -51,7 +52,7 @@ public class CacheManager {
   public Map<String, Long> getCachedMap(String mapName) {
     return cache.hashMap(mapName, Serializer.STRING, Serializer.LONG).createOrOpen();
   }
-  
+
   public Set<String> getCachedSet(String setName) {
     return cache.hashSet(setName, Serializer.STRING).createOrOpen();
   }
@@ -59,5 +60,4 @@ public class CacheManager {
   public void commit() {
     cache.commit();
   }
-
 }

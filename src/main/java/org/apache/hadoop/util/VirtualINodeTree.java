@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.util;
 
 import java.util.ArrayList;
@@ -35,7 +36,6 @@ public class VirtualINodeTree {
 
     // latest element of the list is the filename.extrension
     root.addElement(root.path(), list);
-
   }
 
   public List<VirtualINode> getCommonRoots() {

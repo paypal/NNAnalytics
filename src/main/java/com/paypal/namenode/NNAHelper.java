@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.paypal.namenode;
 
 import java.io.IOException;
@@ -60,8 +61,8 @@ class NNAHelper {
       case "nsQuotaRatioUsed":
         return "Usage Percentage";
       default:
-        throw new IllegalArgumentException("Could not determine sum type: " + sum +
-            ".\nPlease check /sums for available sums.");
+        throw new IllegalArgumentException(
+            "Could not determine sum type: " + sum + ".\nPlease check /sums for available sums.");
     }
   }
 
@@ -78,23 +79,17 @@ class NNAHelper {
     return requestUri + "?" + queryString;
   }
 
-  static Collection<INode> performFilters(NNLoader nnLoader,
-      String set,
-      String[] filters,
-      String[] filterOps,
-      String find) {
+  static Collection<INode> performFilters(
+      NNLoader nnLoader, String set, String[] filters, String[] filterOps, String find) {
     Collection<INode> interim = performFilters(nnLoader, set, filters, filterOps);
     return nnLoader.findFilter(interim, find);
   }
 
-  static Collection<INode> performFilters(NNLoader nnLoader,
-      String set,
-      String[] filters,
-      String[] filterOps) {
+  static Collection<INode> performFilters(
+      NNLoader nnLoader, String set, String[] filters, String[] filterOps) {
     Collection<INode> inodes = nnLoader.getINodeSet(set);
 
-    if (filters == null || filters.length == 0 ||
-        filterOps == null || filterOps.length == 0) {
+    if (filters == null || filters.length == 0 || filterOps == null || filterOps.length == 0) {
       return inodes;
     }
 
@@ -104,8 +99,8 @@ class NNAHelper {
   }
 
   static void toJsonList(HttpServletResponse resp, Enum[]... values) throws IOException {
-    JsonGenerator json = new JsonFactory().createJsonGenerator(resp.getWriter())
-        .useDefaultPrettyPrinter();
+    JsonGenerator json =
+        new JsonFactory().createJsonGenerator(resp.getWriter()).useDefaultPrettyPrinter();
     try {
       json.writeStartObject();
       for (int i = 0; i < values.length; i++) {
@@ -134,8 +129,9 @@ class NNAHelper {
         String[] filterSplit = filterSplits[i].split(":");
         if (filterSplit.length != 3) {
           throw new IllegalArgumentException(
-              "Incorrect filter argument format for: '" + filterSplits[i] +
-                  "'. Needs to be <filter>:<op>:<filed>.");
+              "Incorrect filter argument format for: '"
+                  + filterSplits[i]
+                  + "'. Needs to be <filter>:<op>:<filed>.");
         }
         String filter = filterSplit[0];
         filters[i] = filter;
@@ -153,8 +149,9 @@ class NNAHelper {
         String[] filterOpSplit = filterOpSplits[i].split(":");
         if (filterOpSplit.length != 3) {
           throw new IllegalArgumentException(
-              "Incorrect filter argument format for: '" + filterOpSplits[i] +
-                  "'. Needs to be <filter>:<op>:<filed>.");
+              "Incorrect filter argument format for: '"
+                  + filterOpSplits[i]
+                  + "'. Needs to be <filter>:<op>:<filed>.");
         }
         String filterOp = filterOpSplit[1];
         String filterOpField = filterOpSplit[2];

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.paypal.security;
 
 import java.util.Set;
@@ -38,10 +39,6 @@ class UserSet {
 
   @Override
   public String toString() {
-    return "UserSet{" +
-        "usernames=" + usernames +
-        ", allowAll=" + allowAll +
-        '}';
+    return "UserSet{" + "usernames=" + usernames + ", allowAll=" + allowAll + '}';
   }
-
 }

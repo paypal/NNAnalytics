@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
 public class BaseQuery {
@@ -51,8 +52,9 @@ public class BaseQuery {
 
     BaseQuery baseQuery = (BaseQuery) o;
 
-    return (trackingUrl != null ? trackingUrl.equals(baseQuery.trackingUrl)
-        : baseQuery.trackingUrl == null) &&
-        (userName != null ? userName.equals(baseQuery.userName) : baseQuery.userName == null);
+    return (trackingUrl != null
+            ? trackingUrl.equals(baseQuery.trackingUrl)
+            : baseQuery.trackingUrl == null)
+        && (userName != null ? userName.equals(baseQuery.userName) : baseQuery.userName == null);
   }
 }

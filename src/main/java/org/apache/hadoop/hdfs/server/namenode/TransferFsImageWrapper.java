@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode;
 
 import com.google.common.collect.Lists;
@@ -54,6 +55,7 @@ public class TransferFsImageWrapper {
   /**
    * This is meant to download the latest FSImage without relying on FSNamesystem or other running
    * HDFS classes within NNLoader.
+   *
    * @throws IOException if FileSystem can not be initialized
    */
   public void downloadMostRecentImage() throws IOException {
@@ -61,31 +63,41 @@ public class TransferFsImageWrapper {
     Configuration conf = nnLoader.getConfiguration();
     String namespaceDirPath = conf.get(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
     File namespaceDir = new File(namespaceDirPath, "current");
-    SecurityUtil.login(conf, DFSConfigKeys.DFS_NAMENODE_KEYTAB_FILE_KEY,
+    SecurityUtil.login(
+        conf,
+        DFSConfigKeys.DFS_NAMENODE_KEYTAB_FILE_KEY,
         DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY,
         InetAddress.getLocalHost().getCanonicalHostName());
     InetSocketAddress addressOfActive = HAUtil.getAddressOfActive(fileSystem);
-    URL infoServer = DFSUtil.getInfoServer(addressOfActive, conf, DFSUtil.getHttpClientScheme(conf))
-        .toURL();
-    SecurityUtil.doAsLoginUser(() -> {
-      NamenodeProtocol nnProtocolProxy =
-          NameNodeProxies.createNonHAProxy(conf, addressOfActive, NamenodeProtocol.class,
-              UserGroupInformation.getLoginUser(), true).getProxy();
-      NamespaceInfo namespaceInfo = nnProtocolProxy.versionRequest();
-      String fileId = ImageServlet.getParamStringForMostRecentImage();
-      NNStorage storage =
-          new NNStorage(conf, FSNamesystem.getNamespaceDirs(conf),
-              FSNamesystem.getNamespaceEditsDirs(conf));
-      storage.format(namespaceInfo);
-      MD5Hash md5 = TransferFsImage
-          .getFileClient(infoServer, fileId, Lists.newArrayList(namespaceDir),
-              storage, true);
-      FSImageTransactionalStorageInspector inspector =
-          new FSImageTransactionalStorageInspector(EnumSet.of(NNStorage.NameNodeFile.IMAGE));
-      storage.inspectStorageDirs(inspector);
-      File imageFile = inspector.getLatestImages().get(0).getFile();
-      MD5FileUtils.saveMD5File(imageFile, md5);
-      return null;
-    });
+    URL infoServer =
+        DFSUtil.getInfoServer(addressOfActive, conf, DFSUtil.getHttpClientScheme(conf)).toURL();
+    SecurityUtil.doAsLoginUser(
+        () -> {
+          NamenodeProtocol nnProtocolProxy =
+              NameNodeProxies.createNonHAProxy(
+                      conf,
+                      addressOfActive,
+                      NamenodeProtocol.class,
+                      UserGroupInformation.getLoginUser(),
+                      true)
+                  .getProxy();
+          NamespaceInfo namespaceInfo = nnProtocolProxy.versionRequest();
+          String fileId = ImageServlet.getParamStringForMostRecentImage();
+          NNStorage storage =
+              new NNStorage(
+                  conf,
+                  FSNamesystem.getNamespaceDirs(conf),
+                  FSNamesystem.getNamespaceEditsDirs(conf));
+          storage.format(namespaceInfo);
+          MD5Hash md5 =
+              TransferFsImage.getFileClient(
+                  infoServer, fileId, Lists.newArrayList(namespaceDir), storage, true);
+          FSImageTransactionalStorageInspector inspector =
+              new FSImageTransactionalStorageInspector(EnumSet.of(NNStorage.NameNodeFile.IMAGE));
+          storage.inspectStorageDirs(inspector);
+          File imageFile = inspector.getLatestImages().get(0).getFile();
+          MD5FileUtils.saveMD5File(imageFile, md5);
+          return null;
+        });
   }
 }

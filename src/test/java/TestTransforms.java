@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -79,11 +80,12 @@ public class TestTransforms {
     Function<INode, Long> fileReplicaTransform = transformMap.get("diskspaceConsumed");
     assertThat(fileReplicaTransform, is(notNullValue()));
     Collection<INode> files = loader.getINodeSet("files");
-    long diskspaceConsumed = files.stream()
-        .mapToLong(node -> node.asFile().getFileReplication() * node.asFile().computeFileSize())
-        .sum();
+    long diskspaceConsumed =
+        files
+            .stream()
+            .mapToLong(node -> node.asFile().getFileReplication() * node.asFile().computeFileSize())
+            .sum();
     long transformedDiskspaceConsumed = files.stream().mapToLong(fileReplicaTransform::apply).sum();
     assertThat(transformedDiskspaceConsumed < diskspaceConsumed, is(true));
   }
-
 }

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode;
 
 import com.paypal.namenode.HSQLDriver;
@@ -85,8 +86,7 @@ import org.slf4j.LoggerFactory;
 
 public class NNLoader {
 
-  public static final Logger LOG =
-      LoggerFactory.getLogger(NNLoader.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(NNLoader.class.getName());
 
   private final VersionInterface versionLoader;
   private final SuggestionsEngine suggestionsEngine;
@@ -100,7 +100,7 @@ public class NNLoader {
   private Map<INode, INode> files = null;
   private Map<INode, INode> dirs = null;
   private TokenExtractor tokenExtractor = null;
-  
+
   public NNLoader() {
     versionLoader = new VersionContext();
     suggestionsEngine = new SuggestionsEngine();
@@ -137,8 +137,8 @@ public class NNLoader {
     if (conf == null) {
       return "test";
     }
-    String authority = new Path(conf.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY)).toUri()
-        .getAuthority();
+    String authority =
+        new Path(conf.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY)).toUri().getAuthority();
     if (authority == null) {
       return "test";
     }
@@ -159,8 +159,8 @@ public class NNLoader {
     String TOTAL = "total";
 
     StartupProgressView view = NameNode.getStartupProgress().createView();
-    JsonGenerator json = new JsonFactory().createJsonGenerator(resp.getWriter())
-        .useDefaultPrettyPrinter();
+    JsonGenerator json =
+        new JsonFactory().createJsonGenerator(resp.getWriter()).useDefaultPrettyPrinter();
 
     try {
       json.writeStartObject();
@@ -224,14 +224,15 @@ public class NNLoader {
             "You did not specify a set to use. Please check /sets for available sets.");
     }
     long end = System.currentTimeMillis();
-    LOG.info("Fetching set of: {} had result size: {} and took: {} ms.", set, inodes.size(), (end
-        - start));
+    LOG.info(
+        "Fetching set of: {} had result size: {} and took: {} ms.",
+        set,
+        inodes.size(),
+        (end - start));
     return inodes;
   }
 
-  public void dumpINodeInDetail(String path,
-      HttpServletResponse resp)
-      throws IOException {
+  public void dumpINodeInDetail(String path, HttpServletResponse resp) throws IOException {
     versionLoader.dumpINodeInDetail(path, resp);
   }
 
@@ -248,8 +249,7 @@ public class NNLoader {
     return conf.get(key);
   }
 
-  public void dumpLog(Integer charsLimitVar, HttpServletResponse resp)
-      throws IOException {
+  public void dumpLog(Integer charsLimitVar, HttpServletResponse resp) throws IOException {
     int charLimit = (charsLimitVar != null) ? charsLimitVar : 4000;
     LOG.info("Dumping last {} chars of logging to a client.", charLimit);
     long start = System.currentTimeMillis();
@@ -275,9 +275,8 @@ public class NNLoader {
     LOG.info("Dumping the log response took {} ms.", (end - start));
   }
 
-  public Collection<INode> combinedFilter(Collection<INode> inodes,
-      String[] filters,
-      String[] filterOps) {
+  public Collection<INode> combinedFilter(
+      Collection<INode> inodes, String[] filters, String[] filterOps) {
     final ArrayList<Function<INode, Boolean>> filterArray = new ArrayList<>();
 
     for (int i = 0; i < filters.length; i++) {
@@ -300,13 +299,15 @@ public class NNLoader {
       return stream.collect(Collectors.toList());
     } finally {
       long end = System.currentTimeMillis();
-      LOG.info("Performing filters: {} with filterOps: {} took: {} ms.", Arrays.asList(filters),
-          Arrays.asList(filterOps), (end - start));
+      LOG.info(
+          "Performing filters: {} with filterOps: {} took: {} ms.",
+          Arrays.asList(filters),
+          Arrays.asList(filterOps),
+          (end - start));
     }
   }
 
-  public Collection<INode> findFilter(Collection<INode> inodes,
-      String find) {
+  public Collection<INode> findFilter(Collection<INode> inodes, String find) {
 
     if (find == null || find.isEmpty()) {
       return inodes;
@@ -347,8 +348,8 @@ public class NNLoader {
       // Long value filters
       Function<INode, Long> longFunction = getFilterFunctionToLongForINode(filter);
       if (longFunction != null) {
-        Function<Long, Boolean> longCompFunction = getFilterFunctionForLong(Long.parseLong(opValue),
-            op);
+        Function<Long, Boolean> longCompFunction =
+            getFilterFunctionForLong(Long.parseLong(opValue), op);
         return longFunction.andThen(longCompFunction);
       }
 
@@ -362,18 +363,25 @@ public class NNLoader {
       // Boolean value filters
       Function<INode, Boolean> boolFunction = getFilterFunctionToBooleanForINode(filter);
       if (boolFunction != null) {
-        Function<Boolean, Boolean> boolCompFunction = getFilterFunctionForBoolean(
-            Boolean.parseBoolean(opValue), op);
+        Function<Boolean, Boolean> boolCompFunction =
+            getFilterFunctionForBoolean(Boolean.parseBoolean(opValue), op);
         return boolFunction.andThen(boolCompFunction);
       }
 
       throw new IllegalArgumentException(
-          "Failed to determine filter: " + filter + ", with operations: " +
-              Arrays.asList(filterOps) + ".\nCheck your filter arguments." +
-              "\nPossible filters and operations available at /filters and /filterOps.");
+          "Failed to determine filter: "
+              + filter
+              + ", with operations: "
+              + Arrays.asList(filterOps)
+              + ".\nCheck your filter arguments."
+              + "\nPossible filters and operations available at /filters and /filterOps.");
     } finally {
       long end = System.currentTimeMillis();
-      LOG.info("Obtaining filter: {} with filterOps:{} took: {} ms.", filter, Arrays.asList(filterOps), (end - start));
+      LOG.info(
+          "Obtaining filter: {} with filterOps:{} took: {} ms.",
+          filter,
+          Arrays.asList(filterOps),
+          (end - start));
     }
   }
 
@@ -483,38 +491,47 @@ public class NNLoader {
       case "count":
         return collection -> ((long) collection.size());
       case "fileSize":
-        return collection -> StreamSupport.stream(collection.spliterator(), true)
-            .mapToLong(node -> node.asFile().computeFileSize())
-            .sum();
+        return collection ->
+            StreamSupport.stream(collection.spliterator(), true)
+                .mapToLong(node -> node.asFile().computeFileSize())
+                .sum();
       case "diskspaceConsumed":
-        return collection -> StreamSupport.stream(collection.spliterator(), true)
-            .mapToLong(node -> node.asFile().computeFileSize() * node.asFile().getFileReplication())
-            .sum();
+        return collection ->
+            StreamSupport.stream(collection.spliterator(), true)
+                .mapToLong(
+                    node -> node.asFile().computeFileSize() * node.asFile().getFileReplication())
+                .sum();
       case "blockSize":
-        return collection -> StreamSupport.stream(collection.spliterator(), true)
-            .mapToLong(node -> node.asFile().getPreferredBlockSize())
-            .sum();
+        return collection ->
+            StreamSupport.stream(collection.spliterator(), true)
+                .mapToLong(node -> node.asFile().getPreferredBlockSize())
+                .sum();
       case "numBlocks":
-        return collection -> StreamSupport.stream(collection.spliterator(), true)
-            .mapToLong(node -> node.asFile().numBlocks())
-            .sum();
+        return collection ->
+            StreamSupport.stream(collection.spliterator(), true)
+                .mapToLong(node -> node.asFile().numBlocks())
+                .sum();
       case "numReplicas":
-        return collection -> StreamSupport.stream(collection.spliterator(), true)
-            .mapToLong(
-                node -> ((long) node.asFile().numBlocks() * node.asFile().getFileReplication()))
-            .sum();
+        return collection ->
+            StreamSupport.stream(collection.spliterator(), true)
+                .mapToLong(
+                    node -> ((long) node.asFile().numBlocks() * node.asFile().getFileReplication()))
+                .sum();
       case "memoryConsumed":
-        return collection -> StreamSupport.stream(collection.spliterator(), true)
-            .mapToLong(node -> {
-              long inodeSize = 100L;
-              if (node.isFile()) {
-                inodeSize += node.asFile().numBlocks() * 150L;
-              }
-              return inodeSize;
-            }).sum();
+        return collection ->
+            StreamSupport.stream(collection.spliterator(), true)
+                .mapToLong(
+                    node -> {
+                      long inodeSize = 100L;
+                      if (node.isFile()) {
+                        inodeSize += node.asFile().numBlocks() * 150L;
+                      }
+                      return inodeSize;
+                    })
+                .sum();
       default:
-        throw new IllegalArgumentException("Could not determine sum type: " + sum +
-            ".\nPlease check /sums for available sums.");
+        throw new IllegalArgumentException(
+            "Could not determine sum type: " + sum + ".\nPlease check /sums for available sums.");
     }
   }
 
@@ -541,11 +558,17 @@ public class NNLoader {
           return inodeSize;
         };
       case "nsQuotaRatioUsed":
-        return node -> (long) ((double) versionLoader.getNSQuotaUsed(node) 
-            / (double) versionLoader.getNSQuota(node) * 100);
+        return node ->
+            (long)
+                ((double) versionLoader.getNSQuotaUsed(node)
+                    / (double) versionLoader.getNSQuota(node)
+                    * 100);
       case "dsQuotaRatioUsed":
-        return node -> (long) ((double) versionLoader.getDSQuotaUsed(node) 
-            / (double) versionLoader.getDSQuota(node) * 100);
+        return node ->
+            (long)
+                ((double) versionLoader.getDSQuotaUsed(node)
+                    / (double) versionLoader.getDSQuota(node)
+                    * 100);
       case "nsQuotaUsed":
         return versionLoader::getNSQuotaUsed;
       case "dsQuotaUsed":
@@ -555,8 +578,8 @@ public class NNLoader {
       case "dsQuota":
         return versionLoader::getDSQuota;
       default:
-        throw new IllegalArgumentException("Could not determine sum type: " + sum +
-            ".\nPlease check /sums for available sums.");
+        throw new IllegalArgumentException(
+            "Could not determine sum type: " + sum + ".\nPlease check /sums for available sums.");
     }
   }
 
@@ -647,8 +670,9 @@ public class NNLoader {
           }
         };
       default:
-        throw new IllegalArgumentException("Failed to determine String filter operation.\n" +
-            "Please check /filterOps and use operations meant for Strings.");
+        throw new IllegalArgumentException(
+            "Failed to determine String filter operation.\n"
+                + "Please check /filterOps and use operations meant for Strings.");
     }
   }
 
@@ -659,8 +683,9 @@ public class NNLoader {
       case "notEq":
         return b -> b != value;
       default:
-        throw new IllegalArgumentException("Failed to determine Boolean filter operation.\n" +
-            "Please check /filterOps and use operations meant for Booleans.");
+        throw new IllegalArgumentException(
+            "Failed to determine Boolean filter operation.\n"
+                + "Please check /filterOps and use operations meant for Booleans.");
     }
   }
 
@@ -699,12 +724,14 @@ public class NNLoader {
       case "olderThanYears":
         return l -> l <= System.currentTimeMillis() - TimeUnit.DAYS.toMillis(365 * value);
       default:
-        throw new IllegalArgumentException("Failed to determine Long filter operation.\n" +
-            "Please check /filterOps and use operations meant for Longs.");
+        throw new IllegalArgumentException(
+            "Failed to determine Long filter operation.\n"
+                + "Please check /filterOps and use operations meant for Longs.");
     }
   }
 
-  private Function<INode, Long> getTransformFunction(Function<INode, Long> stdFunc,
+  private Function<INode, Long> getTransformFunction(
+      Function<INode, Long> stdFunc,
       Map<String, Function<INode, Long>> transformMap,
       String transformKey) {
     if (transformMap.containsKey(transformKey)) {
@@ -714,7 +741,8 @@ public class NNLoader {
     return stdFunc;
   }
 
-  public Map<String, Long> diskspaceConsumedHistogram(Collection<INode> inodes,
+  public Map<String, Long> diskspaceConsumedHistogram(
+      Collection<INode> inodes,
       String sum,
       String find,
       Map<String, Function<INode, Long>> transformMap) {
@@ -727,32 +755,46 @@ public class NNLoader {
     return diskspaceConsumedHistogramCpuWithFind(inodes, find, transformMap);
   }
 
-  private Map<String, Long> diskspaceConsumedHistogramCpu(Collection<INode> inodes,
-      String sum,
-      Map<String, Function<INode, Long>> transformMap) {
-    Function<INode, Long> binFunc = getTransformFunction(
-        getFilterFunctionToLongForINode("diskspaceConsumed"), transformMap, "diskspaceConsumed");
-    Function<INode, Long> sumFunc = getTransformFunction(
-        getSumFunctionForINode(sum), transformMap, sum);
-    return filteringHistogram(inodes, sum, sumFunc, binFunc, SpaceSizeHistogram.getBinsArray(),
+  private Map<String, Long> diskspaceConsumedHistogramCpu(
+      Collection<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
+    Function<INode, Long> binFunc =
+        getTransformFunction(
+            getFilterFunctionToLongForINode("diskspaceConsumed"),
+            transformMap,
+            "diskspaceConsumed");
+    Function<INode, Long> sumFunc =
+        getTransformFunction(getSumFunctionForINode(sum), transformMap, sum);
+    return filteringHistogram(
+        inodes,
+        sum,
+        sumFunc,
+        binFunc,
+        SpaceSizeHistogram.getBinsArray(),
         SpaceSizeHistogram.getKeys());
   }
 
-  private Map<String, Long> diskspaceConsumedHistogramCpuWithFind(Collection<INode> inodes,
-      String find,
-      Map<String, Function<INode, Long>> transformMap) {
-    Function<INode, Long> binFunc = getTransformFunction(
-        getFilterFunctionToLongForINode("diskspaceConsumed"), transformMap, "diskspaceConsumed");
+  private Map<String, Long> diskspaceConsumedHistogramCpuWithFind(
+      Collection<INode> inodes, String find, Map<String, Function<INode, Long>> transformMap) {
+    Function<INode, Long> binFunc =
+        getTransformFunction(
+            getFilterFunctionToLongForINode("diskspaceConsumed"),
+            transformMap,
+            "diskspaceConsumed");
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return filteringHistogramWithFind(inodes, findField, findOp,
-        getFilterFunctionToLongForINode(findField), binFunc,
-        SpaceSizeHistogram.getBinsArray(), SpaceSizeHistogram.getKeys());
+    return filteringHistogramWithFind(
+        inodes,
+        findField,
+        findOp,
+        getFilterFunctionToLongForINode(findField),
+        binFunc,
+        SpaceSizeHistogram.getBinsArray(),
+        SpaceSizeHistogram.getKeys());
   }
 
-  public Map<String, Long> memoryConsumedHistogram(Collection<INode> inodes, String sum,
-      String find) {
+  public Map<String, Long> memoryConsumedHistogram(
+      Collection<INode> inodes, String sum, String find) {
     if (!isInit()) {
       return Collections.emptyMap();
     }
@@ -764,36 +806,49 @@ public class NNLoader {
   }
 
   private Map<String, Long> memoryConsumedHistogramCpu(Collection<INode> inodes, String sum) {
-    Function<INode, Long> memConsumedFunction = node -> {
-      long inodeSize = 100L;
-      if (node.isFile()) {
-        inodeSize += node.asFile().numBlocks() * 150L;
-      }
-      return inodeSize;
-    };
-    return filteringHistogram(inodes, sum, getSumFunctionForINode(sum), memConsumedFunction,
-        MemorySizeHistogram.getBinsArray(), MemorySizeHistogram.getKeys());
+    Function<INode, Long> memConsumedFunction =
+        node -> {
+          long inodeSize = 100L;
+          if (node.isFile()) {
+            inodeSize += node.asFile().numBlocks() * 150L;
+          }
+          return inodeSize;
+        };
+    return filteringHistogram(
+        inodes,
+        sum,
+        getSumFunctionForINode(sum),
+        memConsumedFunction,
+        MemorySizeHistogram.getBinsArray(),
+        MemorySizeHistogram.getKeys());
   }
 
-  private Map<String, Long> memoryConsumedHistogramCpuWithFind(Collection<INode> inodes,
-      String find) {
-    Function<INode, Long> memConsumedFunction = node -> {
-      long inodeSize = 100L;
-      if (node.isFile()) {
-        inodeSize += node.asFile().numBlocks() * 150L;
-      }
-      return inodeSize;
-    };
+  private Map<String, Long> memoryConsumedHistogramCpuWithFind(
+      Collection<INode> inodes, String find) {
+    Function<INode, Long> memConsumedFunction =
+        node -> {
+          long inodeSize = 100L;
+          if (node.isFile()) {
+            inodeSize += node.asFile().numBlocks() * 150L;
+          }
+          return inodeSize;
+        };
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
-    return filteringHistogramWithFind(inodes, findField, findOp,
-        getFilterFunctionToLongForINode(findField), memConsumedFunction,
-        MemorySizeHistogram.getBinsArray(), MemorySizeHistogram.getKeys());
+    return filteringHistogramWithFind(
+        inodes,
+        findField,
+        findOp,
+        getFilterFunctionToLongForINode(findField),
+        memConsumedFunction,
+        MemorySizeHistogram.getBinsArray(),
+        MemorySizeHistogram.getKeys());
   }
 
-  private long[][] fetchDataViaCpu(Collection<INode> inodes,
+  private long[][] fetchDataViaCpu(
+      Collection<INode> inodes,
       String sum,
       Function<INode, Long> sumFunc,
       Function<INode, Long> nodeToLong) {
@@ -805,10 +860,11 @@ public class NNLoader {
     long end = System.currentTimeMillis();
     LOG.info("Fetching {} data took: {} ms.", sum, (end - start));
 
-    return new long[][]{data, sums};
+    return new long[][] {data, sums};
   }
 
-  private Map<String, Long> strictMappingHistogram(Collection<INode> inodes,
+  private Map<String, Long> strictMappingHistogram(
+      Collection<INode> inodes,
       String sum,
       Function<INode, Long> sumFunc,
       Function<INode, Long> nodeToLong) {
@@ -825,19 +881,20 @@ public class NNLoader {
         LOG.info("Empty data set; skipping.");
       } else {
         histogram = new long[maxId + 2];
-        IntStream.range(0, data.length).parallel().forEach(idx ->
-            {
-              int id = (int) data[idx];
-              int chosenBin = maxId + 1;
-              if (id < chosenBin && id != -1) {
-                // Lock in the bin.
-                chosenBin = id;
-              }
-              synchronized (histogram) {
-                histogram[chosenBin] += sums[idx];
-              }
-            }
-        );
+        IntStream.range(0, data.length)
+            .parallel()
+            .forEach(
+                idx -> {
+                  int id = (int) data[idx];
+                  int chosenBin = maxId + 1;
+                  if (id < chosenBin && id != -1) {
+                    // Lock in the bin.
+                    chosenBin = id;
+                  }
+                  synchronized (histogram) {
+                    histogram[chosenBin] += sums[idx];
+                  }
+                });
         LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
@@ -858,7 +915,8 @@ public class NNLoader {
     return Histograms.mapToNonEmptyIndex(histogram);
   }
 
-  private Map<String, Long> strictMappingHistogramWithFind(Collection<INode> inodes,
+  private Map<String, Long> strictMappingHistogramWithFind(
+      Collection<INode> inodes,
       String findOp,
       String find,
       Function<INode, Long> findFunc,
@@ -875,32 +933,33 @@ public class NNLoader {
         LOG.info("Empty data set; skipping.");
       } else {
         histogram = new long[data.length + 1];
-        IntStream.range(0, data.length).parallel().forEach(idx ->
-            {
-              int id = (int) data[idx];
-              int chosenBin = data.length;
-              if (id < chosenBin && id != -1) {
-                // Lock in the bin.
-                chosenBin = id;
-              }
-              synchronized (histogram) {
-                long currentVal = histogram[chosenBin];
-                long compareVal = sums[idx];
-                switch (find) {
-                  case "max":
-                    if (currentVal < compareVal) {
-                      histogram[chosenBin] = compareVal;
+        IntStream.range(0, data.length)
+            .parallel()
+            .forEach(
+                idx -> {
+                  int id = (int) data[idx];
+                  int chosenBin = data.length;
+                  if (id < chosenBin && id != -1) {
+                    // Lock in the bin.
+                    chosenBin = id;
+                  }
+                  synchronized (histogram) {
+                    long currentVal = histogram[chosenBin];
+                    long compareVal = sums[idx];
+                    switch (find) {
+                      case "max":
+                        if (currentVal < compareVal) {
+                          histogram[chosenBin] = compareVal;
+                        }
+                        break;
+                      case "min":
+                        if (compareVal == 0 || currentVal > compareVal) {
+                          histogram[chosenBin] = compareVal;
+                        }
+                        break;
                     }
-                    break;
-                  case "min":
-                    if (compareVal == 0 || currentVal > compareVal) {
-                      histogram[chosenBin] = compareVal;
-                    }
-                    break;
-                }
-              }
-            }
-        );
+                  }
+                });
         LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
@@ -911,7 +970,7 @@ public class NNLoader {
       throw e;
     }
     long end1 = System.currentTimeMillis();
-    LOG.info("Histogram (with find) took: {} ms.",(end1 - start1));
+    LOG.info("Histogram (with find) took: {} ms.", (end1 - start1));
     LOG.info("Histogram (with find) result has size: {} ", histogram.length);
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
@@ -921,7 +980,8 @@ public class NNLoader {
     return Histograms.mapToNonEmptyIndex(histogram);
   }
 
-  Map<String, Long> binMappingHistogram(Collection<INode> inodes,
+  Map<String, Long> binMappingHistogram(
+      Collection<INode> inodes,
       String sum,
       Function<INode, Long> sumFunc,
       Function<INode, Long> nodeToLong,
@@ -938,19 +998,20 @@ public class NNLoader {
         LOG.info("Empty data set; skipping.");
       } else {
         histogram = new long[binKeyMap.size() + 1];
-        IntStream.range(0, data.length).parallel().forEach(idx ->
-            {
-              int id = (int) data[idx];
-              int chosenBin = binKeyMap.size();
-              if (id < chosenBin && id != -1) {
-                // Lock in the bin.
-                chosenBin = id;
-              }
-              synchronized (histogram) {
-                histogram[chosenBin] += sums[idx];
-              }
-            }
-        );
+        IntStream.range(0, data.length)
+            .parallel()
+            .forEach(
+                idx -> {
+                  int id = (int) data[idx];
+                  int chosenBin = binKeyMap.size();
+                  if (id < chosenBin && id != -1) {
+                    // Lock in the bin.
+                    chosenBin = id;
+                  }
+                  synchronized (histogram) {
+                    histogram[chosenBin] += sums[idx];
+                  }
+                });
         LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
@@ -971,7 +1032,8 @@ public class NNLoader {
     return Histograms.mapByKeys(binKeyMap, histogram);
   }
 
-  Map<String, Long> binMappingHistogramWithFind(Collection<INode> inodes,
+  Map<String, Long> binMappingHistogramWithFind(
+      Collection<INode> inodes,
       String findFunc,
       Function<INode, Long> findToLong,
       Function<INode, Long> nodeToLong,
@@ -990,26 +1052,28 @@ public class NNLoader {
         BigInteger[] bigHistogram = new BigInteger[binKeyMap.size() + 1];
         long[] counts = new long[binKeyMap.size() + 1];
         Arrays.fill(bigHistogram, BigInteger.valueOf(-1));
-        IntStream.range(0, data.length).parallel().forEach(idx ->
-            {
-              int id = (int) data[idx];
-              int chosenBin = binKeyMap.size();
-              if (id < chosenBin && id != -1) {
-                // Lock in the bin.
-                chosenBin = id;
-              }
-              synchronized (bigHistogram) {
-                BigInteger currentVal = bigHistogram[chosenBin];
-                long sum = sums[idx];
-                if (currentVal.equals(BigInteger.valueOf(-1))) {
-                  bigHistogram[chosenBin] = BigInteger.valueOf(sum);
-                } else {
-                  bigHistogram[chosenBin] = bigHistogram[chosenBin].add(BigInteger.valueOf(sum));
-                }
-                counts[chosenBin]++;
-              }
-            }
-        );
+        IntStream.range(0, data.length)
+            .parallel()
+            .forEach(
+                idx -> {
+                  int id = (int) data[idx];
+                  int chosenBin = binKeyMap.size();
+                  if (id < chosenBin && id != -1) {
+                    // Lock in the bin.
+                    chosenBin = id;
+                  }
+                  synchronized (bigHistogram) {
+                    BigInteger currentVal = bigHistogram[chosenBin];
+                    long sum = sums[idx];
+                    if (currentVal.equals(BigInteger.valueOf(-1))) {
+                      bigHistogram[chosenBin] = BigInteger.valueOf(sum);
+                    } else {
+                      bigHistogram[chosenBin] =
+                          bigHistogram[chosenBin].add(BigInteger.valueOf(sum));
+                    }
+                    counts[chosenBin]++;
+                  }
+                });
         if (bigHistogram[binKeyMap.size()].equals(BigInteger.valueOf(-1))) {
           bigHistogram[binKeyMap.size()] = BigInteger.ZERO;
         }
@@ -1023,32 +1087,33 @@ public class NNLoader {
       } else {
         histogram = new long[binKeyMap.size() + 1];
         Arrays.fill(histogram, -1L);
-        IntStream.range(0, data.length).parallel().forEach(idx ->
-            {
-              int id = (int) data[idx];
-              int chosenBin = binKeyMap.size();
-              if (id < chosenBin && id != -1) {
-                // Lock in the bin.
-                chosenBin = id;
-              }
-              synchronized (histogram) {
-                long currentVal = histogram[chosenBin];
-                long compareVal = sums[idx];
-                switch (findFunc) {
-                  case "max":
-                    if (currentVal < compareVal) {
-                      histogram[chosenBin] = compareVal;
+        IntStream.range(0, data.length)
+            .parallel()
+            .forEach(
+                idx -> {
+                  int id = (int) data[idx];
+                  int chosenBin = binKeyMap.size();
+                  if (id < chosenBin && id != -1) {
+                    // Lock in the bin.
+                    chosenBin = id;
+                  }
+                  synchronized (histogram) {
+                    long currentVal = histogram[chosenBin];
+                    long compareVal = sums[idx];
+                    switch (findFunc) {
+                      case "max":
+                        if (currentVal < compareVal) {
+                          histogram[chosenBin] = compareVal;
+                        }
+                        break;
+                      case "min":
+                        if (currentVal == -1 || currentVal > compareVal) {
+                          histogram[chosenBin] = compareVal;
+                        }
+                        break;
                     }
-                    break;
-                  case "min":
-                    if (currentVal == -1 || currentVal > compareVal) {
-                      histogram[chosenBin] = compareVal;
-                    }
-                    break;
-                }
-              }
-            }
-        );
+                  }
+                });
         if (histogram[binKeyMap.size()] == -1) {
           histogram[binKeyMap.size()] = 0;
         }
@@ -1072,7 +1137,8 @@ public class NNLoader {
     return Histograms.mapByKeys(binKeyMap, histogram);
   }
 
-  private Map<String, Long> filteringHistogram(Collection<INode> inodes,
+  private Map<String, Long> filteringHistogram(
+      Collection<INode> inodes,
       String sum,
       Function<INode, Long> sumFunc,
       Function<INode, Long> nodeToLong,
@@ -1090,20 +1156,21 @@ public class NNLoader {
         LOG.info("Empty data set; skipping.");
       } else {
         histogram = new long[binsArray.length + 1];
-        IntStream.range(0, data.length).parallel().forEach(idx ->
-            {
-              long datum = data[idx];
-              int chosenBin = binsArray.length;
-              for (int i = 0; i < binsArray.length; i++) {
-                if (datum <= binsArray[i] && chosenBin == binsArray.length) {
-                  chosenBin = i;
-                }
-              }
-              synchronized (histogram) {
-                histogram[chosenBin] += sums[idx];
-              }
-            }
-        );
+        IntStream.range(0, data.length)
+            .parallel()
+            .forEach(
+                idx -> {
+                  long datum = data[idx];
+                  int chosenBin = binsArray.length;
+                  for (int i = 0; i < binsArray.length; i++) {
+                    if (datum <= binsArray[i] && chosenBin == binsArray.length) {
+                      chosenBin = i;
+                    }
+                  }
+                  synchronized (histogram) {
+                    histogram[chosenBin] += sums[idx];
+                  }
+                });
         LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
@@ -1124,7 +1191,8 @@ public class NNLoader {
     return Histograms.sortByKeys(keys, histogram);
   }
 
-  private Map<String, Long> filteringHistogramWithFind(Collection<INode> inodes,
+  private Map<String, Long> filteringHistogramWithFind(
+      Collection<INode> inodes,
       String findOp,
       String find,
       Function<INode, Long> findFunc,
@@ -1144,26 +1212,28 @@ public class NNLoader {
       } else if (find.equals("avg")) {
         BigInteger[] bigHistogram = new BigInteger[binsArray.length + 1];
         long[] counts = new long[binsArray.length + 1];
-        IntStream.range(0, data.length).parallel().forEach(idx ->
-            {
-              int id = (int) data[idx];
-              int chosenBin = binsArray.length;
-              if (id < chosenBin && id != -1) {
-                // Lock in the bin.
-                chosenBin = id;
-              }
-              synchronized (bigHistogram) {
-                BigInteger currentVal = bigHistogram[chosenBin];
-                long sum = sums[idx];
-                if (currentVal.equals(BigInteger.valueOf(-1))) {
-                  bigHistogram[chosenBin] = BigInteger.valueOf(sum);
-                } else {
-                  bigHistogram[chosenBin] = bigHistogram[chosenBin].add(BigInteger.valueOf(sum));
-                }
-                counts[chosenBin]++;
-              }
-            }
-        );
+        IntStream.range(0, data.length)
+            .parallel()
+            .forEach(
+                idx -> {
+                  int id = (int) data[idx];
+                  int chosenBin = binsArray.length;
+                  if (id < chosenBin && id != -1) {
+                    // Lock in the bin.
+                    chosenBin = id;
+                  }
+                  synchronized (bigHistogram) {
+                    BigInteger currentVal = bigHistogram[chosenBin];
+                    long sum = sums[idx];
+                    if (currentVal.equals(BigInteger.valueOf(-1))) {
+                      bigHistogram[chosenBin] = BigInteger.valueOf(sum);
+                    } else {
+                      bigHistogram[chosenBin] =
+                          bigHistogram[chosenBin].add(BigInteger.valueOf(sum));
+                    }
+                    counts[chosenBin]++;
+                  }
+                });
         for (int i = 0; i < bigHistogram.length; i++) {
           if (counts[i] != 0) {
             bigHistogram[i] = bigHistogram[i].divide(BigInteger.valueOf(counts[i]));
@@ -1173,33 +1243,34 @@ public class NNLoader {
         LOG.info("Histogram returned an array of size: {}", histogram.length);
       } else {
         histogram = new long[binsArray.length + 1];
-        IntStream.range(0, data.length).parallel().forEach(idx ->
-            {
-              long datum = data[idx];
-              int chosenBin = binsArray.length;
-              for (int i = 0; i < binsArray.length; i++) {
-                if (datum <= binsArray[i] && chosenBin == binsArray.length) {
-                  chosenBin = i;
-                }
-              }
-              synchronized (histogram) {
-                long currentVal = histogram[chosenBin];
-                long compareVal = sums[idx];
-                switch (find) {
-                  case "max":
-                    if (currentVal < compareVal) {
-                      histogram[chosenBin] = compareVal;
+        IntStream.range(0, data.length)
+            .parallel()
+            .forEach(
+                idx -> {
+                  long datum = data[idx];
+                  int chosenBin = binsArray.length;
+                  for (int i = 0; i < binsArray.length; i++) {
+                    if (datum <= binsArray[i] && chosenBin == binsArray.length) {
+                      chosenBin = i;
                     }
-                    break;
-                  case "min":
-                    if (compareVal == 0 || currentVal > compareVal) {
-                      histogram[chosenBin] = compareVal;
+                  }
+                  synchronized (histogram) {
+                    long currentVal = histogram[chosenBin];
+                    long compareVal = sums[idx];
+                    switch (find) {
+                      case "max":
+                        if (currentVal < compareVal) {
+                          histogram[chosenBin] = compareVal;
+                        }
+                        break;
+                      case "min":
+                        if (compareVal == 0 || currentVal > compareVal) {
+                          histogram[chosenBin] = compareVal;
+                        }
+                        break;
                     }
-                    break;
-                }
-              }
-            }
-        );
+                  }
+                });
         LOG.info("Histogram returned an array of size: {}", histogram.length);
       }
     } catch (Throwable e) {
@@ -1231,21 +1302,33 @@ public class NNLoader {
   }
 
   public Map<String, Long> fileSizeHistogramCpu(Collection<INode> inodes, String sum) {
-    return filteringHistogram(inodes, sum, getSumFunctionForINode(sum),
+    return filteringHistogram(
+        inodes,
+        sum,
+        getSumFunctionForINode(sum),
         node -> node.asFile().computeFileSize(),
-        SpaceSizeHistogram.getBinsArray(), SpaceSizeHistogram.getKeys());
+        SpaceSizeHistogram.getBinsArray(),
+        SpaceSizeHistogram.getKeys());
   }
 
   private Map<String, Long> fileSizeHistogramCpuWithFind(Collection<INode> inodes, String find) {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return filteringHistogramWithFind(inodes, findField, findOp,
-        getFilterFunctionToLongForINode(findField), node -> node.asFile().computeFileSize(),
-        SpaceSizeHistogram.getBinsArray(), SpaceSizeHistogram.getKeys());
+    return filteringHistogramWithFind(
+        inodes,
+        findField,
+        findOp,
+        getFilterFunctionToLongForINode(findField),
+        node -> node.asFile().computeFileSize(),
+        SpaceSizeHistogram.getBinsArray(),
+        SpaceSizeHistogram.getKeys());
   }
 
-  public Map<String, Long> fileReplicaHistogram(Collection<INode> inodes, String sum, String find,
+  public Map<String, Long> fileReplicaHistogram(
+      Collection<INode> inodes,
+      String sum,
+      String find,
       Map<String, Function<INode, Long>> transformMap) {
     if (!isInit()) {
       return Collections.emptyMap();
@@ -1256,12 +1339,13 @@ public class NNLoader {
     return fileReplicaHistogramCpuWithFind(inodes, find);
   }
 
-  public Map<String, Long> fileReplicaHistogramCpu(Collection<INode> inodes, String sum,
-      Map<String, Function<INode, Long>> transformMap) {
-    Function<INode, Long> binFunc = getTransformFunction(
-        getFilterFunctionToLongForINode("fileReplica"), transformMap, "fileReplica");
-    Function<INode, Long> sumFunc = getTransformFunction(getSumFunctionForINode(sum), transformMap,
-        sum);
+  public Map<String, Long> fileReplicaHistogramCpu(
+      Collection<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
+    Function<INode, Long> binFunc =
+        getTransformFunction(
+            getFilterFunctionToLongForINode("fileReplica"), transformMap, "fileReplica");
+    Function<INode, Long> sumFunc =
+        getTransformFunction(getSumFunctionForINode(sum), transformMap, sum);
     return strictMappingHistogram(inodes, sum, sumFunc, binFunc);
   }
 
@@ -1292,8 +1376,8 @@ public class NNLoader {
     return versionLoader.storageTypeHistogramCpuWithFind(inodes, find, this);
   }
 
-  public Map<String, Long> accessTimeHistogram(Collection<INode> inodes, String sum, String find,
-      String timeRange) {
+  public Map<String, Long> accessTimeHistogram(
+      Collection<INode> inodes, String sum, String find, String timeRange) {
     if (!isInit()) {
       return Collections.emptyMap();
     }
@@ -1303,26 +1387,34 @@ public class NNLoader {
     return accessTimeHistogramCpuWithFind(inodes, find, timeRange);
   }
 
-  public Map<String, Long> accessTimeHistogramCpu(Collection<INode> inodes, String sum,
-      String timeRange) {
-    return filteringHistogram(inodes, sum, getSumFunctionForINode(sum),
+  public Map<String, Long> accessTimeHistogramCpu(
+      Collection<INode> inodes, String sum, String timeRange) {
+    return filteringHistogram(
+        inodes,
+        sum,
+        getSumFunctionForINode(sum),
         node -> System.currentTimeMillis() - node.getAccessTime(),
-        TimeHistogram.getBinsArray(timeRange), TimeHistogram.getKeys(timeRange));
+        TimeHistogram.getBinsArray(timeRange),
+        TimeHistogram.getKeys(timeRange));
   }
 
-  private Map<String, Long> accessTimeHistogramCpuWithFind(Collection<INode> inodes, String find,
-      String timeRange) {
+  private Map<String, Long> accessTimeHistogramCpuWithFind(
+      Collection<INode> inodes, String find, String timeRange) {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return filteringHistogramWithFind(inodes, findField, findOp,
+    return filteringHistogramWithFind(
+        inodes,
+        findField,
+        findOp,
         getFilterFunctionToLongForINode(findField),
         node -> System.currentTimeMillis() - node.getAccessTime(),
-        TimeHistogram.getBinsArray(timeRange), TimeHistogram.getKeys(timeRange));
+        TimeHistogram.getBinsArray(timeRange),
+        TimeHistogram.getKeys(timeRange));
   }
 
-  public Map<String, Long> modTimeHistogram(Collection<INode> inodes, String sum, String find,
-      String timeRange) {
+  public Map<String, Long> modTimeHistogram(
+      Collection<INode> inodes, String sum, String find, String timeRange) {
     if (!isInit()) {
       return Collections.emptyMap();
     }
@@ -1332,27 +1424,33 @@ public class NNLoader {
     return modTimeHistogramCpuWithFind(inodes, find, timeRange);
   }
 
-  public Map<String, Long> modTimeHistogramCpu(Collection<INode> inodes, String sum,
-      String timeRange) {
-    return filteringHistogram(inodes, sum, getSumFunctionForINode(sum),
+  public Map<String, Long> modTimeHistogramCpu(
+      Collection<INode> inodes, String sum, String timeRange) {
+    return filteringHistogram(
+        inodes,
+        sum,
+        getSumFunctionForINode(sum),
         node -> System.currentTimeMillis() - node.getModificationTime(),
-        TimeHistogram.getBinsArray(timeRange), TimeHistogram.getKeys(timeRange));
+        TimeHistogram.getBinsArray(timeRange),
+        TimeHistogram.getKeys(timeRange));
   }
 
-  private Map<String, Long> modTimeHistogramCpuWithFind(Collection<INode> inodes, String find,
-      String timeRange) {
+  private Map<String, Long> modTimeHistogramCpuWithFind(
+      Collection<INode> inodes, String find, String timeRange) {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return filteringHistogramWithFind(inodes, findField, findOp,
+    return filteringHistogramWithFind(
+        inodes,
+        findField,
+        findOp,
         getFilterFunctionToLongForINode(findField),
         node -> System.currentTimeMillis() - node.getModificationTime(),
-        TimeHistogram.getBinsArray(timeRange), TimeHistogram.getKeys(timeRange));
+        TimeHistogram.getBinsArray(timeRange),
+        TimeHistogram.getKeys(timeRange));
   }
 
-  public void dumpINodePaths(Collection<INode> inodes,
-      Integer limit,
-      HttpServletResponse resp)
+  public void dumpINodePaths(Collection<INode> inodes, Integer limit, HttpServletResponse resp)
       throws IOException {
     LOG.info("Dumping a list of {} INodes to a client.", inodes.size());
     long start = System.currentTimeMillis();
@@ -1364,10 +1462,14 @@ public class NNLoader {
       } else {
         subCollection = inodes;
       }
-      subCollection.stream().sorted(Comparator.comparing(INode::getFullPathName)).forEach(node -> {
-        writer.write(node.getFullPathName() + '\n');
-        writer.flush();
-      });
+      subCollection
+          .stream()
+          .sorted(Comparator.comparing(INode::getFullPathName))
+          .forEach(
+              node -> {
+                writer.write(node.getFullPathName() + '\n');
+                writer.flush();
+              });
     } finally {
       IOUtils.closeStream(writer);
       LOG.info("Closed response.");
@@ -1388,30 +1490,48 @@ public class NNLoader {
 
   public Map<String, Long> byUserHistogramCpu(Collection<INode> inodes, String sum) {
     List<String> distinctUsers =
-        StreamSupport.stream(inodes.spliterator(), true).map(INode::getUserName).distinct()
+        StreamSupport.stream(inodes.spliterator(), true)
+            .map(INode::getUserName)
+            .distinct()
             .collect(Collectors.toList());
     Map<String, Long> userToIdMap =
-        distinctUsers.parallelStream().mapToInt(distinctUsers::indexOf).boxed()
+        distinctUsers
+            .parallelStream()
+            .mapToInt(distinctUsers::indexOf)
+            .boxed()
             .collect(Collectors.toMap(distinctUsers::get, value -> (long) value));
 
-    return binMappingHistogram(inodes, sum, getSumFunctionForINode(sum),
-        node -> userToIdMap.get(node.getUserName()), userToIdMap);
+    return binMappingHistogram(
+        inodes,
+        sum,
+        getSumFunctionForINode(sum),
+        node -> userToIdMap.get(node.getUserName()),
+        userToIdMap);
   }
 
   private Map<String, Long> byUserHistogramCpuWithFind(Collection<INode> inodes, String find) {
     List<String> distinctUsers =
-        StreamSupport.stream(inodes.spliterator(), true).map(INode::getUserName).distinct()
+        StreamSupport.stream(inodes.spliterator(), true)
+            .map(INode::getUserName)
+            .distinct()
             .collect(Collectors.toList());
     Map<String, Long> userToIdMap =
-        distinctUsers.parallelStream().mapToInt(distinctUsers::indexOf).boxed()
+        distinctUsers
+            .parallelStream()
+            .mapToInt(distinctUsers::indexOf)
+            .boxed()
             .collect(Collectors.toMap(distinctUsers::get, value -> (long) value));
 
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
-    return binMappingHistogramWithFind(inodes, findOp, getFilterFunctionToLongForINode(findField),
-        node -> userToIdMap.get(node.getUserName()), userToIdMap);
+    return binMappingHistogramWithFind(
+        inodes,
+        findOp,
+        getFilterFunctionToLongForINode(findField),
+        node -> userToIdMap.get(node.getUserName()),
+        userToIdMap);
   }
 
   public Map<String, Long> byGroupHistogram(Collection<INode> inodes, String sum, String find) {
@@ -1426,34 +1546,52 @@ public class NNLoader {
 
   public Map<String, Long> byGroupHistogramCpu(Collection<INode> inodes, String sum) {
     List<String> distinctGroups =
-        StreamSupport.stream(inodes.spliterator(), true).map(INode::getGroupName).distinct()
+        StreamSupport.stream(inodes.spliterator(), true)
+            .map(INode::getGroupName)
+            .distinct()
             .collect(Collectors.toList());
     Map<String, Long> groupToIdMap =
-        distinctGroups.parallelStream().mapToInt(distinctGroups::indexOf).boxed()
+        distinctGroups
+            .parallelStream()
+            .mapToInt(distinctGroups::indexOf)
+            .boxed()
             .collect(Collectors.toMap(distinctGroups::get, value -> (long) value));
 
-    return binMappingHistogram(inodes, sum, getSumFunctionForINode(sum),
-        node -> groupToIdMap.get(node.getGroupName()), groupToIdMap);
+    return binMappingHistogram(
+        inodes,
+        sum,
+        getSumFunctionForINode(sum),
+        node -> groupToIdMap.get(node.getGroupName()),
+        groupToIdMap);
   }
 
   private Map<String, Long> byGroupHistogramCpuWithFind(Collection<INode> inodes, String find) {
     List<String> distinctGroups =
-        StreamSupport.stream(inodes.spliterator(), true).map(INode::getGroupName).distinct()
+        StreamSupport.stream(inodes.spliterator(), true)
+            .map(INode::getGroupName)
+            .distinct()
             .collect(Collectors.toList());
     Map<String, Long> groupToIdMap =
-        distinctGroups.parallelStream().mapToInt(distinctGroups::indexOf).boxed()
+        distinctGroups
+            .parallelStream()
+            .mapToInt(distinctGroups::indexOf)
+            .boxed()
             .collect(Collectors.toMap(distinctGroups::get, value -> (long) value));
 
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
-    return binMappingHistogramWithFind(inodes, findOp, getFilterFunctionToLongForINode(findField),
-        node -> groupToIdMap.get(node.getGroupName()), groupToIdMap);
+    return binMappingHistogramWithFind(
+        inodes,
+        findOp,
+        getFilterFunctionToLongForINode(findField),
+        node -> groupToIdMap.get(node.getGroupName()),
+        groupToIdMap);
   }
 
-  public Map<String, Long> parentDirHistogram(Collection<INode> inodes, Integer parentDirDepth,
-      String sum, String find) {
+  public Map<String, Long> parentDirHistogram(
+      Collection<INode> inodes, Integer parentDirDepth, String sum, String find) {
     if (!isInit()) {
       return Collections.emptyMap();
     }
@@ -1463,99 +1601,119 @@ public class NNLoader {
     return parentDirHistogramCpuWithFind(inodes, parentDirDepth, find);
   }
 
-  public Map<String, Long> parentDirHistogramCpu(Collection<INode> inodes, Integer parentDirDepth,
-      String sum) {
+  public Map<String, Long> parentDirHistogramCpu(
+      Collection<INode> inodes, Integer parentDirDepth, String sum) {
     int dirDepth =
         (parentDirDepth == null || parentDirDepth <= 0) ? Integer.MAX_VALUE : parentDirDepth;
     List<String> distinctDirectories =
-        StreamSupport.stream(inodes.spliterator(), true).map(node -> {
-          try {
-            INodeDirectory parent = node.getParent();
-            int topParentDepth = new Path(parent.getFullPathName()).depth();
-            if (topParentDepth < dirDepth) {
-              return "NO_MAPPING";
-            }
-            for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-              parent = parent.getParent();
-            }
-            return parent.getFullPathName();
-          } catch (Exception e) {
-            return "NO_MAPPING";
-          }
-        }).distinct().collect(Collectors.toList());
+        StreamSupport.stream(inodes.spliterator(), true)
+            .map(
+                node -> {
+                  try {
+                    INodeDirectory parent = node.getParent();
+                    int topParentDepth = new Path(parent.getFullPathName()).depth();
+                    if (topParentDepth < dirDepth) {
+                      return "NO_MAPPING";
+                    }
+                    for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
+                      parent = parent.getParent();
+                    }
+                    return parent.getFullPathName();
+                  } catch (Exception e) {
+                    return "NO_MAPPING";
+                  }
+                })
+            .distinct()
+            .collect(Collectors.toList());
 
     final AtomicLong id = new AtomicLong(0L);
     Map<String, Long> dirToIdMap =
-        distinctDirectories.parallelStream()
+        distinctDirectories
+            .parallelStream()
             .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
     if (!dirToIdMap.containsKey("NO_MAPPING")) {
       dirToIdMap.put("NO_MAPPING", 0L);
     }
 
-    Map<String, Long> result = binMappingHistogram(inodes, sum, getSumFunctionForINode(sum),
-        node -> {
-          try {
-            INodeDirectory parent = node.getParent();
-            int topParentDepth = new Path(parent.getFullPathName()).depth();
-            if (topParentDepth < dirDepth) {
-              return dirToIdMap.get("NO_MAPPING");
-            }
-            for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-              parent = parent.getParent();
-            }
-            return dirToIdMap.get(parent.getFullPathName());
-          } catch (Exception e) {
-            return dirToIdMap.get("NO_MAPPING");
-          }
-        }, dirToIdMap);
+    Map<String, Long> result =
+        binMappingHistogram(
+            inodes,
+            sum,
+            getSumFunctionForINode(sum),
+            node -> {
+              try {
+                INodeDirectory parent = node.getParent();
+                int topParentDepth = new Path(parent.getFullPathName()).depth();
+                if (topParentDepth < dirDepth) {
+                  return dirToIdMap.get("NO_MAPPING");
+                }
+                for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
+                  parent = parent.getParent();
+                }
+                return dirToIdMap.get(parent.getFullPathName());
+              } catch (Exception e) {
+                return dirToIdMap.get("NO_MAPPING");
+              }
+            },
+            dirToIdMap);
     result.remove("NO_MAPPING");
     return result;
   }
 
-  private Map<String, Long> parentDirHistogramCpuWithFind(Collection<INode> inodes,
-      Integer parentDirDepth, String find) {
+  private Map<String, Long> parentDirHistogramCpuWithFind(
+      Collection<INode> inodes, Integer parentDirDepth, String find) {
     int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
     List<String> distinctDirectories =
-        StreamSupport.stream(inodes.spliterator(), true).map(node -> {
-          try {
-            INodeDirectory parent = node.getParent();
-            int topParentDepth = new Path(parent.getFullPathName()).depth();
-            if (topParentDepth < dirDepth) {
-              return "NO_MAPPING";
-            }
-            for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-              parent = parent.getParent();
-            }
-            return parent.getFullPathName();
-          } catch (Exception e) {
-            return "NO_MAPPING";
-          }
-        }).distinct().collect(Collectors.toList());
+        StreamSupport.stream(inodes.spliterator(), true)
+            .map(
+                node -> {
+                  try {
+                    INodeDirectory parent = node.getParent();
+                    int topParentDepth = new Path(parent.getFullPathName()).depth();
+                    if (topParentDepth < dirDepth) {
+                      return "NO_MAPPING";
+                    }
+                    for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
+                      parent = parent.getParent();
+                    }
+                    return parent.getFullPathName();
+                  } catch (Exception e) {
+                    return "NO_MAPPING";
+                  }
+                })
+            .distinct()
+            .collect(Collectors.toList());
 
     final AtomicLong id = new AtomicLong(0L);
     Map<String, Long> dirToIdMap =
-        distinctDirectories.parallelStream()
+        distinctDirectories
+            .parallelStream()
             .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
-    Map<String, Long> result = binMappingHistogramWithFind(inodes, findOp,
-        getFilterFunctionToLongForINode(findField), node -> {
-          try {
-            INodeDirectory parent = node.getParent();
-            int topParentDepth = new Path(parent.getFullPathName()).depth();
-            if (topParentDepth < dirDepth) {
-              return dirToIdMap.get("NO_MAPPING");
-            }
-            for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-              parent = parent.getParent();
-            }
-            return dirToIdMap.get(parent.getFullPathName());
-          } catch (Exception e) {
-            return dirToIdMap.get("NO_MAPPING");
-          }
-        }, dirToIdMap);
+    Map<String, Long> result =
+        binMappingHistogramWithFind(
+            inodes,
+            findOp,
+            getFilterFunctionToLongForINode(findField),
+            node -> {
+              try {
+                INodeDirectory parent = node.getParent();
+                int topParentDepth = new Path(parent.getFullPathName()).depth();
+                if (topParentDepth < dirDepth) {
+                  return dirToIdMap.get("NO_MAPPING");
+                }
+                for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
+                  parent = parent.getParent();
+                }
+                return dirToIdMap.get(parent.getFullPathName());
+              } catch (Exception e) {
+                return dirToIdMap.get("NO_MAPPING");
+              }
+            },
+            dirToIdMap);
     result.remove("NO_MAPPING");
     return result;
   }
@@ -1574,11 +1732,17 @@ public class NNLoader {
     List<String> fileTypes = FileTypeHistogram.keys;
 
     Map<String, Long> typeToIdMap =
-        fileTypes.parallelStream().mapToInt(fileTypes::indexOf).boxed()
+        fileTypes
+            .parallelStream()
+            .mapToInt(fileTypes::indexOf)
+            .boxed()
             .collect(Collectors.toMap(fileTypes::get, value -> (long) value));
 
     Map<String, Long> histogram =
-        binMappingHistogram(inodes, sum, getSumFunctionForINode(sum),
+        binMappingHistogram(
+            inodes,
+            sum,
+            getSumFunctionForINode(sum),
             node -> typeToIdMap.get(FileTypeHistogram.determineType(node.getLocalName())),
             typeToIdMap);
 
@@ -1598,12 +1762,17 @@ public class NNLoader {
 
     final AtomicLong id = new AtomicLong(0L);
     Map<String, Long> dirToIdMap =
-        distinctDirectories.parallelStream()
+        distinctDirectories
+            .parallelStream()
             .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
-    
+
     Map<String, Long> histogram =
-        binMappingHistogram(inodes, sum, getSumFunctionForINode(sum),
-            node -> dirToIdMap.get(node.getFullPathName()), dirToIdMap);
+        binMappingHistogram(
+            inodes,
+            sum,
+            getSumFunctionForINode(sum),
+            node -> dirToIdMap.get(node.getFullPathName()),
+            dirToIdMap);
 
     return removeKeysOnConditional(histogram, "gte:0");
   }
@@ -1654,7 +1823,9 @@ public class NNLoader {
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
 
-      LOG.info("Setting: {} to: /usr/local/nn-analytics/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
+      LOG.info(
+          "Setting: {} to: /usr/local/nn-analytics/dfs/name",
+          DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
       conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, "/usr/local/nn-analytics/dfs/name");
 
       String nameserviceId = DFSUtil.getOnlyNameServiceIdOrNull(conf);
@@ -1693,8 +1864,8 @@ public class NNLoader {
       INodeMap iNodeMap = fsDirectory.getINodeMap();
       Field mapField = iNodeMap.getClass().getDeclaredField("map");
       mapField.setAccessible(true);
-      gsetMap = new GSetParallelWrapper(
-          (GSet<INode, INodeWithAdditionalFields>) mapField.get(iNodeMap));
+      gsetMap =
+          new GSetParallelWrapper((GSet<INode, INodeWithAdditionalFields>) mapField.get(iNodeMap));
     } else {
       gsetMap = new GSetParallelWrapper(preloadedInodes);
       tokenExtractor = new TokenExtractor(null, null);
@@ -1702,10 +1873,14 @@ public class NNLoader {
 
     long s1 = System.currentTimeMillis();
     all = new GSetCollectionWrapper(gsetMap);
-    files = StreamSupport.stream(gsetMap.spliterator(), true).filter(INode::isFile)
-        .collect(Collectors.toConcurrentMap(node -> node, node -> node));
-    dirs = StreamSupport.stream(gsetMap.spliterator(), true).filter(INode::isDirectory)
-        .collect(Collectors.toConcurrentMap(node -> node, node -> node));
+    files =
+        StreamSupport.stream(gsetMap.spliterator(), true)
+            .filter(INode::isFile)
+            .collect(Collectors.toConcurrentMap(node -> node, node -> node));
+    dirs =
+        StreamSupport.stream(gsetMap.spliterator(), true)
+            .filter(INode::isDirectory)
+            .collect(Collectors.toConcurrentMap(node -> node, node -> node));
     long e1 = System.currentTimeMillis();
     LOG.info("Filtering {} files and {} dirs took: {} ms.", files.size(), dirs.size(), (e1 - s1));
 
@@ -1716,8 +1891,8 @@ public class NNLoader {
         INodeMap iNodeMap = fsDirectory.getINodeMap();
         Field mapField = iNodeMap.getClass().getDeclaredField("map");
         mapField.setAccessible(true);
-        GSet<INode, INodeWithAdditionalFields> newGSet = new GSetSeperatorWrapper(gsetMap, files,
-            dirs);
+        GSet<INode, INodeWithAdditionalFields> newGSet =
+            new GSetSeperatorWrapper(gsetMap, files, dirs);
         mapField.set(iNodeMap, newGSet);
         namesystem.writeUnlock();
 
@@ -1758,7 +1933,9 @@ public class NNLoader {
   private void reloadKeytab() {
     if (UserGroupInformation.isSecurityEnabled()) {
       try {
-        SecurityUtil.login(conf, DFSConfigKeys.DFS_NAMENODE_KEYTAB_FILE_KEY,
+        SecurityUtil.login(
+            conf,
+            DFSConfigKeys.DFS_NAMENODE_KEYTAB_FILE_KEY,
             DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY,
             InetAddress.getLocalHost().getCanonicalHostName());
         UserGroupInformation.getLoginUser().checkTGTAndReloginFromKeytab();
@@ -1789,17 +1966,16 @@ public class NNLoader {
   }
 
   /**
-   * Creates histogram with only entries that satisfy the conditional String. Conditional String
-   * ex: 'gte:1000' should create a histogram where all entries have values greater than or equal to
-   * 1000L.
-   * NOTE: Modifies the parameter histogram.
+   * Creates histogram with only entries that satisfy the conditional String. Conditional String ex:
+   * 'gte:1000' should create a histogram where all entries have values greater than or equal to
+   * 1000L. NOTE: Modifies the parameter histogram.
    *
-   * @param histogram              data points of histogram
+   * @param histogram data points of histogram
    * @param histogramConditionsStr conditional string to filter out the given histogram
    * @return filtered histogram as per the given conditional string
    */
-  public Map<String, Long> removeKeysOnConditional(Map<String, Long> histogram,
-      String histogramConditionsStr) {
+  public Map<String, Long> removeKeysOnConditional(
+      Map<String, Long> histogram, String histogramConditionsStr) {
     long s1 = System.currentTimeMillis();
     int originalHistSize = histogram.size();
 
@@ -1814,8 +1990,12 @@ public class NNLoader {
     keys.forEach(histogram::remove);
 
     long e1 = System.currentTimeMillis();
-    LOG.info("Removing {} keys from histogram of size {} using conditional String:'{}', took: {} ms.", keys.size(), originalHistSize,
-        histogramConditionsStr, (e1 - s1));
+    LOG.info(
+        "Removing {} keys from histogram of size {} using conditional String:'{}', took: {} ms.",
+        keys.size(),
+        originalHistSize,
+        histogramConditionsStr,
+        (e1 - s1));
 
     return histogram;
   }
@@ -1825,18 +2005,19 @@ public class NNLoader {
    * ex: 'gte:1000' should create a histogram where all entries have values greater than or equal to
    * 1000L.
    *
-   * NOTE: Modifies the parameter histogram.
-   * @param histogram              data points of histogram
+   * <p>NOTE: Modifies the parameter histogram.
+   *
+   * @param histogram data points of histogram
    * @param histogramConditionsStr conditional string to filter out the given histogram
    * @return filtered histogram as per the given conditional string
    */
-  public Map<String, List<Long>> removeKeysOnConditional2(Map<String, List<Long>> histogram,
-      String histogramConditionsStr) {
+  public Map<String, List<Long>> removeKeysOnConditional2(
+      Map<String, List<Long>> histogram, String histogramConditionsStr) {
     long s1 = System.currentTimeMillis();
     int originalHistSize = histogram.size();
 
-    List<Function<List<Long>, Boolean>> comparisons = createIndexedComparisons(
-        histogramConditionsStr);
+    List<Function<List<Long>, Boolean>> comparisons =
+        createIndexedComparisons(histogramConditionsStr);
     Set<String> keys = new HashSet<>();
     for (Map.Entry<String, List<Long>> entry : histogram.entrySet()) {
       boolean columnCheck = check(comparisons, entry.getValue());
@@ -1847,14 +2028,17 @@ public class NNLoader {
     keys.forEach(histogram::remove);
 
     long e1 = System.currentTimeMillis();
-    LOG.info("Removing {} keys from histogram2 of size {} using conditional String:'{}', took: {} ms.", keys.size(), originalHistSize,
-            histogramConditionsStr, (e1 - s1));
+    LOG.info(
+        "Removing {} keys from histogram2 of size {} using conditional String:'{}', took: {} ms.",
+        keys.size(),
+        originalHistSize,
+        histogramConditionsStr,
+        (e1 - s1));
 
     return histogram;
   }
 
-  public boolean check(List<Function<Long, Boolean>> comparisons,
-      long value) {
+  public boolean check(List<Function<Long, Boolean>> comparisons, long value) {
     boolean check = true;
     for (Function<Long, Boolean> comparison : comparisons) {
       boolean compareResult = comparison.apply(value);
@@ -1866,8 +2050,7 @@ public class NNLoader {
     return check;
   }
 
-  public boolean check(List<Function<List<Long>, Boolean>> comparisons,
-      List<Long> value) {
+  public boolean check(List<Function<List<Long>, Boolean>> comparisons, List<Long> value) {
     boolean check = true;
     for (Function<List<Long>, Boolean> comparison : comparisons) {
       boolean compareResult = comparison.apply(value);
@@ -1889,12 +2072,12 @@ public class NNLoader {
       conditionTuplets[i] = triplet.split(":");
     }
 
-    //Create comparisons.
+    // Create comparisons.
     for (String[] condition : conditionTuplets) {
-      Function<Long, Boolean> longFunction = getFilterFunctionForLong(Long.parseLong(condition[2]),
-          condition[1]);
-      Function<List<Long>, Boolean> indexedLongFunction = (list) -> longFunction
-          .apply(list.get(Integer.parseInt(condition[0])));
+      Function<Long, Boolean> longFunction =
+          getFilterFunctionForLong(Long.parseLong(condition[2]), condition[1]);
+      Function<List<Long>, Boolean> indexedLongFunction =
+          (list) -> longFunction.apply(list.get(Integer.parseInt(condition[0])));
       comparisons.add(indexedLongFunction);
     }
 
@@ -1911,10 +2094,10 @@ public class NNLoader {
       conditionTuplets[i] = tuplet.split(":");
     }
 
-    //Create comparisons.
+    // Create comparisons.
     for (String[] condition : conditionTuplets) {
-      Function<Long, Boolean> longFunction = getFilterFunctionForLong(Long.parseLong(condition[1]),
-          condition[0]);
+      Function<Long, Boolean> longFunction =
+          getFilterFunctionForLong(Long.parseLong(condition[1]), condition[0]);
       comparisons.add(longFunction);
     }
 
@@ -1934,33 +2117,37 @@ public class NNLoader {
   }
 
   public void initReloadThreads(ExecutorService internalService) {
-    Future<Void> reload = internalService.submit(() -> {
-      while (true) {
-        try {
-          suggestionsEngine.reloadSuggestions(this);
-        } catch (Throwable e) {
-          LOG.info("Suggestion reload failed: {}", e);
-          for (StackTraceElement element : e.getStackTrace()) {
-            LOG.info(element.toString());
-          }
-        }
-        // Reload suggestions every 15 minutes.
-        try {
-          Thread.sleep(15 * 60 * 1000L);
-        } catch (InterruptedException ignored) {
-        }
-      }
-    });
-    Future<Void> keytab = internalService.submit(() -> {
-      while (true) {
-        // Reload Keytab every 10 minutes.
-        try {
-          Thread.sleep(10 * 60 * 1000L);
-        } catch (InterruptedException ignored) {
-        }
-        reloadKeytab();
-      }
-    });
+    Future<Void> reload =
+        internalService.submit(
+            () -> {
+              while (true) {
+                try {
+                  suggestionsEngine.reloadSuggestions(this);
+                } catch (Throwable e) {
+                  LOG.info("Suggestion reload failed: {}", e);
+                  for (StackTraceElement element : e.getStackTrace()) {
+                    LOG.info(element.toString());
+                  }
+                }
+                // Reload suggestions every 15 minutes.
+                try {
+                  Thread.sleep(15 * 60 * 1000L);
+                } catch (InterruptedException ignored) {
+                }
+              }
+            });
+    Future<Void> keytab =
+        internalService.submit(
+            () -> {
+              while (true) {
+                // Reload Keytab every 10 minutes.
+                try {
+                  Thread.sleep(10 * 60 * 1000L);
+                } catch (InterruptedException ignored) {
+                }
+                reloadKeytab();
+              }
+            });
     if (reload.isDone()) {
       LOG.error("Suggestion reload service exited; suggestions will not update.");
     }
@@ -1969,9 +2156,8 @@ public class NNLoader {
     }
   }
 
-  public void initHistoryRecorder(HSQLDriver hsqlDriver,
-      SecurityConfiguration conf,
-      boolean isEnabled) throws SQLException {
+  public void initHistoryRecorder(
+      HSQLDriver hsqlDriver, SecurityConfiguration conf, boolean isEnabled) throws SQLException {
     if (isEnabled && hsqlDriver != null) {
       this.hsqlDriver = hsqlDriver;
       hsqlDriver.startDatabase(conf);

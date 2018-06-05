@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode;
 
 import java.io.IOException;
@@ -28,20 +29,17 @@ public interface VersionInterface {
 
   void setNamesystem(FSNamesystem namesystem);
 
-  void dumpINodeInDetail(String path, HttpServletResponse resp)
-      throws IOException;
+  void dumpINodeInDetail(String path, HttpServletResponse resp) throws IOException;
 
   Function<INode, Long> getFilterFunctionToLongForINode(String filter);
 
   Function<INode, Boolean> getFilterFunctionToBooleanForINode(String filter);
 
-  Map<String, Long> storageTypeHistogramCpu(Collection<INode> inodes,
-                                            String sum,
-                                            NNLoader nnLoader);
+  Map<String, Long> storageTypeHistogramCpu(
+      Collection<INode> inodes, String sum, NNLoader nnLoader);
 
-  Map<String, Long> storageTypeHistogramCpuWithFind(Collection<INode> inodes,
-                                                    String find,
-                                                    NNLoader nnLoader);
+  Map<String, Long> storageTypeHistogramCpuWithFind(
+      Collection<INode> inodes, String find, NNLoader nnLoader);
 
   void saveNamespace() throws IOException;
 

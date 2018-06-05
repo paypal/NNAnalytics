@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.paypal.security;
 
 import java.util.Map;
@@ -38,5 +39,4 @@ class UserPasswordSet extends UserSet {
     String storedPassword = usernamePasswords.get(user);
     return storedPassword != null && storedPassword.equals(password);
   }
-
 }

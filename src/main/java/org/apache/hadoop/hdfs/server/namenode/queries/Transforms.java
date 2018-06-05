@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
-//import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
+// import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,8 +40,7 @@ public class Transforms {
     Function<INode, Boolean> conditions;
     Function<INode, Long> toLongFunc;
 
-    Transform(Function<INode, Boolean> conditions,
-        Function<INode, Long> toLongFunc) {
+    Transform(Function<INode, Boolean> conditions, Function<INode, Long> toLongFunc) {
       this.conditions = conditions;
       this.toLongFunc = toLongFunc;
     }
@@ -51,7 +51,9 @@ public class Transforms {
       String transformFields,
       String transformOutputs,
       NNLoader loader) {
-    if (transformConditionArray == null || transformFields == null || transformOutputs == null
+    if (transformConditionArray == null
+        || transformFields == null
+        || transformOutputs == null
         || !loader.isInit()) {
       return Collections.emptyMap();
     }
@@ -88,10 +90,7 @@ public class Transforms {
   }
 
   private static Map<String, List<Transform>> transformINodeToLongFunction(
-      String transformConditions,
-      String transformField,
-      String transformOutput,
-      NNLoader loader) {
+      String transformConditions, String transformField, String transformOutput, NNLoader loader) {
     Map<String, List<Transform>> transformMap = new HashMap<>(2);
     String[] conditionTriplets = transformConditions.split(",");
     String[][] conditions = new String[conditionTriplets.length][3];
@@ -101,13 +100,13 @@ public class Transforms {
       conditions[i] = triplet.split(":");
     }
 
-    //Create comparisons.
+    // Create comparisons.
     for (String[] condition : conditions) {
       // Long value filters
       Function<INode, Long> longFunction = loader.getFilterFunctionToLongForINode(condition[0]);
       if (longFunction != null) {
-        Function<Long, Boolean> longCompFunction = loader
-            .getFilterFunctionForLong(Long.parseLong(condition[2]), condition[1]);
+        Function<Long, Boolean> longCompFunction =
+            loader.getFilterFunctionForLong(Long.parseLong(condition[2]), condition[1]);
         Function<INode, Boolean> comparisonFunction = longCompFunction.compose(longFunction);
         comparisons.add(comparisonFunction);
         continue;
@@ -116,19 +115,19 @@ public class Transforms {
       // String value filters
       Function<INode, String> strFunction = loader.getFilterFunctionToStringForINode(condition[0]);
       if (strFunction != null) {
-        Function<String, Boolean> strCompFunction = loader
-            .getFilterFunctionForString(condition[2], condition[1]);
+        Function<String, Boolean> strCompFunction =
+            loader.getFilterFunctionForString(condition[2], condition[1]);
         Function<INode, Boolean> comparisonFunction = strCompFunction.compose(strFunction);
         comparisons.add(comparisonFunction);
         continue;
       }
 
       // Boolean value filters
-      Function<INode, Boolean> boolFunction = loader
-          .getFilterFunctionToBooleanForINode(condition[0]);
+      Function<INode, Boolean> boolFunction =
+          loader.getFilterFunctionToBooleanForINode(condition[0]);
       if (boolFunction != null) {
-        Function<Boolean, Boolean> boolCompFunction = loader
-            .getFilterFunctionForBoolean(Boolean.parseBoolean(condition[2]), condition[1]);
+        Function<Boolean, Boolean> boolCompFunction =
+            loader.getFilterFunctionForBoolean(Boolean.parseBoolean(condition[2]), condition[1]);
         Function<INode, Boolean> comparisonFunction = boolCompFunction.compose(boolFunction);
         comparisons.add(comparisonFunction);
         continue;
@@ -137,34 +136,42 @@ public class Transforms {
       throw new IllegalArgumentException("Your transform sucks.");
     }
 
-    //And the functions.
-    Function<INode, Boolean> andedComparisons = nodeInternal -> {
-      for (Function<INode, Boolean> functionInternal : comparisons) {
-        if (!functionInternal.apply(nodeInternal)) {
-          return false;
-        }
-      }
-      return true;
-    };
+    // And the functions.
+    Function<INode, Boolean> andedComparisons =
+        nodeInternal -> {
+          for (Function<INode, Boolean> functionInternal : comparisons) {
+            if (!functionInternal.apply(nodeInternal)) {
+              return false;
+            }
+          }
+          return true;
+        };
 
     switch (transformField) {
       case "fileReplica":
-        addFunctionToTransformMap("fileReplica", andedComparisons,
-            node -> Long.parseLong(transformOutput), transformMap);
-        addFunctionToTransformMap("numReplicas", andedComparisons,
+        addFunctionToTransformMap(
+            "fileReplica", andedComparisons, node -> Long.parseLong(transformOutput), transformMap);
+        addFunctionToTransformMap(
+            "numReplicas",
+            andedComparisons,
             node -> node.asFile().getBlocks().length * Long.parseLong(transformOutput),
             transformMap);
-        addFunctionToTransformMap("diskspaceConsumed", andedComparisons,
+        addFunctionToTransformMap(
+            "diskspaceConsumed",
+            andedComparisons,
             node -> Long.parseLong(transformOutput) * node.asFile().computeFileSize(),
             transformMap);
         return transformMap;
-//        addFunctionToTransformMap("storagePolicy", andedComparisons, node -> (long) BlockStoragePolicySuite.createDefaultSuite().getPolicy(transformOutput).getId(), transformMap);
+        //        addFunctionToTransformMap("storagePolicy", andedComparisons, node -> (long)
+        // BlockStoragePolicySuite.createDefaultSuite().getPolicy(transformOutput).getId(),
+        // transformMap);
       default:
         throw new IllegalArgumentException("Your transform arguments suck.");
     }
   }
 
-  private static void addFunctionToTransformMap(String transformFuncName,
+  private static void addFunctionToTransformMap(
+      String transformFuncName,
       Function<INode, Boolean> conditionsFunc,
       Function<INode, Long> toLongFunc,
       Map<String, List<Transform>> transformMap) {
@@ -172,15 +179,18 @@ public class Transforms {
     if (transforms != null) {
       transforms.add(new Transform(conditionsFunc, toLongFunc));
     } else {
-      transformMap.put(transformFuncName, new ArrayList<Transform>() {{
-        add(new Transform(conditionsFunc, toLongFunc));
-      }});
+      transformMap.put(
+          transformFuncName,
+          new ArrayList<Transform>() {
+            {
+              add(new Transform(conditionsFunc, toLongFunc));
+            }
+          });
     }
   }
 
   private static Map<String, Function<INode, Long>> compoundMethods(
-      Map<String, List<Transform>> transformMap,
-      NNLoader loader) {
+      Map<String, List<Transform>> transformMap, NNLoader loader) {
     if (transformMap.isEmpty()) {
       return Collections.emptyMap();
     }
@@ -188,14 +198,15 @@ public class Transforms {
     Map<String, Function<INode, Long>> compoundedTransforms = new HashMap<>(transformMap.size());
     for (Map.Entry<String, List<Transform>> entry : transformMap.entrySet()) {
       List<Transform> transforms = entry.getValue();
-      Function<INode, Long> compoundedFunction = node -> {
-        for (Transform transform : transforms) {
-          if (transform.conditions.apply(node)) {
-            return transform.toLongFunc.apply(node);
-          }
-        }
-        return loader.getFilterFunctionToLongForINode(entry.getKey()).apply(node);
-      };
+      Function<INode, Long> compoundedFunction =
+          node -> {
+            for (Transform transform : transforms) {
+              if (transform.conditions.apply(node)) {
+                return transform.toLongFunc.apply(node);
+              }
+            }
+            return loader.getFilterFunctionToLongForINode(entry.getKey()).apply(node);
+          };
       compoundedTransforms.put(entry.getKey(), compoundedFunction);
     }
 

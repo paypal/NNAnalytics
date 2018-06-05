@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.util;
 
 import java.io.IOException;
@@ -40,5 +41,4 @@ public class StreamingGZIPOutputStream extends GZIPOutputStream {
       out.write(buf, 0, len);
     }
   }
-
 }

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.Collection;
@@ -27,11 +28,8 @@ public class SetReplication extends BaseOperation {
 
   private final short newRepFactor;
 
-  public SetReplication(Collection<INode> toSetRep,
-      String query,
-      String owner,
-      FileSystem fs,
-      short newRepFactor) {
+  public SetReplication(
+      Collection<INode> toSetRep, String query, String owner, FileSystem fs, short newRepFactor) {
     super(toSetRep, owner, query, fs);
     this.newRepFactor = newRepFactor;
   }

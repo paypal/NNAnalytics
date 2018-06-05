@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.util;
 
 import java.util.Collection;
@@ -30,10 +31,8 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
   private final Map<INode, INode> fileSet;
   private final Map<INode, INode> dirSet;
 
-
-  public GSetSeperatorWrapper(GSet<INode, INodeWithAdditionalFields> g,
-      Map<INode, INode> files,
-      Map<INode, INode> dirs) {
+  public GSetSeperatorWrapper(
+      GSet<INode, INodeWithAdditionalFields> g, Map<INode, INode> files, Map<INode, INode> dirs) {
     this.gSet = g;
     this.fileSet = files;
     this.dirSet = dirs;

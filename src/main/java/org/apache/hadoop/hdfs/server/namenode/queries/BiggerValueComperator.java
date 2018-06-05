@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
 import java.io.Serializable;
@@ -42,5 +43,4 @@ class BiggerValueComperator implements Comparator<Map.Entry<String, Long>>, Seri
     }
     return 0;
   }
-
 }

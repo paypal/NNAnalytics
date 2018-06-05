@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.Collection;
@@ -27,7 +28,8 @@ public class SetStoragePolicy extends BaseOperation {
 
   private final String newStoragePolicy;
 
-  public SetStoragePolicy(Collection<INode> toSetRep,
+  public SetStoragePolicy(
+      Collection<INode> toSetRep,
       String query,
       String owner,
       FileSystem fs,

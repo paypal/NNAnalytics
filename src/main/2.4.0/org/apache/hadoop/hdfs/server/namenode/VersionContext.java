@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode;
 
 import java.io.IOException;
@@ -41,8 +42,7 @@ public class VersionContext implements VersionInterface {
   }
 
   @Override // VersionInterface
-  public void dumpINodeInDetail(String path, HttpServletResponse resp)
-      throws IOException {
+  public void dumpINodeInDetail(String path, HttpServletResponse resp) throws IOException {
     PrintWriter writer = resp.getWriter();
     try {
       if (namesystem == null) {
@@ -70,22 +70,30 @@ public class VersionContext implements VersionInterface {
             "File Size w/o UC Block: " + file.computeFileSizeNotIncludingLastUcBlock() + "\n");
         writer.write("Replication Factor: " + file.getFileReplication() + "\n");
         writer.write("Number of Blocks: " + file.getBlocks().length + "\n");
-        writer.write("Blocks:\n" +
-            Arrays.stream(file.getBlocks())
-                .map(k -> k.getBlockName() + "_" + k.getGenerationStamp() + " " + k.getNumBytes()
-                    + "\n")
-                .collect(Collectors.toList()));
+        writer.write(
+            "Blocks:\n"
+                + Arrays.stream(file.getBlocks())
+                    .map(
+                        k ->
+                            k.getBlockName()
+                                + "_"
+                                + k.getGenerationStamp()
+                                + " "
+                                + k.getNumBytes()
+                                + "\n")
+                    .collect(Collectors.toList()));
       } else {
         INodeDirectory dir = node.asDirectory();
         writer.write("Has Quotas?: " + dir.isWithQuota() + "\n");
         writer.write("Is Snapshottable?: " + dir.isSnapshottable() + "\n");
         writer.write("Under Snapshot?: " + dir.isWithSnapshot() + "\n");
         writer.write("Number of Children: " + dir.getChildrenNum(Snapshot.CURRENT_STATE_ID) + "\n");
-        writer.write("Children:\n" +
-            StreamSupport
-                .stream(dir.getChildrenList(Snapshot.CURRENT_STATE_ID).spliterator(), false)
-                .map(child -> child.getFullPathName() + "\n")
-                .collect(Collectors.toList()));
+        writer.write(
+            "Children:\n"
+                + StreamSupport.stream(
+                        dir.getChildrenList(Snapshot.CURRENT_STATE_ID).spliterator(), false)
+                    .map(child -> child.getFullPathName() + "\n")
+                    .collect(Collectors.toList()));
         writer.flush();
       }
     } finally {
@@ -125,16 +133,14 @@ public class VersionContext implements VersionInterface {
   }
 
   @Override // VersionInterface
-  public Map<String, Long> storageTypeHistogramCpu(Collection<INode> inodes,
-      String sum,
-      NNLoader nnLoader) {
+  public Map<String, Long> storageTypeHistogramCpu(
+      Collection<INode> inodes, String sum, NNLoader nnLoader) {
     throw new UnsupportedOperationException("Storage Types not supported in 2.4.0.");
   }
 
   @Override // VersionInterface
-  public Map<String, Long> storageTypeHistogramCpuWithFind(Collection<INode> inodes,
-      String find,
-      NNLoader nnLoader) {
+  public Map<String, Long> storageTypeHistogramCpuWithFind(
+      Collection<INode> inodes, String find, NNLoader nnLoader) {
     throw new UnsupportedOperationException("Storage Types not supported in 2.4.0.");
   }
 
@@ -167,5 +173,4 @@ public class VersionContext implements VersionInterface {
   public Long getDSQuotaUsed(INode node) {
     return node.computeQuotaUsage().get(Quota.DISKSPACE);
   }
-
 }
