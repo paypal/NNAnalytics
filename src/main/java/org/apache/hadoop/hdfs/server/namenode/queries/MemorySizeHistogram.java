@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
 import java.text.DecimalFormat;
@@ -37,10 +38,19 @@ public class MemorySizeHistogram {
     return Collections.unmodifiableList(keys);
   }
 
-  private static final Long[] binsArray = new Long[]{
-      256L, 512L, 768L, kilobyteBase, 2 * kilobyteBase, 4 * kilobyteBase, 8 * kilobyteBase,
-      16 * kilobyteBase,
-      32 * kilobyteBase, 64 * kilobyteBase};
+  private static final Long[] binsArray =
+      new Long[] {
+        256L,
+        512L,
+        768L,
+        kilobyteBase,
+        2 * kilobyteBase,
+        4 * kilobyteBase,
+        8 * kilobyteBase,
+        16 * kilobyteBase,
+        32 * kilobyteBase,
+        64 * kilobyteBase
+      };
   private static final List<Long> bins = Arrays.asList(binsArray);
   private static final List<String> keys =
       bins.stream().map(MemorySizeHistogram::readableFileSize).collect(Collectors.toList());
@@ -49,7 +59,7 @@ public class MemorySizeHistogram {
     if (size <= 0) {
       return "0 B";
     }
-    String[] units = new String[]{"B", "KB", "MB", "GB", "TB", "PB", "EB"};
+    String[] units = new String[] {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
     int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
     return ONE_DECIMAL_FORMAT.format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
   }

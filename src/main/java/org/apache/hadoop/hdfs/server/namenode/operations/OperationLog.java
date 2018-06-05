@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.CHARSET;
@@ -32,8 +33,7 @@ import org.slf4j.LoggerFactory;
 
 class OperationLog {
 
-  public static final Logger LOG =
-      LoggerFactory.getLogger(OperationLog.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(OperationLog.class.getName());
 
   private static final long TEN_MEGABYTES = 10L * 1024L * 1024L;
 
@@ -46,10 +46,7 @@ class OperationLog {
   private OutputStream fileStream;
   private boolean isClosed = false;
 
-  OperationLog(String identity,
-      String query,
-      String owner,
-      boolean gzipLog) {
+  OperationLog(String identity, String query, String owner, boolean gzipLog) {
     this.identity = identity;
     this.owner = owner;
     this.query = query;
@@ -95,13 +92,14 @@ class OperationLog {
       }
     }
     try {
-      FileOutputStream plainTextStream = new FileOutputStream(log) {
-        @Override
-        public void close() throws IOException {
-          isClosed = true;
-          super.close();
-        }
-      };
+      FileOutputStream plainTextStream =
+          new FileOutputStream(log) {
+            @Override
+            public void close() throws IOException {
+              isClosed = true;
+              super.close();
+            }
+          };
       if (gzipLog) {
         LOG.info("Will write log for large op: {}, as GZIP.", identity);
         fileStream = new StreamingGZIPOutputStream(plainTextStream);
@@ -109,23 +107,27 @@ class OperationLog {
         fileStream = plainTextStream;
       }
     } catch (IOException e) {
-      throw new IllegalStateException("Could not open file stream. Failing op: " + identity + ".",
-          e);
+      throw new IllegalStateException(
+          "Could not open file stream. Failing op: " + identity + ".", e);
     }
     try {
       fileStream.write(
-          ("Starting log for operation with identity: " + identity + ", by owner: " + owner + ".\n"
-              +
-              "Query: " + query + ".\n").getBytes(CHARSET));
+          ("Starting log for operation with identity: "
+                  + identity
+                  + ", by owner: "
+                  + owner
+                  + ".\n"
+                  + "Query: "
+                  + query
+                  + ".\n")
+              .getBytes(CHARSET));
     } catch (IOException e) {
       throw new IllegalStateException(
           "Could not write operation log header. Failing op: " + identity + ".", e);
     }
   }
 
-  void logOp(String path,
-      String inodeType,
-      boolean success) {
+  void logOp(String path, String inodeType, boolean success) {
     checkSpace();
     if (isClosed()) {
       throw new IllegalStateException("Log is closed. Failing op: " + identity + ".");

@@ -35,11 +35,15 @@ buildscript {
     dependencies {
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.10.0'
     }
+    dependencies {
+        classpath "com.diffplug.spotless:spotless-plugin-gradle:3.13.0"
+    }
 }
 
 apply plugin: 'idea'
 apply plugin: 'os-package'
 apply plugin: 'license'
+apply plugin: 'com.diffplug.gradle.spotless'
 
 ext {
     hadoopVersion = (properties.get("hadoopVersion") == null) ? "2.7.0" : "${hadoopVersion}"
@@ -51,7 +55,14 @@ checkstyle {
     configFile file("config/checkstyle/checkstyle.xml")
 }
 
-license { 
+spotless {
+    java {
+        googleJavaFormat()
+        licenseHeaderFile file('LICENSE_HEADER_SPOTLESS'), '(package|import)'
+    }
+}
+
+license {
     header = file('LICENSE_HEADER')
     excludePatterns = [ "**/bootstrap*",
                         "**/Chart*",

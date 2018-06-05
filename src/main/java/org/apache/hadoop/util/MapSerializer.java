@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.util;
 
 import java.io.IOException;
@@ -30,8 +31,8 @@ import org.mapdb.Serializer;
 public class MapSerializer implements Serializer<Map<String, Long>>, Serializable {
 
   @Override
-  public void serialize(@NotNull DataOutput2 out,
-      @NotNull Map<String, Long> value) throws IOException {
+  public void serialize(@NotNull DataOutput2 out, @NotNull Map<String, Long> value)
+      throws IOException {
     out.writeInt(value.size());
     for (Map.Entry<String, Long> entry : value.entrySet()) {
       out.writeUTF(entry.getKey());
@@ -40,8 +41,8 @@ public class MapSerializer implements Serializer<Map<String, Long>>, Serializabl
   }
 
   @Override
-  public Map<String, Long> deserialize(@NotNull DataInput2 input,
-      int available) throws IOException {
+  public Map<String, Long> deserialize(@NotNull DataInput2 input, int available)
+      throws IOException {
     int size = input.readInt();
     Map<String, Long> map = new HashMap<>(size);
     for (int i = 0; i < size; i++) {

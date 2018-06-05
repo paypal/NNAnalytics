@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.paypal.namenode;
 
 import java.io.IOException;
@@ -39,10 +40,7 @@ class MailOutput {
   private static final String MAIL_CONTENT_TEXT_HTML = "text/html";
   private static final String MAIL_SMTP_HOST = "mail.smtp.host";
 
-  static void check(String emailConditionsStr,
-      long value,
-      NNLoader nnLoader)
-      throws IOException {
+  static void check(String emailConditionsStr, long value, NNLoader nnLoader) throws IOException {
     List<Function<Long, Boolean>> comparisons = nnLoader.createComparisons(emailConditionsStr);
     boolean shouldEmail = nnLoader.check(comparisons, value);
     if (!shouldEmail) {
@@ -50,7 +48,8 @@ class MailOutput {
     }
   }
 
-  static void check(String emailConditionsStr,
+  static void check(
+      String emailConditionsStr,
       Map<String, Long> histogram,
       Set<String> highlightKeys,
       NNLoader nnLoader)
@@ -69,7 +68,8 @@ class MailOutput {
     }
   }
 
-  static void write(String subject,
+  static void write(
+      String subject,
       Map<String, Long> histogram,
       Set<String> highlightKeys,
       String mailHost,
@@ -77,11 +77,17 @@ class MailOutput {
       String[] emailCC,
       String emailFrom)
       throws Exception {
-    write(subject, convertHistogramToHtml(histogram, highlightKeys), mailHost, emailTo, emailCC,
+    write(
+        subject,
+        convertHistogramToHtml(histogram, highlightKeys),
+        mailHost,
+        emailTo,
+        emailCC,
         emailFrom);
   }
 
-  static void write(String subject,
+  static void write(
+      String subject,
       String html,
       String mailHost,
       String[] emailTo,
@@ -142,8 +148,8 @@ class MailOutput {
     Transport.send(message);
   }
 
-  private static String convertHistogramToHtml(Map<String, Long> histogram,
-      Set<String> highlightKeys) {
+  private static String convertHistogramToHtml(
+      Map<String, Long> histogram, Set<String> highlightKeys) {
     StringBuilder sb = new StringBuilder();
     for (Map.Entry<String, Long> entry : histogram.entrySet()) {
       if (highlightKeys.contains(entry.getKey())) {

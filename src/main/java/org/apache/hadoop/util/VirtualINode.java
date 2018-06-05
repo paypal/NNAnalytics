@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 
 public class VirtualINode {
 
@@ -43,7 +43,8 @@ public class VirtualINode {
 
   public void addElement(String currentPath, String[] list) {
 
-    //Avoid first element that can be an empty string if you split a string that has a starting slash as /sd/card/
+    // Avoid first element that can be an empty string if you split a string that has a starting
+    // slash as /sd/card/
     while (list[0] == null || list[0].equals("")) {
       list = Arrays.copyOfRange(list, 1, list.length);
     }
@@ -56,12 +57,12 @@ public class VirtualINode {
       int index = childs.indexOf(currentChild);
       if (index == -1) {
         childs.add(currentChild);
-        currentChild
-            .addElement(currentChild.incrementalPath, Arrays.copyOfRange(list, 1, list.length));
+        currentChild.addElement(
+            currentChild.incrementalPath, Arrays.copyOfRange(list, 1, list.length));
       } else {
         VirtualINode nextChild = childs.get(index);
-        nextChild
-            .addElement(currentChild.incrementalPath, Arrays.copyOfRange(list, 1, list.length));
+        nextChild.addElement(
+            currentChild.incrementalPath, Arrays.copyOfRange(list, 1, list.length));
       }
     }
   }
@@ -91,5 +92,4 @@ public class VirtualINode {
   public String toString() {
     return data;
   }
-
 }

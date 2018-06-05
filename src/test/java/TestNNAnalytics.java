@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
@@ -60,8 +61,7 @@ public class TestNNAnalytics {
   private static HttpHost hostPort;
   private static HttpClient client;
 
-  public static void main(String[] args)
-      throws Exception {
+  public static void main(String[] args) throws Exception {
     beforeClass();
     while (true) {
       // Let the server run.
@@ -93,14 +93,16 @@ public class TestNNAnalytics {
     HttpGet get = new HttpGet("http://localhost:4567/info");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
-    assertThat(IOUtils.toString(res.getEntity().getContent()),
+    assertThat(
+        IOUtils.toString(res.getEntity().getContent()),
         containsString("INode GSet size: " + GSetGenerator.TOTAL_MADE.apply(null)));
   }
 
   @Test
   public void testModDateFilterGt() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/filter?set=files&filters=modDate:dateGt:01/01/1990&sum=count");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=modDate:dateGt:01/01/1990&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());
     assertThat(result.size(), is(1));
@@ -110,8 +112,8 @@ public class TestNNAnalytics {
 
   @Test
   public void testHasQouta() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/filter?set=dirs&filters=hasQuota:eq:true&sum=count");
+    HttpGet get =
+        new HttpGet("http://localhost:4567/filter?set=dirs&filters=hasQuota:eq:true&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());
     assertThat(result.size(), is(1));
@@ -131,8 +133,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testModDateFilterGtAndLt() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/filter?set=files&filters=modDate:dateGt:01/01/1990,modDate:dateLt:01/01/2050&sum=count");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=modDate:dateGt:01/01/1990,modDate:dateLt:01/01/2050&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());
     assertThat(result.size(), is(1));
@@ -142,8 +145,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testFileSizeFilterBetweenKBandMB() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/filter?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&sum=count");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> text = IOUtils.readLines(res.getEntity().getContent());
     int count = Integer.parseInt(text.get(0));
@@ -154,8 +158,9 @@ public class TestNNAnalytics {
   @Ignore("Operations are not ready yet")
   @Test(timeout = 10000)
   public void testDelete() throws IOException, InterruptedException {
-    HttpGet post = new HttpGet(
-        "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=delete");
+    HttpGet post =
+        new HttpGet(
+            "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=delete");
     HttpResponse res = client.execute(hostPort, post);
     String deleteID = IOUtils.readLines(res.getEntity().getContent()).get(0);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
@@ -193,14 +198,16 @@ public class TestNNAnalytics {
   @Ignore("Operations are not ready yet")
   @Test(timeout = 10000)
   public void testAbortDeletes() throws IOException, InterruptedException {
-    HttpGet post = new HttpGet(
-        "http://localhost:4567/submitOperation?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&sleep=1000&operation=delete");
+    HttpGet post =
+        new HttpGet(
+            "http://localhost:4567/submitOperation?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&sleep=1000&operation=delete");
     HttpResponse res = client.execute(hostPort, post);
     String deleteID1 = IOUtils.readLines(res.getEntity().getContent()).get(0);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
     client = new DefaultHttpClient();
-    post = new HttpGet(
-        "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0&sleep=1000&operation=delete");
+    post =
+        new HttpGet(
+            "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0&sleep=1000&operation=delete");
     res = client.execute(hostPort, post);
     String deleteID2 = IOUtils.readLines(res.getEntity().getContent()).get(0);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
@@ -246,8 +253,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testFindMaxFileSizeUserHistogramCSV() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&type=user&find=max:fileSize&histogramOutput=csv");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=user&find=max:fileSize&histogramOutput=csv");
     HttpResponse res = client.execute(hostPort, get);
     List<String> text = IOUtils.readLines(res.getEntity().getContent());
     assertThat(text.size(), is(1));
@@ -257,8 +265,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testFindMinFileSizeUserHistogramCSV() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&type=user&find=min:fileSize&histogramOutput=csv");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=user&find=min:fileSize&histogramOutput=csv");
     HttpResponse res = client.execute(hostPort, get);
     List<String> text = IOUtils.readLines(res.getEntity().getContent());
     assertThat(text.size(), is(1));
@@ -269,14 +278,15 @@ public class TestNNAnalytics {
 
   @Test
   public void testFindMinAccessTimeHistogramCSV() throws IOException, ParseException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&type=user&find=min:accessTime&histogramOutput=csv");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=user&find=min:accessTime&histogramOutput=csv");
     HttpResponse res = client.execute(hostPort, get);
     List<String> text = IOUtils.readLines(res.getEntity().getContent());
     assertThat(text.size(), is(1));
     assertThat(text.get(0).split(",").length, is(2));
-    Date date = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
-        .parse(text.get(0).split(",")[1]);
+    Date date =
+        new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy").parse(text.get(0).split(",")[1]);
     boolean minDateWasBeforeRightNow = date.before(Date.from(Calendar.getInstance().toInstant()));
     assertThat(minDateWasBeforeRightNow, (is(true)));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
@@ -325,9 +335,11 @@ public class TestNNAnalytics {
   public void testAccessTimeHistogramTop10() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/histogram?set=all&type=accessTime&top=10");
     HttpResponse res = client.execute(hostPort, get);
-    JsonObject object = new Gson()
-        .fromJson(new JsonReader(new InputStreamReader(res.getEntity().getContent())),
-            JsonObject.class);
+    JsonObject object =
+        new Gson()
+            .fromJson(
+                new JsonReader(new InputStreamReader(res.getEntity().getContent())),
+                JsonObject.class);
     JsonArray histogramValuesArray = getJsonDataArray(object);
     assertThat(histogramValuesArray.size(), is(10));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
@@ -346,9 +358,11 @@ public class TestNNAnalytics {
   public void testModTimeHistogramBottom10() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/histogram?set=all&type=modTime&bottom=10");
     HttpResponse res = client.execute(hostPort, get);
-    JsonObject object = new Gson()
-        .fromJson(new JsonReader(new InputStreamReader(res.getEntity().getContent())),
-            JsonObject.class);
+    JsonObject object =
+        new Gson()
+            .fromJson(
+                new JsonReader(new InputStreamReader(res.getEntity().getContent())),
+                JsonObject.class);
     JsonArray histogramValuesArray = getJsonDataArray(object);
     assertThat(histogramValuesArray.size(), is(10));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
@@ -374,12 +388,15 @@ public class TestNNAnalytics {
 
   @Test
   public void testFileReplicaHistogramSortAscending() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&type=fileReplica&sortAscending=true");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=fileReplica&sortAscending=true");
     HttpResponse res = client.execute(hostPort, get);
-    JsonObject object = new Gson()
-        .fromJson(new JsonReader(new InputStreamReader(res.getEntity().getContent())),
-            JsonObject.class);
+    JsonObject object =
+        new Gson()
+            .fromJson(
+                new JsonReader(new InputStreamReader(res.getEntity().getContent())),
+                JsonObject.class);
     JsonArray histogramValuesArray = getJsonDataArray(object);
     Iterator<JsonElement> iterator = histogramValuesArray.iterator();
     long currentComp = iterator.next().getAsLong();
@@ -393,12 +410,15 @@ public class TestNNAnalytics {
 
   @Test
   public void testFileReplicaHistogramSortDescending() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&type=fileReplica&sortDescending=true");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=fileReplica&sortDescending=true");
     HttpResponse res = client.execute(hostPort, get);
-    JsonObject object = new Gson()
-        .fromJson(new JsonReader(new InputStreamReader(res.getEntity().getContent())),
-            JsonObject.class);
+    JsonObject object =
+        new Gson()
+            .fromJson(
+                new JsonReader(new InputStreamReader(res.getEntity().getContent())),
+                JsonObject.class);
     JsonArray histogramValuesArray = getJsonDataArray(object);
     Iterator<JsonElement> iterator = histogramValuesArray.iterator();
     long currentComp = iterator.next().getAsLong();
@@ -432,8 +452,8 @@ public class TestNNAnalytics {
 
   @Test
   public void tesGroupSumDiskConsumedHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&type=group&sum=diskspaceConsumed");
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&type=group&sum=diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -442,19 +462,19 @@ public class TestNNAnalytics {
 
   @Test
   public void testAccessTimeSumDiskConsumedHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&type=accessTime&sum=diskspaceConsumed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=accessTime&sum=diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
-
   @Test
   public void testAccessTimeSumMemoryConsumedHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&type=accessTime&sum=memoryConsumed");
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&type=accessTime&sum=memoryConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -463,8 +483,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAccessTimeMinutesAgoHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&filters=accessTime:minutesAgo:5,modTime:minutesAgo:5&&type=accessTime&sum=diskspaceConsumed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=accessTime:minutesAgo:5,modTime:minutesAgo:5&&type=accessTime&sum=diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -473,8 +494,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAccessTimeHoursAgoHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&filters=accessTime:hoursAgo:5,modTime:hoursAgo:5&type=accessTime&sum=diskspaceConsumed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=accessTime:hoursAgo:5,modTime:hoursAgo:5&type=accessTime&sum=diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -483,8 +505,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAccessTimeDaysAgoHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&filters=accessTime:daysAgo:16,modTime:daysAgo:16&type=accessTime&sum=diskspaceConsumed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=accessTime:daysAgo:16,modTime:daysAgo:16&type=accessTime&sum=diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -493,8 +516,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAccessTimeMonthsAgoHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&filters=accessTime:monthsAgo:3,modTime:monthsAgo:3&type=accessTime&sum=diskspaceConsumed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=accessTime:monthsAgo:3,modTime:monthsAgo:3&type=accessTime&sum=diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -503,8 +527,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAccessTimeYearsAgoHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&filters=accessTime:yearsAgo:1,modTime:yearsAgo:1&type=accessTime&sum=diskspaceConsumed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=accessTime:yearsAgo:1,modTime:yearsAgo:1&type=accessTime&sum=diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -513,12 +538,15 @@ public class TestNNAnalytics {
 
   @Test
   public void testAccessTimeConditionsHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&filters=accessTime:yearsAgo:1,modTime:yearsAgo:1&type=accessTime&sum=count&histogramConditions=gt:15000");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=accessTime:yearsAgo:1,modTime:yearsAgo:1&type=accessTime&sum=count&histogramConditions=gt:15000");
     HttpResponse res = client.execute(hostPort, get);
-    JsonObject object = new Gson()
-        .fromJson(new JsonReader(new InputStreamReader(res.getEntity().getContent())),
-            JsonObject.class);
+    JsonObject object =
+        new Gson()
+            .fromJson(
+                new JsonReader(new InputStreamReader(res.getEntity().getContent())),
+                JsonObject.class);
     JsonArray histogramValuesArray = getJsonDataArray(object);
     Iterator<JsonElement> iterator = histogramValuesArray.iterator();
     long currentComp = iterator.next().getAsLong();
@@ -530,19 +558,22 @@ public class TestNNAnalytics {
 
   @Test
   public void testAccessTimeHistogramAsCSV() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=files&filters=accessTime:yearsAgo:1,modTime:yearsAgo:1&type=accessTime&sum=count&histogramOutput=csv");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=accessTime:yearsAgo:1,modTime:yearsAgo:1&type=accessTime&sum=count&histogramOutput=csv");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
-    strings.stream().filter(string -> !string.isEmpty())
+    strings
+        .stream()
+        .filter(string -> !string.isEmpty())
         .forEach(string -> assertThat(string.split(",").length, is(2)));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
   @Test
   public void testAverageFileSize() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/divide?set1=files&sum1=fileSize&set2=files&sum2=count");
+    HttpGet get =
+        new HttpGet("http://localhost:4567/divide?set1=files&sum1=fileSize&set2=files&sum2=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     assertThat(strings.size(), is(1));
@@ -555,8 +586,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAverageFileDiskspace() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/divide?set1=files&sum1=diskspaceConsumed&set2=files&sum2=count");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/divide?set1=files&sum1=diskspaceConsumed&set2=files&sum2=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     assertThat(strings.size(), is(1));
@@ -569,8 +601,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAverageSpacePerBlock() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/divide?set1=files&sum1=fileSize&set2=files&sum2=numBlocks");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/divide?set1=files&sum1=fileSize&set2=files&sum2=numBlocks");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     assertThat(strings.size(), is(1));
@@ -583,8 +616,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAverageBlockSize() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/divide?set1=files&sum1=blockSize&set2=files&sum2=numBlocks");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/divide?set1=files&sum1=blockSize&set2=files&sum2=numBlocks");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     assertThat(strings.size(), is(1));
@@ -597,8 +631,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAverageDiskspacePerBlock() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/divide?set1=files&sum1=diskspaceConsumed&set2=files&sum2=numBlocks");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/divide?set1=files&sum1=diskspaceConsumed&set2=files&sum2=numBlocks");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     assertThat(strings.size(), is(1));
@@ -611,8 +646,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testAverageDiskspacePerReplica() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/divide?set1=files&sum1=diskspaceConsumed&set2=files&sum2=numReplicas");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/divide?set1=files&sum1=diskspaceConsumed&set2=files&sum2=numReplicas");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     assertThat(strings.size(), is(1));
@@ -625,8 +661,8 @@ public class TestNNAnalytics {
 
   @Test
   public void testAverageFileSizePerDirectory() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/divide?set1=files&sum1=fileSize&set2=dirs&sum2=count");
+    HttpGet get =
+        new HttpGet("http://localhost:4567/divide?set1=files&sum1=fileSize&set2=dirs&sum2=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     assertThat(strings.size(), is(1));
@@ -639,8 +675,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testNsQuotaHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuota");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuota");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -649,8 +686,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testDsQuotaHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuota");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuota");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -659,8 +697,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testNsQuotaUsedHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuotaUsed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuotaUsed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -669,8 +708,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testDsQuotaUsedHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuotaUsed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuotaUsed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -679,12 +719,15 @@ public class TestNNAnalytics {
 
   @Test
   public void testNsQuotaRatioUsedHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuotaRatioUsed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuotaRatioUsed");
     HttpResponse res = client.execute(hostPort, get);
-    JsonObject object = new Gson()
-        .fromJson(new JsonReader(new InputStreamReader(res.getEntity().getContent())),
-            JsonObject.class);
+    JsonObject object =
+        new Gson()
+            .fromJson(
+                new JsonReader(new InputStreamReader(res.getEntity().getContent())),
+                JsonObject.class);
     JsonArray histogramValuesArray = getJsonDataArray(object);
     Iterator<JsonElement> iterator = histogramValuesArray.iterator();
     long currentComp = iterator.next().getAsLong();
@@ -698,12 +741,15 @@ public class TestNNAnalytics {
 
   @Test
   public void testDsQuotaRatioUsedHistogram() throws IOException {
-    HttpGet get = new HttpGet(
-        "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuotaRatioUsed");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuotaRatioUsed");
     HttpResponse res = client.execute(hostPort, get);
-    JsonObject object = new Gson()
-        .fromJson(new JsonReader(new InputStreamReader(res.getEntity().getContent())),
-            JsonObject.class);
+    JsonObject object =
+        new Gson()
+            .fromJson(
+                new JsonReader(new InputStreamReader(res.getEntity().getContent())),
+                JsonObject.class);
     JsonArray histogramValuesArray = getJsonDataArray(object);
     Iterator<JsonElement> iterator = histogramValuesArray.iterator();
     long currentComp = iterator.next().getAsLong();

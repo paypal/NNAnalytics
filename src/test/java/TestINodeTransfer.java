@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -45,18 +46,19 @@ public class TestINodeTransfer {
   /* This is busted. If we uncomment this everything else breaks. :S. */
   @Test
   public void putAll() {
-//    GSet<INode, INodeWithAdditionalFields> testSet = GSetGenerator.getEmptyGSet();
-//    for(INodeWithAdditionalFields node : gset) {
-//      testSet.put(node);
-//    }
-//    assertThat(testSet.size(), is(gset.size()));
+    //    GSet<INode, INodeWithAdditionalFields> testSet = GSetGenerator.getEmptyGSet();
+    //    for(INodeWithAdditionalFields node : gset) {
+    //      testSet.put(node);
+    //    }
+    //    assertThat(testSet.size(), is(gset.size()));
   }
 
   @Test
   public void filterAll() {
     long start = System.currentTimeMillis();
     List<INodeWithAdditionalFields> allNodes =
-        StreamSupport.stream(gset.spliterator(), true).filter(node -> true)
+        StreamSupport.stream(gset.spliterator(), true)
+            .filter(node -> true)
             .collect(Collectors.toList());
     long end = System.currentTimeMillis();
     System.out.println("Took " + (end - start) + " ms.");
@@ -67,7 +69,8 @@ public class TestINodeTransfer {
   @Test
   public void filterFiles() {
     List<INodeWithAdditionalFields> allFiles =
-        StreamSupport.stream(gset.spliterator(), true).filter(INode::isFile)
+        StreamSupport.stream(gset.spliterator(), true)
+            .filter(INode::isFile)
             .collect(Collectors.toList());
     assertThat(allFiles.size(), is(GSetGenerator.FILES_MADE));
   }
@@ -75,9 +78,9 @@ public class TestINodeTransfer {
   @Test
   public void filterDirs() {
     List<INodeWithAdditionalFields> allFiles =
-        StreamSupport.stream(gset.spliterator(), true).filter(INode::isDirectory)
+        StreamSupport.stream(gset.spliterator(), true)
+            .filter(INode::isDirectory)
             .collect(Collectors.toList());
     assertThat(allFiles.size(), is(GSetGenerator.DIRS_MADE));
   }
-
 }

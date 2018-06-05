@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.paypal.security;
 
 import java.nio.charset.Charset;
@@ -40,8 +41,7 @@ import spark.Response;
 
 public class SecurityContext {
 
-  public static final Logger LOG =
-      LoggerFactory.getLogger(SecurityContext.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(SecurityContext.class.getName());
 
   private SecurityConfiguration securityConfiguration;
   private JwtAuthenticator jwtAuthenticator;
@@ -56,15 +56,20 @@ public class SecurityContext {
 
   private boolean init = false;
 
-  private final static ThreadLocal<String> currentUser = ThreadLocal
-      .withInitial(() -> "default_unsecured_user");
+  private static final ThreadLocal<String> currentUser =
+      ThreadLocal.withInitial(() -> "default_unsecured_user");
 
-  private enum ACCESS_LEVEL {ADMIN, WRITER, READER, CACHE}
-
-  public SecurityContext() {
+  private enum ACCESS_LEVEL {
+    ADMIN,
+    WRITER,
+    READER,
+    CACHE
   }
 
-  public void init(SecurityConfiguration secConf,
+  public SecurityContext() {}
+
+  public void init(
+      SecurityConfiguration secConf,
       JwtAuthenticator jwtAuth,
       JwtGenerator<CommonProfile> jwtGen,
       LdapAuthenticator ldapAuthenticator) {
@@ -90,8 +95,7 @@ public class SecurityContext {
     this.localOnlyUsers = new UserPasswordSet(secConf.getLocalOnlyUsers());
   }
 
-  public void handleAuthentication(Request req,
-      Response res)
+  public void handleAuthentication(Request req, Response res)
       throws AuthenticationException, HttpAction {
     boolean authenticationEnabled = securityConfiguration.getLdapEnabled();
     if (!authenticationEnabled) {
@@ -128,8 +132,8 @@ public class SecurityContext {
       }
     } else if (login != null && login.startsWith("Basic ")) {
       String b64Credentials = login.substring("Basic ".length()).trim();
-      String nameAndPassword = new String(Base64.getDecoder().decode(b64Credentials),
-          Charset.defaultCharset());
+      String nameAndPassword =
+          new String(Base64.getDecoder().decode(b64Credentials), Charset.defaultCharset());
       String[] split = nameAndPassword.split(":");
       if (split.length != 2) {
         LOG.info("Login failed via [BASIC] for: {}", req.ip());
@@ -190,8 +194,7 @@ public class SecurityContext {
     }
   }
 
-  public synchronized void handleAuthorization(Request req,
-      Response res)
+  public synchronized void handleAuthorization(Request req, Response res)
       throws AuthenticationException, HttpAction, AuthorizationException {
     boolean authorizationEnabled = securityConfiguration.getAuthorizationEnabled();
     if (!authorizationEnabled) {
@@ -254,17 +257,25 @@ public class SecurityContext {
     boolean isReader = readOnlyUsers.allows(username);
     boolean isCacheReader = cacheReaderUsers.allows(username);
 
-    return new Enum[]{(isAdmin ? ACCESS_LEVEL.ADMIN : null),
-        (isWriter ? ACCESS_LEVEL.WRITER : null),
-        (isReader ? ACCESS_LEVEL.READER : null),
-        (isCacheReader ? ACCESS_LEVEL.CACHE : null)
+    return new Enum[] {
+      (isAdmin ? ACCESS_LEVEL.ADMIN : null),
+      (isWriter ? ACCESS_LEVEL.WRITER : null),
+      (isReader ? ACCESS_LEVEL.READER : null),
+      (isCacheReader ? ACCESS_LEVEL.CACHE : null)
     };
   }
 
   public String toString() {
-    return "admins: " + adminUsers.toString() + "\n" +
-        "writers: " + writeUsers.toString() + "\n" +
-        "readers: " + readOnlyUsers.toString() + "\n" +
-        "cacheReaders: " + cacheReaderUsers.toString();
+    return "admins: "
+        + adminUsers.toString()
+        + "\n"
+        + "writers: "
+        + writeUsers.toString()
+        + "\n"
+        + "readers: "
+        + readOnlyUsers.toString()
+        + "\n"
+        + "cacheReaders: "
+        + cacheReaderUsers.toString();
   }
 }

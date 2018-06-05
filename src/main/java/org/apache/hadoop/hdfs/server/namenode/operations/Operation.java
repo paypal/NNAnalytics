@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.List;
@@ -38,9 +39,7 @@ interface Operation {
    */
   List<String> lastPerformed(int numOfLast);
 
-  /**
-   * @return the next inode path that operation will be performed on.
-   */
+  /** @return the next inode path that operation will be performed on. */
   String upNext();
 
   /**
@@ -51,38 +50,24 @@ interface Operation {
    */
   boolean performOp();
 
-  /**
-   * @return true if has there is a next inode to perform on, false otherwise.
-   */
+  /** @return true if has there is a next inode to perform on, false otherwise. */
   boolean hasNext();
 
-  /**
-   * Aborts the operation. Will not "undo".
-   */
+  /** Aborts the operation. Will not "undo". */
   void abort();
 
-  /**
-   * @return the identity UUID that represents this operation.
-   */
+  /** @return the identity UUID that represents this operation. */
   String identity();
 
-  /**
-   * @return the total number of inodes to operate on for this run.
-   */
+  /** @return the total number of inodes to operate on for this run. */
   int totalToPerform();
 
-  /**
-   * @return the number of inodes operated on already.
-   */
+  /** @return the number of inodes operated on already. */
   int numPerformed();
 
-  /**
-   * @return the URI path and query parameters that created this operation.
-   */
+  /** @return the URI path and query parameters that created this operation. */
   String query();
 
-  /**
-   * @return the username that submitted this operation.
-   */
+  /** @return the username that submitted this operation. */
   String owner();
 }

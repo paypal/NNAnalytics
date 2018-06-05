@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.paypal.namenode;
 
 import java.net.MalformedURLException;
@@ -55,12 +56,8 @@ class QueryChecker {
     }
   }
 
-  static void isValidQuery(String setType,
-      String[] filters,
-      String type,
-      String sum,
-      String[] filterOps,
-      String find)
+  static void isValidQuery(
+      String setType, String[] filters, String type, String sum, String[] filterOps, String find)
       throws MalformedURLException {
     errorMessages.clear();
 
@@ -69,39 +66,55 @@ class QueryChecker {
     EnumSet validTypeOperands = typeMap.get(setType);
     EnumSet validFindOperands = findMap.get(setType);
 
-    Pair<Boolean, Pair<String, String>> typeCheck = isValidOperand(type, null, validTypeOperands,
-        NNAConstants.OPERAND.type.toString());
+    Pair<Boolean, Pair<String, String>> typeCheck =
+        isValidOperand(type, null, validTypeOperands, NNAConstants.OPERAND.type.toString());
     if (!typeCheck.getFirst()) {
       errorMessages.add(
-          "Please check /types. Your histogram type: " + typeCheck.getSecond().getFirst()
-              + " is not valid for set type: " + setType + ".");
+          "Please check /types. Your histogram type: "
+              + typeCheck.getSecond().getFirst()
+              + " is not valid for set type: "
+              + setType
+              + ".");
     }
 
-    Pair<Boolean, Pair<String, String>> sumCheck = isValidOperand(sum, null, validSumOperands,
-        NNAConstants.OPERAND.sum.toString());
+    Pair<Boolean, Pair<String, String>> sumCheck =
+        isValidOperand(sum, null, validSumOperands, NNAConstants.OPERAND.sum.toString());
     if (!sumCheck.getFirst()) {
-      errorMessages.add("Please check /sums. Your sum type: " + sumCheck.getSecond().getFirst()
-          + " is not valid for set type: " + setType + ".");
+      errorMessages.add(
+          "Please check /sums. Your sum type: "
+              + sumCheck.getSecond().getFirst()
+              + " is not valid for set type: "
+              + setType
+              + ".");
     }
 
-    Pair<Boolean, Pair<String, String>> filterCheck = isValidOperand(filters, filterOps,
-        validFilterOperands, NNAConstants.OPERAND.filter.toString());
+    Pair<Boolean, Pair<String, String>> filterCheck =
+        isValidOperand(
+            filters, filterOps, validFilterOperands, NNAConstants.OPERAND.filter.toString());
     if (!filterCheck.getFirst()) {
       Pair<String, String> result = filterCheck.getSecond();
       if (result.getFirst().length() > 0) {
-        errorMessages.add("Please check /filters. Your filter type: " + result.getFirst()
-            + " is not valid for set type: " + setType + ".");
+        errorMessages.add(
+            "Please check /filters. Your filter type: "
+                + result.getFirst()
+                + " is not valid for set type: "
+                + setType
+                + ".");
       }
       if (result.getSecond().length() > 0) {
         errorMessages.add("Please check /filterOps. " + "\n" + result.getSecond());
       }
     }
 
-    Pair<Boolean, Pair<String, String>> findCheck = isValidOperand(find, null, validFindOperands,
-        NNAConstants.OPERAND.find.toString());
+    Pair<Boolean, Pair<String, String>> findCheck =
+        isValidOperand(find, null, validFindOperands, NNAConstants.OPERAND.find.toString());
     if (!findCheck.getFirst()) {
-      errorMessages.add("Please check /finds. Your find type: " + findCheck.getSecond().getFirst()
-          + " is not valid for set type: " + setType + ".");
+      errorMessages.add(
+          "Please check /finds. Your find type: "
+              + findCheck.getSecond().getFirst()
+              + " is not valid for set type: "
+              + setType
+              + ".");
     }
 
     if (!errorMessages.isEmpty()) {
@@ -109,18 +122,14 @@ class QueryChecker {
     }
   }
 
-  private static Pair<Boolean, Pair<String, String>> isValidOperand(String operand,
-      String[] filterOps,
-      EnumSet validOperands,
-      String operandType) {
-    String[] operands = (operand == null || operand.length() == 0) ? null : new String[]{operand};
+  private static Pair<Boolean, Pair<String, String>> isValidOperand(
+      String operand, String[] filterOps, EnumSet validOperands, String operandType) {
+    String[] operands = (operand == null || operand.length() == 0) ? null : new String[] {operand};
     return isValidOperand(operands, filterOps, validOperands, operandType);
   }
 
-  private static Pair<Boolean, Pair<String, String>> isValidOperand(String[] operands,
-      String[] filterOps,
-      EnumSet validOperands,
-      String operandType) {
+  private static Pair<Boolean, Pair<String, String>> isValidOperand(
+      String[] operands, String[] filterOps, EnumSet validOperands, String operandType) {
     StringBuilder invalidOpString = new StringBuilder();
     StringBuilder invalidFilterOpString = new StringBuilder();
     boolean isOverallValid = true;
@@ -161,10 +170,16 @@ class QueryChecker {
           String filterOp = filterOps[i];
           Pair<Boolean, String> result = isValidFilterOp(filterOp, opEnum);
           if (!result.getFirst()) {
-            invalidFilterOpString.append("'").append(filterOp).append("'")
-                .append(" is not applicable for ").append("'").append(opEnum.toString())
-                .append("'.").append("\n").
-                append(result.getSecond());
+            invalidFilterOpString
+                .append("'")
+                .append(filterOp)
+                .append("'")
+                .append(" is not applicable for ")
+                .append("'")
+                .append(opEnum.toString())
+                .append("'.")
+                .append("\n")
+                .append(result.getSecond());
             isOverallValid = false;
           }
         }
@@ -179,8 +194,8 @@ class QueryChecker {
         invalidOpString.setLength(invalidOpString.length() - 1);
       }
     }
-    return new Pair<>(isOverallValid,
-        new Pair<>(invalidOpString.toString(), invalidFilterOpString.toString()));
+    return new Pair<>(
+        isOverallValid, new Pair<>(invalidOpString.toString(), invalidFilterOpString.toString()));
   }
 
   private static Pair<Boolean, String> isValidFilterOp(String op, Enum opEnum) {
@@ -189,8 +204,8 @@ class QueryChecker {
     String valueToCompare = values[1];
     Enum operandEnum = NNAConstants.FILTER_OP.valueOf(NNAConstants.FILTER_OP.class, operand);
     if (NNAConstants.FILTER_BOOLEAN.contains(opEnum)) {
-      if ((NNAConstants.FILTER_BOOLEAN_OPS.contains(operandEnum)) && (
-          Objects.equals(valueToCompare, "true") || Objects.equals(valueToCompare, "false"))) {
+      if ((NNAConstants.FILTER_BOOLEAN_OPS.contains(operandEnum))
+          && (Objects.equals(valueToCompare, "true") || Objects.equals(valueToCompare, "false"))) {
         return new Pair<>(true, null);
       } else {
         return new Pair<>(false, opEnum.toString() + " requires a Boolean value.");
@@ -223,5 +238,4 @@ class QueryChecker {
     }
     return messageBuilder.toString();
   }
-
 }

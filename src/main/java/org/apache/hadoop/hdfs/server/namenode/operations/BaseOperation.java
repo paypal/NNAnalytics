@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.ArrayList;
@@ -31,8 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class BaseOperation implements Operation {
 
-  public static final Logger LOG =
-      LoggerFactory.getLogger(BaseOperation.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(BaseOperation.class.getName());
 
   final OperationLog log;
   final Collection<INode> toOperate;
@@ -45,10 +45,7 @@ public abstract class BaseOperation implements Operation {
   final Iterator<INode> iterator;
   INode nextToOperate;
 
-  BaseOperation(Collection<INode> toPerform,
-      String owner,
-      String query,
-      FileSystem fs) {
+  BaseOperation(Collection<INode> toPerform, String owner, String query, FileSystem fs) {
     this.pathsOperated = new ArrayList<>();
     this.iterator = toPerform.iterator();
     this.nextToOperate = iterator.hasNext() ? iterator.next() : null;

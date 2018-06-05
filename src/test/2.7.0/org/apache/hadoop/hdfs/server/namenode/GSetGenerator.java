@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode;
 
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.ALLSSD_STORAGE_POLICY_ID;
@@ -49,19 +50,24 @@ public class GSetGenerator {
   public static final Logger LOG = NNLoader.LOG;
 
   private static final FsPermission permission = FsPermission.getDefault();
-  private static final PermissionStatus status = PermissionStatus
-      .createImmutable("hdfs", "hdfs", permission);
+  private static final PermissionStatus status =
+      PermissionStatus.createImmutable("hdfs", "hdfs", permission);
   private static final long now = now();
   private static final SRandom rand = new SRandom();
 
-  private static final byte[] policyIDs = new byte[]{
-      MEMORY_STORAGE_POLICY_ID, ALLSSD_STORAGE_POLICY_ID,
-      ONESSD_STORAGE_POLICY_ID, HOT_STORAGE_POLICY_ID,
-      WARM_STORAGE_POLICY_ID, COLD_STORAGE_POLICY_ID, 0x00
-  };
+  private static final byte[] policyIDs =
+      new byte[] {
+        MEMORY_STORAGE_POLICY_ID,
+        ALLSSD_STORAGE_POLICY_ID,
+        ONESSD_STORAGE_POLICY_ID,
+        HOT_STORAGE_POLICY_ID,
+        WARM_STORAGE_POLICY_ID,
+        COLD_STORAGE_POLICY_ID,
+        0x00
+      };
 
-  private static final INodeDirectory root = new INodeDirectory(0, "/root".getBytes(CHARSET),
-      status, now);
+  private static final INodeDirectory root =
+      new INodeDirectory(0, "/root".getBytes(CHARSET), status, now);
   private static GSet<INode, INodeWithAdditionalFields> gset;
 
   private static final int DEFAULT_BLOCK_SIZE = (int) DFSConfigKeys.DFS_BLOCK_SIZE_DEFAULT;
@@ -92,8 +98,8 @@ public class GSetGenerator {
     DIRS_MADE = 0;
   }
 
-  public static GSet<INode, INodeWithAdditionalFields> getGSet(short depth, int numDirsPerDepth,
-      int numFilesPerDir) {
+  public static GSet<INode, INodeWithAdditionalFields> getGSet(
+      short depth, int numDirsPerDepth, int numFilesPerDir) {
     if (gset == null || gset.size() == 0) {
       try {
         gset = getEmptyGSet();
@@ -102,12 +108,15 @@ public class GSetGenerator {
         generateGSet(gset, root, numFilesPerDir, numDirsPerDepth, depth);
         LOG.info("Generated GSet size is: {}", gset.size());
         assert FILES_MADE + DIRS_MADE == gset.size();
-      } catch (IOException ignored) { /* Defaults not expected to throw Exceptions */ }
+      } catch (IOException ignored) {
+        /* Defaults not expected to throw Exceptions */
+      }
     }
     return gset;
   }
 
-  private static void generateGSet(GSet<INode, INodeWithAdditionalFields> newGSet,
+  private static void generateGSet(
+      GSet<INode, INodeWithAdditionalFields> newGSet,
       INodeDirectory parent,
       int filesPerDir,
       int numOfDirsPerDepth,
@@ -120,11 +129,12 @@ public class GSetGenerator {
     for (int j = 1; j <= numOfDirsPerDepth; j++) {
       long mAndAtime = now - rand.nextLong(TimeUnit.DAYS.toMillis(365)); // 1 year
       int dirId = ID++;
-      INodeDirectory dir = new INodeDirectory(dirId, ("dir" + j).getBytes(CHARSET), status,
-          mAndAtime);
+      INodeDirectory dir =
+          new INodeDirectory(dirId, ("dir" + j).getBytes(CHARSET), status, mAndAtime);
       if (rand.nextBoolean()) {
         dir.setQuota(BlockStoragePolicySuite.createDefaultSuite(), 9000L, 9999999999L, null);
-        dir.getDirectoryWithQuotaFeature().setSpaceConsumed(rand.nextLong(5000L), rand.nextLong(9999999991L), null);
+        dir.getDirectoryWithQuotaFeature()
+            .setSpaceConsumed(rand.nextLong(5000L), rand.nextLong(9999999991L), null);
       }
       boolean childAdded = parent.addChild(dir);
       if (childAdded) {
@@ -142,9 +152,8 @@ public class GSetGenerator {
     }
   }
 
-  private static void generateFilesForDirectory(GSet<INode, INodeWithAdditionalFields> newGSet,
-      INodeDirectory parent,
-      int filesToCreate)
+  private static void generateFilesForDirectory(
+      GSet<INode, INodeWithAdditionalFields> newGSet, INodeDirectory parent, int filesToCreate)
       throws IOException {
     for (int i = 1; i <= filesToCreate; i++) {
       int fileId = ID++;
@@ -155,12 +164,20 @@ public class GSetGenerator {
       for (int k = 0; k < numOfBlocks; k++) {
         boolean isLastBlock = (k + 1 >= numOfBlocks);
         int blockSize = (isLastBlock) ? rand.nextInt(DEFAULT_BLOCK_SIZE) + 1 : DEFAULT_BLOCK_SIZE;
-        Block blk = new Block(fileId * 10 + k, blockSize,
-            GenerationStamp.GRANDFATHER_GENERATION_STAMP);
+        Block blk =
+            new Block(fileId * 10 + k, blockSize, GenerationStamp.GRANDFATHER_GENERATION_STAMP);
         blks[k] = new BlockInfoContiguous(blk, replFact);
       }
-      INodeFile file = new INodeFile(fileId, ("file" + i).getBytes(CHARSET), status,
-          mAndAtime, mAndAtime, blks, replFact, DEFAULT_BLOCK_SIZE);
+      INodeFile file =
+          new INodeFile(
+              fileId,
+              ("file" + i).getBytes(CHARSET),
+              status,
+              mAndAtime,
+              mAndAtime,
+              blks,
+              replFact,
+              DEFAULT_BLOCK_SIZE);
       byte policyID = policyIDs[rand.nextInt(policyIDs.length)];
       file.setStoragePolicyID(policyID, Snapshot.CURRENT_STATE_ID);
       for (BlockInfoContiguous blk : blks) {

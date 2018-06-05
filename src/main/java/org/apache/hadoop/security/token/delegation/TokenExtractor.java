@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.security.token.delegation;
 
 import java.util.HashMap;
@@ -32,30 +33,32 @@ import org.apache.hadoop.security.token.delegation.AbstractDelegationTokenSecret
  * This class is used to fetch information from the NameNode's Delegation Tokens in order to
  * determine when a user last made use of HDFS.
  *
- * The use case for this is to eventually discover users that have not been active on the cluster.
+ * <p>The use case for this is to eventually discover users that have not been active on the
+ * cluster.
  */
 public class TokenExtractor {
 
   private final DelegationTokenSecretManager dtsm;
   private final FSNamesystem fsn;
 
-  public TokenExtractor(DelegationTokenSecretManager dtsm,
-      FSNamesystem fsn) {
+  public TokenExtractor(DelegationTokenSecretManager dtsm, FSNamesystem fsn) {
     this.dtsm = dtsm;
     this.fsn = fsn;
   }
 
   public Map<String, Long> getTokenLastLogins() {
     if (fsn == null || dtsm == null) {
-      return new HashMap<String, Long>() {{
-        put("hdfs", System.currentTimeMillis());
-      }};
+      return new HashMap<String, Long>() {
+        {
+          put("hdfs", System.currentTimeMillis());
+        }
+      };
     }
     Map<String, Long> lastLogins = new HashMap<>();
     fsn.writeLock();
     try {
-      Set<Map.Entry<DelegationTokenIdentifier, DelegationTokenInformation>> entries = dtsm.currentTokens
-          .entrySet();
+      Set<Map.Entry<DelegationTokenIdentifier, DelegationTokenInformation>> entries =
+          dtsm.currentTokens.entrySet();
       for (Map.Entry<DelegationTokenIdentifier, DelegationTokenInformation> entry : entries) {
         Text owner = entry.getKey().getOwner();
         Text realUser = entry.getKey().getRealUser();

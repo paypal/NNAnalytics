@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode;
 
 import java.io.IOException;
@@ -45,8 +46,7 @@ public class VersionContext implements VersionInterface {
   }
 
   @Override // VersionInterface
-  public void dumpINodeInDetail(String path, HttpServletResponse resp)
-      throws IOException {
+  public void dumpINodeInDetail(String path, HttpServletResponse resp) throws IOException {
     PrintWriter writer = resp.getWriter();
     try {
       if (namesystem == null) {
@@ -60,8 +60,10 @@ public class VersionContext implements VersionInterface {
       writer.write("Access Time: " + new Date(node.getAccessTime()) + "\n");
       writer.write("Mod Time: " + new Date(node.getModificationTime()) + "\n");
       writer.write("ID: " + node.getId() + "\n");
-      writer.write("Storage Policy: " + BlockStoragePolicySuite.createDefaultSuite()
-          .getPolicy(node.getStoragePolicyID()) + "\n");
+      writer.write(
+          "Storage Policy: "
+              + BlockStoragePolicySuite.createDefaultSuite().getPolicy(node.getStoragePolicyID())
+              + "\n");
       writer.write("Parent: " + node.getParentString() + "\n");
       writer.write("Namespace Quota: " + node.getQuotaCounts().get(Quota.NAMESPACE) + "\n");
       writer.write("Diskspace Quota: " + node.getQuotaCounts().get(Quota.DISKSPACE) + "\n");
@@ -79,22 +81,30 @@ public class VersionContext implements VersionInterface {
             "File Size w/o UC Block: " + file.computeFileSizeNotIncludingLastUcBlock() + "\n");
         writer.write("Replication Factor: " + file.getFileReplication() + "\n");
         writer.write("Number of Blocks: " + file.getBlocks().length + "\n");
-        writer.write("Blocks:\n" +
-            Arrays.stream(file.getBlocks())
-                .map(k -> k.getBlockName() + "_" + k.getGenerationStamp() + " " + k.getNumBytes()
-                    + "\n")
-                .collect(Collectors.toList()));
+        writer.write(
+            "Blocks:\n"
+                + Arrays.stream(file.getBlocks())
+                    .map(
+                        k ->
+                            k.getBlockName()
+                                + "_"
+                                + k.getGenerationStamp()
+                                + " "
+                                + k.getNumBytes()
+                                + "\n")
+                    .collect(Collectors.toList()));
       } else {
         INodeDirectory dir = node.asDirectory();
         writer.write("Has Quotas?: " + dir.isWithQuota() + "\n");
         writer.write("Is Snapshottable?: " + dir.isSnapshottable() + "\n");
         writer.write("Under Snapshot?: " + dir.isWithSnapshot() + "\n");
         writer.write("Number of Children: " + dir.getChildrenNum(Snapshot.CURRENT_STATE_ID) + "\n");
-        writer.write("Children:\n" +
-            StreamSupport
-                .stream(dir.getChildrenList(Snapshot.CURRENT_STATE_ID).spliterator(), false)
-                .map(child -> child.getFullPathName() + "\n")
-                .collect(Collectors.toList()));
+        writer.write(
+            "Children:\n"
+                + StreamSupport.stream(
+                        dir.getChildrenList(Snapshot.CURRENT_STATE_ID).spliterator(), false)
+                    .map(child -> child.getFullPathName() + "\n")
+                    .collect(Collectors.toList()));
         writer.flush();
       }
     } finally {
@@ -134,34 +144,43 @@ public class VersionContext implements VersionInterface {
   }
 
   @Override // VersionInterface
-  public Map<String, Long> storageTypeHistogramCpu(Collection<INode> inodes,
-      String sum,
-      NNLoader nnLoader) {
+  public Map<String, Long> storageTypeHistogramCpu(
+      Collection<INode> inodes, String sum, NNLoader nnLoader) {
     List<Long> distinctStorageIds = StorageTypeHistogram.bins;
     List<String> distinctStorageKeys = StorageTypeHistogram.keys;
     Map<String, Long> storageIdToIndexToKeyMap =
-        distinctStorageIds.parallelStream().mapToInt(distinctStorageIds::indexOf).boxed()
+        distinctStorageIds
+            .parallelStream()
+            .mapToInt(distinctStorageIds::indexOf)
+            .boxed()
             .collect(Collectors.toMap(distinctStorageKeys::get, k -> (long) k));
 
-    return nnLoader.binMappingHistogram(inodes, sum, nnLoader.getSumFunctionForINode(sum),
+    return nnLoader.binMappingHistogram(
+        inodes,
+        sum,
+        nnLoader.getSumFunctionForINode(sum),
         node -> (long) distinctStorageIds.indexOf((long) node.getStoragePolicyID()),
         storageIdToIndexToKeyMap);
   }
 
   @Override // VersionInterface
-  public Map<String, Long> storageTypeHistogramCpuWithFind(Collection<INode> inodes,
-      String find,
-      NNLoader nnLoader) {
+  public Map<String, Long> storageTypeHistogramCpuWithFind(
+      Collection<INode> inodes, String find, NNLoader nnLoader) {
     List<Long> distinctStorageIds = StorageTypeHistogram.bins;
     List<String> distinctStorageKeys = StorageTypeHistogram.keys;
     Map<String, Long> storageIdToIndexToKeyMap =
-        distinctStorageIds.parallelStream().mapToInt(distinctStorageIds::indexOf).boxed()
+        distinctStorageIds
+            .parallelStream()
+            .mapToInt(distinctStorageIds::indexOf)
+            .boxed()
             .collect(Collectors.toMap(distinctStorageKeys::get, k -> (long) k));
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
-    return nnLoader.binMappingHistogramWithFind(inodes, findOp,
+    return nnLoader.binMappingHistogramWithFind(
+        inodes,
+        findOp,
         nnLoader.getFilterFunctionToLongForINode(findField),
         node -> (long) distinctStorageIds.indexOf((long) node.getStoragePolicyID()),
         storageIdToIndexToKeyMap);
@@ -196,5 +215,4 @@ public class VersionContext implements VersionInterface {
   public Long getDSQuotaUsed(INode node) {
     return node.computeQuotaUsage().get(Quota.DISKSPACE);
   }
-
 }

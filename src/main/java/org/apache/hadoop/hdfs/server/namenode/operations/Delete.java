@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.Collection;
@@ -25,10 +26,7 @@ import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
 
 public class Delete extends BaseOperation {
 
-  public Delete(Collection<INode> toDelete,
-      String query,
-      String owner,
-      FileSystem fs) {
+  public Delete(Collection<INode> toDelete, String query, String owner, FileSystem fs) {
     super(toDelete, owner, query, fs);
   }
 

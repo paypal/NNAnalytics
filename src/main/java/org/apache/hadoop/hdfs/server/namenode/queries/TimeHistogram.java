@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
 import java.util.Collections;
@@ -26,7 +27,12 @@ import java.util.stream.LongStream;
 
 public class TimeHistogram {
 
-  public enum TIME_RANGES {daily, weekly, monthly, yearly}
+  public enum TIME_RANGES {
+    daily,
+    weekly,
+    monthly,
+    yearly
+  }
 
   public static Long[] getBinsArray(String timeRange) {
     TIME_RANGES timeRangeEnum = TIME_RANGES.valueOf(timeRange);
@@ -61,34 +67,34 @@ public class TimeHistogram {
   }
 
   /* We can lower the number of days to improve performance on multi-filter bin'ing. */
-  private static final List<Long> daily_keys0 = LongStream.range(1, 365).boxed()
-      .collect(Collectors.toList());
-  private static final List<String> daily_keys = daily_keys0.stream().map(k -> k + " Days")
-      .collect(Collectors.toList());
-  private static final Long[] daily_binsArray = daily_keys0.stream()
-      .mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
+  private static final List<Long> daily_keys0 =
+      LongStream.range(1, 365).boxed().collect(Collectors.toList());
+  private static final List<String> daily_keys =
+      daily_keys0.stream().map(k -> k + " Days").collect(Collectors.toList());
+  private static final Long[] daily_binsArray =
+      daily_keys0.stream().mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
 
   /* We can lower the number of days to improve performance on multi-filter bin'ing. */
-  private static final List<Long> weekly_keys0 = LongStream.range(1, 50).map(l -> l * 7).boxed()
-      .collect(Collectors.toList());
-  private static final List<String> weekly_keys = weekly_keys0.stream().map(k -> k / 7 + " Weeks")
-      .collect(Collectors.toList());
-  private static final Long[] weekly_binsArray = weekly_keys0.stream()
-      .mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
+  private static final List<Long> weekly_keys0 =
+      LongStream.range(1, 50).map(l -> l * 7).boxed().collect(Collectors.toList());
+  private static final List<String> weekly_keys =
+      weekly_keys0.stream().map(k -> k / 7 + " Weeks").collect(Collectors.toList());
+  private static final Long[] weekly_binsArray =
+      weekly_keys0.stream().mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
 
   /* We can lower the number of days to improve performance on multi-filter bin'ing. */
-  private static final List<Long> monthly_keys0 = LongStream.range(1, 24).map(l -> l * 30).boxed()
-      .collect(Collectors.toList());
-  private static final List<String> monthly_keys = monthly_keys0.stream()
-      .map(k -> k / 30 + " Months").collect(Collectors.toList());
-  private static final Long[] monthly_binsArray = monthly_keys0.stream()
-      .mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
+  private static final List<Long> monthly_keys0 =
+      LongStream.range(1, 24).map(l -> l * 30).boxed().collect(Collectors.toList());
+  private static final List<String> monthly_keys =
+      monthly_keys0.stream().map(k -> k / 30 + " Months").collect(Collectors.toList());
+  private static final Long[] monthly_binsArray =
+      monthly_keys0.stream().mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
 
   /* We can lower the number of days to improve performance on multi-filter bin'ing. */
-  private static final List<Long> yearly_keys0 = LongStream.range(1, 5).map(l -> l * 365).boxed()
-      .collect(Collectors.toList());
-  private static final List<String> yearly_keys = yearly_keys0.stream().map(k -> k / 365 + " Years")
-      .collect(Collectors.toList());
-  private static final Long[] yearly_binsArray = yearly_keys0.stream()
-      .mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
+  private static final List<Long> yearly_keys0 =
+      LongStream.range(1, 5).map(l -> l * 365).boxed().collect(Collectors.toList());
+  private static final List<String> yearly_keys =
+      yearly_keys0.stream().map(k -> k / 365 + " Years").collect(Collectors.toList());
+  private static final Long[] yearly_binsArray =
+      yearly_keys0.stream().mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
 }

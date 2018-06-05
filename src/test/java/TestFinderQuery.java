@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -77,10 +78,13 @@ public class TestFinderQuery {
     timeTaken = 0;
   }
 
-  public static HashMap<NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>> getSetFilterFindConfig() {
-    HashMap<NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>> config = new HashMap<>();
+  public static HashMap<
+          NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
+      getSetFilterFindConfig() {
+    HashMap<NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
+        config = new HashMap<>();
 
-    //For 'File' set type
+    // For 'File' set type
     HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> fileFilterFind = new HashMap<>();
     ArrayList<NNAConstants.FIND_FIELD> fileFind = new ArrayList<>();
     fileFind.addAll(NNAConstants.FIND_FILE);
@@ -88,7 +92,7 @@ public class TestFinderQuery {
     fileFilterFind.put(NNAConstants.FIND.min, fileFind);
     config.put(NNAConstants.SET.files, fileFilterFind);
 
-    //For 'Dir' set type
+    // For 'Dir' set type
     HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> dirFilterFind = new HashMap<>();
     ArrayList<NNAConstants.FIND_FIELD> dirFind = new ArrayList<>();
     dirFind.addAll(NNAConstants.FIND_DIR);
@@ -96,7 +100,7 @@ public class TestFinderQuery {
     dirFilterFind.put(NNAConstants.FIND.min, dirFind);
     config.put(NNAConstants.SET.dirs, dirFilterFind);
 
-    //For 'All' set type
+    // For 'All' set type
     HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> allFilterFind = new HashMap<>();
     ArrayList<NNAConstants.FIND_FIELD> allFind = new ArrayList<>();
     allFind.addAll(NNAConstants.FIND_ALL);
@@ -107,11 +111,22 @@ public class TestFinderQuery {
     return config;
   }
 
-  public static HashMap<NNAConstants.SET, HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>> getSetHistogramTypeFindConfig() {
-    HashMap<NNAConstants.SET, HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>> config = new HashMap<>();
+  public static HashMap<
+          NNAConstants.SET,
+          HashMap<
+              NNAConstants.HISTOGRAM,
+              HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>>
+      getSetHistogramTypeFindConfig() {
+    HashMap<
+            NNAConstants.SET,
+            HashMap<
+                NNAConstants.HISTOGRAM,
+                HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>>
+        config = new HashMap<>();
 
-    //For 'File' set type
-    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>> fileFindField = new HashMap<>();
+    // For 'File' set type
+    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
+        fileFindField = new HashMap<>();
     HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findFile = new HashMap<>();
     ArrayList<NNAConstants.FIND_FIELD> fileFind = new ArrayList<>();
     fileFind.addAll(NNAConstants.FIND_FILE);
@@ -122,8 +137,9 @@ public class TestFinderQuery {
     }
     config.put(NNAConstants.SET.files, fileFindField);
 
-    //For 'Dir' set type
-    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>> dirFindField = new HashMap<>();
+    // For 'Dir' set type
+    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
+        dirFindField = new HashMap<>();
     HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findDir = new HashMap<>();
     ArrayList<NNAConstants.FIND_FIELD> dirFind = new ArrayList<>();
     dirFind.addAll(NNAConstants.FIND_DIR);
@@ -134,8 +150,9 @@ public class TestFinderQuery {
     }
     config.put(NNAConstants.SET.dirs, dirFindField);
 
-    //For 'All' set type
-    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>> allFindField = new HashMap<>();
+    // For 'All' set type
+    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
+        allFindField = new HashMap<>();
     HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findAll = new HashMap<>();
     ArrayList<NNAConstants.FIND_FIELD> allFind = new ArrayList<>();
     allFind.addAll(NNAConstants.FIND_ALL);
@@ -151,15 +168,16 @@ public class TestFinderQuery {
 
   @Test
   public void testFilterAndFindQuery() throws IOException {
-    HashMap<NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>> config = getSetFilterFindConfig();
+    HashMap<NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
+        config = getSetFilterFindConfig();
     String[] parameters = new String[5];
     parameters[0] = "http://localhost:4567/filter?";
     for (NNAConstants.SET setType : NNAConstants.SET.values()) {
       parameters[1] = setType.toString();
-      HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findFields = config
-          .get(setType);
-      for (Map.Entry<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findField : findFields
-          .entrySet()) {
+      HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findFields =
+          config.get(setType);
+      for (Map.Entry<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findField :
+          findFields.entrySet()) {
         parameters[3] = findField.getKey().toString();
         for (NNAConstants.FIND_FIELD field : findField.getValue()) {
           parameters[4] = field.toString();
@@ -167,27 +185,34 @@ public class TestFinderQuery {
           checkOutput(testingURL);
         }
       }
-
     }
   }
 
   @Test
   public void testHistogramTypeAndFindQuery() throws IOException {
-    HashMap<NNAConstants.SET, HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>> config =
-        getSetHistogramTypeFindConfig();
+    HashMap<
+            NNAConstants.SET,
+            HashMap<
+                NNAConstants.HISTOGRAM,
+                HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>>
+        config = getSetHistogramTypeFindConfig();
     String[] parameters = new String[5];
     parameters[0] = "http://localhost:4567/histogram?";
     for (NNAConstants.SET setType : NNAConstants.SET.values()) {
       parameters[1] = setType.toString();
-      HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>> histFindFields = config
-          .get(setType);
-      for (Map.Entry<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>> histFindField : histFindFields
-          .entrySet()) {
+      HashMap<
+              NNAConstants.HISTOGRAM,
+              HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
+          histFindFields = config.get(setType);
+      for (Map.Entry<
+              NNAConstants.HISTOGRAM,
+              HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
+          histFindField : histFindFields.entrySet()) {
         parameters[2] = histFindField.getKey().toString();
-        HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findFields = histFindField
-            .getValue();
-        for (Map.Entry<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findField : findFields
-            .entrySet()) {
+        HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findFields =
+            histFindField.getValue();
+        for (Map.Entry<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findField :
+            findFields.entrySet()) {
           parameters[3] = findField.getKey().toString();
           for (NNAConstants.FIND_FIELD field : findField.getValue()) {
             parameters[4] = field.toString();

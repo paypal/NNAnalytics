@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.paypal.security;
 
 import java.io.IOException;
@@ -31,8 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public class SecurityConfiguration {
 
-  public static final Logger LOG =
-      LoggerFactory.getLogger(SecurityConfiguration.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(SecurityConfiguration.class.getName());
 
   private static final String SEC_PROPERTIES = "security.properties";
   private final Properties properties = new Properties();
@@ -110,27 +110,35 @@ public class SecurityConfiguration {
   }
 
   public Set<String> getAdminUsers() {
-    return new HashSet<String>() {{
-      Collections.addAll(this, properties.getProperty("nna.admin.users").split(","));
-    }};
+    return new HashSet<String>() {
+      {
+        Collections.addAll(this, properties.getProperty("nna.admin.users").split(","));
+      }
+    };
   }
 
   public Set<String> getWriteUsers() {
-    return new HashSet<String>() {{
-      Collections.addAll(this, properties.getProperty("nna.write.users").split(","));
-    }};
+    return new HashSet<String>() {
+      {
+        Collections.addAll(this, properties.getProperty("nna.write.users").split(","));
+      }
+    };
   }
 
   public Set<String> getReadOnlyUsers() {
-    return new HashSet<String>() {{
-      Collections.addAll(this, properties.getProperty("nna.readonly.users").split(","));
-    }};
+    return new HashSet<String>() {
+      {
+        Collections.addAll(this, properties.getProperty("nna.readonly.users").split(","));
+      }
+    };
   }
 
   public Set<String> getCacheReaderUsers() {
-    return new HashSet<String>() {{
-      Collections.addAll(this, properties.getProperty("nna.cache.users").split(","));
-    }};
+    return new HashSet<String>() {
+      {
+        Collections.addAll(this, properties.getProperty("nna.cache.users").split(","));
+      }
+    };
   }
 
   public Map<String, String> getLocalOnlyUsers() {
@@ -146,8 +154,8 @@ public class SecurityConfiguration {
           localOnlyUsers.put(username, password);
         }
       } catch (ArrayIndexOutOfBoundsException e) {
-        throw new IllegalArgumentException("Please configure nna.local.users with user:password.",
-            e);
+        throw new IllegalArgumentException(
+            "Please configure nna.local.users with user:password.", e);
       }
     }
     return localOnlyUsers;
