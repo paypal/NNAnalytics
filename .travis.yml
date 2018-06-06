@@ -5,10 +5,14 @@ jdk:
 before_install:
  - sudo mkdir -p /usr/local/nn-analytics/db/
  - sudo chmod -R 777 /usr/local/nn-analytics
+matrix:
+  fast_finish: true
+  include:
+    - env: VERSION='-PhadoopVersion=2.4.0'
+    - env: VERSION='-PhadoopVersion=2.6.1'
+    - env: VERSION='-PhadoopVersion=2.7.0'
+    - env: VERSION='-PhadoopVersion=2.8.0'
+    - env: VERSION='-PhadoopVersion=2.9.0'
+    - env: VERSION='-PhadoopVersion=3.0.0'
 script:
-  - ./gradlew clean build licenseMain licenseTest findbugsMain findbugsTest buildRpm -PhadoopVersion=2.4.0
-  - ./gradlew clean build licenseMain licenseTest findbugsMain findbugsTest buildRpm -PhadoopVersion=2.6.1
-  - ./gradlew clean build licenseMain licenseTest findbugsMain findbugsTest buildRpm -PhadoopVersion=2.7.0
-  - ./gradlew clean build licenseMain licenseTest findbugsMain findbugsTest buildRpm -PhadoopVersion=2.8.0
-  - ./gradlew clean build licenseMain licenseTest findbugsMain findbugsTest buildRpm -PhadoopVersion=2.9.0
-  - ./gradlew clean build licenseMain licenseTest findbugsMain findbugsTest buildRpm -PhadoopVersion=3.0.0
+  - ./gradlew clean build licenseMain licenseTest findbugsMain findbugsTest buildRpm $VERSION
