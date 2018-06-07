@@ -16,3 +16,5 @@ matrix:
     - env: VERSION='-PhadoopVersion=3.0.0'
 script:
   - ./gradlew clean build licenseMain licenseTest findbugsMain findbugsTest buildRpm $VERSION
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
