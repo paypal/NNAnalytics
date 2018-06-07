@@ -58,12 +58,12 @@ checkstyle {
 spotless {
     java {
         googleJavaFormat()
-        licenseHeaderFile file('LICENSE_HEADER_SPOTLESS'), '(package|import)'
+        licenseHeaderFile file('license.header.spotless'), '(package|import)'
     }
 }
 
 license {
-    header = file('LICENSE_HEADER')
+    header = file('license.header')
     excludePatterns = [ "**/bootstrap*",
                         "**/Chart*",
                         "**/cycle.js",
