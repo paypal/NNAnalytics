@@ -91,10 +91,18 @@ tasks.withType(FindBugs) {
 
 jacocoTestReport {
     reports {
-        xml.enabled false
+        xml.enabled true
+        xml.destination "${buildDir}/reports/jacoco/report.xml"
         csv.enabled false
         html.destination file("${buildDir}/jacocoHtml")
     }
+}
+
+test {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    finalizedBy jacocoTestReport 
 }
 
 sourceSets.main.java.srcDirs "src/main/java", "src/main/${hadoopVersion}"
