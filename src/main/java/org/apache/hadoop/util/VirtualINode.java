@@ -20,72 +20,66 @@
 package org.apache.hadoop.util;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class VirtualINode {
 
-  List<VirtualINode> childs;
-  List<VirtualINode> leafs;
+  private VirtualINode parent;
   private String data;
-  private String incrementalPath;
+  private int score;
 
-  public VirtualINode(String nodeValue, String incrementalPath) {
-    childs = new ArrayList<>();
-    leafs = new ArrayList<>();
+  List<VirtualINode> children;
+
+  public VirtualINode(VirtualINode parent, String nodeValue) {
+    this.parent = parent;
+    children = new ArrayList<>();
     data = nodeValue;
-    this.incrementalPath = incrementalPath;
+    score = 0;
+  }
+
+  public VirtualINode parent() {
+    return parent;
+  }
+
+  public int score() {
+    return score;
+  }
+
+  public boolean isRoot() {
+    return parent == null;
   }
 
   public String path() {
-    return incrementalPath;
-  }
-
-  public void addElement(String currentPath, String[] list) {
-
-    // Avoid first element that can be an empty string if you split a string that has a starting
-    // slash as /sd/card/
-    while (list[0] == null || list[0].equals("")) {
-      list = Arrays.copyOfRange(list, 1, list.length);
+    if (isRoot()) {
+      return "/";
     }
 
-    VirtualINode currentChild = new VirtualINode(list[0], currentPath + "/" + list[0]);
-    if (list.length == 1) {
-      leafs.add(currentChild);
-      return;
-    } else {
-      int index = childs.indexOf(currentChild);
-      if (index == -1) {
-        childs.add(currentChild);
-        currentChild.addElement(
-            currentChild.incrementalPath, Arrays.copyOfRange(list, 1, list.length));
-      } else {
-        VirtualINode nextChild = childs.get(index);
-        nextChild.addElement(
-            currentChild.incrementalPath, Arrays.copyOfRange(list, 1, list.length));
+    StringBuilder path = new StringBuilder(data);
+    VirtualINode current = this;
+    VirtualINode next;
+    while ((next = current.parent()) != null) {
+      path.insert(0, next.data + "/");
+      current = next;
+    }
+    return path.toString();
+  }
+
+  public void incrementScore() {
+    score++;
+  }
+
+  public void addChild(VirtualINode child) {
+    children.add(child);
+    child.incrementScore();
+  }
+
+  public VirtualINode getChild(String element) {
+    for (VirtualINode child : children) {
+      if (child.data.equals(element)) {
+        return child;
       }
     }
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == null) {
-      return false;
-    }
-    if (!(obj instanceof VirtualINode)) {
-      return false;
-    }
-    VirtualINode cmpObj = (VirtualINode) obj;
-    return incrementalPath.equals(cmpObj.incrementalPath) && data.equals(cmpObj.data);
-  }
-
-  @Override
-  public int hashCode() {
-    int result = childs != null ? childs.hashCode() : 0;
-    result = 31 * result + (leafs != null ? leafs.hashCode() : 0);
-    result = 31 * result + (data != null ? data.hashCode() : 0);
-    result = 31 * result + (incrementalPath != null ? incrementalPath.hashCode() : 0);
-    return result;
+    return null;
   }
 
   @Override
