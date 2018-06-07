@@ -46,24 +46,3 @@ If you are building for 2.5.x you can re-use the 2.4.x build.
 1. As root, run: `service nn-analytics start`
 2. (Optional) On your browser hit: `http(s)://HOSTNAME:8080/namespace.html` and fetch the latest image and then `service nn-analytics restart` if this is your first run.
 3. If any issues occur check `/var/log/nn-analytics` for logs.
-
-## Additional License Info:
-```
-NAMENODE ANALYTICS SUBCOMPONENTS:
-
-   The NNAnalytics project contains subcomponents with separate copyright
-   notices and license terms. Your use of the source code for the these
-   subcomponents is subject to the terms and conditions of the following
-   licenses.
-
-========================================================================
-MIT licenses
-========================================================================
-
-The following components are provided under the MIT License. See project link for details.
-
-    (MIT License) jquery (https://jquery.org/license/)
-    (MIT License) bootstrap (https://github.com/twbs/bootstrap/)
-    (MIT License) sweetalert (https://github.com/t4t5/sweetalert)
-    (MIT License) Chart.js (https://github.com/chartjs/Chart.js)
-```
