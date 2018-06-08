@@ -58,12 +58,12 @@ checkstyle {
 spotless {
     java {
         googleJavaFormat()
-        licenseHeaderFile file('LICENSE_HEADER_SPOTLESS'), '(package|import)'
+        licenseHeaderFile file('license.header.spotless'), '(package|import)'
     }
 }
 
 license {
-    header = file('LICENSE_HEADER')
+    header = file('license.header')
     excludePatterns = [ "**/bootstrap*",
                         "**/Chart*",
                         "**/cycle.js",
@@ -91,10 +91,18 @@ tasks.withType(FindBugs) {
 
 jacocoTestReport {
     reports {
-        xml.enabled false
+        xml.enabled true
+        xml.destination "${buildDir}/reports/jacoco/report.xml"
         csv.enabled false
         html.destination file("${buildDir}/jacocoHtml")
     }
+}
+
+test {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    finalizedBy jacocoTestReport 
 }
 
 sourceSets.main.java.srcDirs "src/main/java", "src/main/${hadoopVersion}"
