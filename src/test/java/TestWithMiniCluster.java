@@ -32,7 +32,6 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.qjournal.MiniQJMHACluster;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.hdfs.server.namenode.ha.HATestUtil;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -46,7 +45,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import spark.Spark;
 
 @RunWith(JUnit4.class)
 public class TestWithMiniCluster {
@@ -58,7 +56,7 @@ public class TestWithMiniCluster {
   private static MiniQJMHACluster cluster;
   private static HttpHost hostPort;
   private static HttpClient client;
-  private static NNLoader nn;
+  private static NNAnalyticsRestAPI nna;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -78,10 +76,10 @@ public class TestWithMiniCluster {
     HATestUtil.setFailoverConfigurations(cluster.getDfsCluster(), CONF, NAMESERVICE, 0);
     CONF.set("dfs.nameservice.id", NAMESERVICE);
 
-    NNAnalyticsRestAPI nna = new NNAnalyticsRestAPI();
+    nna = new NNAnalyticsRestAPI();
     nna.initAuth(false, false);
     nna.initRestServer();
-    nn = nna.initLoader(null, null, CONF);
+    nna.initLoader(null, null, CONF);
     hostPort = new HttpHost("localhost", 4567);
     client = new DefaultHttpClient();
 
@@ -100,9 +98,8 @@ public class TestWithMiniCluster {
 
   @AfterClass
   public static void tearDown() throws IOException {
-    nn.clear();
+    nna.shutdown();
     cluster.shutdown();
-    Spark.stop();
   }
 
   @Before

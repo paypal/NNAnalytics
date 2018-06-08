@@ -37,11 +37,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import spark.Spark;
 
 @RunWith(JUnit4.class)
 public class TestTransforms {
 
+  private static NNAnalyticsRestAPI nna;
   private static NNLoader loader;
 
   @BeforeClass
@@ -49,7 +49,7 @@ public class TestTransforms {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    NNAnalyticsRestAPI nna = new NNAnalyticsRestAPI();
+    nna = new NNAnalyticsRestAPI();
     nna.initAuth(false, false);
     nna.initRestServer();
     loader = nna.initLoader(gset, false);
@@ -57,8 +57,7 @@ public class TestTransforms {
 
   @AfterClass
   public static void tearDown() {
-    loader.clear();
-    Spark.stop();
+    nna.shutdown();
   }
 
   @Test

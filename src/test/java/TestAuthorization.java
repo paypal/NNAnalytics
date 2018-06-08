@@ -26,7 +26,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -37,30 +36,28 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import spark.Spark;
 
 public class TestAuthorization {
 
   private static HttpHost hostPort;
   private static HttpClient client;
-  private static NNLoader nn;
+  private static NNAnalyticsRestAPI nna;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    NNAnalyticsRestAPI nna = new NNAnalyticsRestAPI();
+    nna = new NNAnalyticsRestAPI();
     nna.initAuth(false, true);
     nna.initRestServer();
-    nn = nna.initLoader(gset, false);
+    nna.initLoader(gset, false);
     hostPort = new HttpHost("localhost", 4567);
   }
 
   @AfterClass
   public static void tearDown() {
-    nn.clear();
-    Spark.stop();
+    nna.shutdown();
   }
 
   @Before

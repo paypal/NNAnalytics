@@ -175,7 +175,7 @@ public class NNAnalyticsRestAPI {
    * @param historical Optional parameter whether to load up embedded SQL DB for historical
    *     tracking; null means default to configuration. tracking; null means default to
    *     configuration.
-   * @param configuration Optional parameter for whether you want to load with predetermined
+   * @param preloadedHadoopConf Optional parameter for whether you want to load with predetermined
    *     configuration; null means to load configuration from classpath.
    * @return An initialized NNLoader with predetermined INodes else INodes loaded from local
    *     FSImage.
@@ -186,17 +186,17 @@ public class NNAnalyticsRestAPI {
   public NNLoader initLoader(
       GSet<INode, INodeWithAdditionalFields> inodes,
       Boolean historical,
-      Configuration configuration)
+      Configuration preloadedHadoopConf)
       throws Exception {
-    SecurityConfiguration conf = new SecurityConfiguration();
+    SecurityConfiguration secConf = new SecurityConfiguration();
     hsqlDriver.dropConnection();
     if (historical != null) {
-      nnLoader.initHistoryRecorder(hsqlDriver, conf, historical);
+      nnLoader.initHistoryRecorder(hsqlDriver, secConf, historical);
     } else {
-      nnLoader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
+      nnLoader.initHistoryRecorder(hsqlDriver, secConf, secConf.getHistoricalEnabled());
     }
-    nnLoader.load(inodes, configuration);
-    nnLoader.initReloadThreads(internalService, conf);
+    nnLoader.load(inodes, preloadedHadoopConf);
+    nnLoader.initReloadThreads(internalService, secConf);
     return nnLoader;
   }
 
@@ -1729,5 +1729,21 @@ public class NNAnalyticsRestAPI {
         });
 
     Spark.awaitInitialization();
+  }
+
+  @VisibleForTesting
+  public void shutdown() {
+    try {
+      hsqlDriver.dropConnection();
+    } catch (Exception e) {
+      LOG.error("Error during shutdown: ", e);
+    }
+    nnLoader.clear();
+    runningOperations.clear();
+    runningOperations.clear();
+    runningQueries.clear();
+    operationService.shutdown();
+    internalService.shutdown();
+    Spark.stop();
   }
 }

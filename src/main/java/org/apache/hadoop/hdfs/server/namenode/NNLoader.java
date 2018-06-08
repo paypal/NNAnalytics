@@ -1801,7 +1801,7 @@ public class NNLoader {
 
   @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
   public void load(
-      GSet<INode, INodeWithAdditionalFields> preloadedInodes, Configuration configuration)
+      GSet<INode, INodeWithAdditionalFields> preloadedInodes, Configuration preloadedHadoopConf)
       throws InterruptedException, NoSuchFieldException, IllegalAccessException {
     /*
      * Configuration standard is: /etc/hadoop/conf.
@@ -1810,8 +1810,8 @@ public class NNLoader {
 
     suggestionsEngine.start();
     if (conf == null) {
-      if (configuration != null) {
-        conf = configuration;
+      if (preloadedHadoopConf != null) {
+        conf = preloadedHadoopConf;
       } else {
         conf = new Configuration();
         conf.addResource("hdfs-default.xml");

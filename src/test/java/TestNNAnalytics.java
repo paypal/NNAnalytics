@@ -40,7 +40,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -54,14 +53,13 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import spark.Spark;
 
 @RunWith(JUnit4.class)
 public class TestNNAnalytics {
 
   private static HttpHost hostPort;
   private static HttpClient client;
-  private static NNLoader nn;
+  private static NNAnalyticsRestAPI nna;
 
   public static void main(String[] args) throws Exception {
     beforeClass();
@@ -75,17 +73,16 @@ public class TestNNAnalytics {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    NNAnalyticsRestAPI nna = new NNAnalyticsRestAPI();
+    nna = new NNAnalyticsRestAPI();
     nna.initAuth(false, false);
     nna.initRestServer();
-    nn = nna.initLoader(gset, false);
+    nna.initLoader(gset, false);
     hostPort = new HttpHost("localhost", 4567);
   }
 
   @AfterClass
   public static void tearDown() {
-    nn.clear();
-    Spark.stop();
+    nna.shutdown();
   }
 
   @Before

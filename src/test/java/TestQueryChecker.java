@@ -33,7 +33,6 @@ import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -45,14 +44,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import spark.Spark;
 
 @RunWith(JUnit4.class)
 public class TestQueryChecker {
 
   private static HttpHost hostPort;
   private static DefaultHttpClient client;
-  private static NNLoader nn;
+  private static NNAnalyticsRestAPI nna;
   private static int count = 0;
   private static long timeTaken = 0;
 
@@ -61,17 +59,16 @@ public class TestQueryChecker {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    NNAnalyticsRestAPI nna = new NNAnalyticsRestAPI();
+    nna = new NNAnalyticsRestAPI();
     nna.initAuth(false, false);
     nna.initRestServer();
-    nn = nna.initLoader(gset, false);
+    nna.initLoader(gset, false);
     hostPort = new HttpHost("localhost", 4567);
   }
 
   @AfterClass
   public static void tearDown() {
-    nn.clear();
-    Spark.stop();
+    nna.shutdown();
     System.out.println("Total # of completed query check for benchmarking: " + count);
     System.out.println("Total time taken in milliseconds: " + timeTaken);
   }
