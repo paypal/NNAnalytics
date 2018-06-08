@@ -56,8 +56,9 @@ public class TestQueryChecker {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-    GSetGenerator.clear();
-    GSet<INode, INodeWithAdditionalFields> gset = GSetGenerator.getGSet((short) 3, 3, 10);
+    GSetGenerator gSetGenerator = new GSetGenerator();
+    gSetGenerator.clear();
+    GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 3, 10);
     NNAnalyticsRestAPI.initAuth(false, false);
     NNAnalyticsRestAPI.initRestServer();
     NNAnalyticsRestAPI.initLoader(gset, false);

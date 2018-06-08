@@ -21,7 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode;
 
 import java.util.Random;
 
-class SRandom extends Random {
+public class SRandom extends Random {
 
   /** Returns a long that is bounded between 0 and @param bound. */
   long nextLong(long bound) {
