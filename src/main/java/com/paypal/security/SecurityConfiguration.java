@@ -101,6 +101,10 @@ public class SecurityConfiguration {
     return Integer.parseInt(properties.getProperty("ldap.connection.pool.max.size"));
   }
 
+  public int getSuggestionsReloadSleepMs() {
+    return Integer.parseInt(properties.getProperty("nna.suggestions.reload.sleep.ms"));
+  }
+
   public String getJwtSignatureSecret() {
     return properties.getProperty("jwt.signature.secret");
   }

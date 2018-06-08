@@ -2116,7 +2116,7 @@ public class NNLoader {
     }
   }
 
-  public void initReloadThreads(ExecutorService internalService) {
+  public void initReloadThreads(ExecutorService internalService, SecurityConfiguration conf) {
     Future<Void> reload =
         internalService.submit(
             () -> {
@@ -2129,9 +2129,8 @@ public class NNLoader {
                     LOG.info(element.toString());
                   }
                 }
-                // Reload suggestions every 15 minutes.
                 try {
-                  Thread.sleep(15 * 60 * 1000L);
+                  Thread.sleep(conf.getSuggestionsReloadSleepMs());
                 } catch (InterruptedException ignored) {
                 }
               }

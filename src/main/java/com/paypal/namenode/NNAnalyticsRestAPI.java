@@ -182,7 +182,7 @@ public class NNAnalyticsRestAPI {
       nnLoader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
     }
     nnLoader.load(inodes);
-    nnLoader.initReloadThreads(internalService);
+    nnLoader.initReloadThreads(internalService, conf);
     return nnLoader;
   }
 
