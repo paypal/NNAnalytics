@@ -1,4 +1,4 @@
-## How to install:
+**How To Install:**
 
 1. SCP the RPM to any client or server node.
 2. Install RPM on host: `yum install <rpm_path>`
