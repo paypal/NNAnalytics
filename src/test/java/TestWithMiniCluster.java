@@ -58,7 +58,7 @@ public class TestWithMiniCluster {
   private static final byte[] TINY_FILE_BYTES = new byte[512];
   private static final byte[] SMALL_FILE_BYTES = new byte[1024];
   private static final byte[] MEDIUM_FILE_BYTES = new byte[1024 * 1024];
-  private static final String[] USERS = new String[]{ "hdfs", "test_user" };
+  private static final String[] USERS = new String[] {"hdfs", "test_user"};
 
   private static MiniQJMHACluster cluster;
   private static HttpHost hostPort;
@@ -70,7 +70,7 @@ public class TestWithMiniCluster {
     RANDOM.nextBytes(TINY_FILE_BYTES);
     RANDOM.nextBytes(SMALL_FILE_BYTES);
     RANDOM.nextBytes(MEDIUM_FILE_BYTES);
-    
+
     // disable block scanner
     CONF.setInt(DFSConfigKeys.DFS_DATANODE_SCAN_PERIOD_HOURS_KEY, -1);
     // Set short retry timeouts so this test runs faster
@@ -172,7 +172,7 @@ public class TestWithMiniCluster {
           break;
       }
       short repFactor = (short) RANDOM.nextInt(4);
-      if(repFactor != 0) {
+      if (repFactor != 0) {
         fileSystem.setReplication(filePath, repFactor);
       }
       Thread.sleep(300L);
