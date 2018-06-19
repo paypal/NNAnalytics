@@ -32,6 +32,7 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.qjournal.MiniQJMHACluster;
+import org.apache.hadoop.hdfs.server.namenode.SRandom;
 import org.apache.hadoop.hdfs.server.namenode.ha.HATestUtil;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -49,9 +50,15 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class TestWithMiniCluster {
 
+  private static final SRandom RANDOM = new SRandom();
   private static final int NUMDATANODES = 1;
   private static final Configuration CONF = new HdfsConfiguration();
   private static final String NAMESERVICE = MiniQJMHACluster.NAMESERVICE;
+
+  private static final byte[] TINY_FILE_BYTES = new byte[512];
+  private static final byte[] SMALL_FILE_BYTES = new byte[1024];
+  private static final byte[] MEDIUM_FILE_BYTES = new byte[1024 * 1024];
+  private static final String[] USERS = new String[]{ "hdfs", "test_user" };
 
   private static MiniQJMHACluster cluster;
   private static HttpHost hostPort;
@@ -60,6 +67,10 @@ public class TestWithMiniCluster {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
+    RANDOM.nextBytes(TINY_FILE_BYTES);
+    RANDOM.nextBytes(SMALL_FILE_BYTES);
+    RANDOM.nextBytes(MEDIUM_FILE_BYTES);
+    
     // disable block scanner
     CONF.setInt(DFSConfigKeys.DFS_DATANODE_SCAN_PERIOD_HOURS_KEY, -1);
     // Set short retry timeouts so this test runs faster
@@ -109,9 +120,8 @@ public class TestWithMiniCluster {
 
   public static void main(String[] args) throws Exception {
     beforeClass();
-    while (true) {
-      // Let the server run.
-    }
+    TestWithMiniCluster test = new TestWithMiniCluster();
+    test.testAddFiles();
   }
 
   @Test
@@ -125,9 +135,47 @@ public class TestWithMiniCluster {
   @Ignore("Test is just for showcasing")
   @Test
   public void testAddFiles() throws IOException, InterruptedException {
+    FileSystem fileSystem = FileSystem.get(CONF);
     for (int i = 0; i < 90000000; i++) {
-      DFSTestUtil.writeFile(FileSystem.get(CONF), new Path("/file" + i), "abc");
-      Thread.sleep(1000L);
+      int dirNumber = RANDOM.nextInt(10);
+      Path dirPath = new Path("/dir" + dirNumber);
+      fileSystem.mkdirs(dirPath);
+      Path filePath = dirPath.suffix("/file" + i);
+      int fileSize = RANDOM.nextInt(4);
+      switch (fileSize) {
+        case 0:
+          DFSTestUtil.writeFile(fileSystem, filePath, "");
+          break;
+        case 1:
+          DFSTestUtil.writeFile(fileSystem, filePath, new String(TINY_FILE_BYTES));
+          break;
+        case 2:
+          DFSTestUtil.writeFile(fileSystem, filePath, new String(SMALL_FILE_BYTES));
+          break;
+        case 3:
+          DFSTestUtil.writeFile(fileSystem, filePath, new String(MEDIUM_FILE_BYTES));
+          break;
+        default:
+          DFSTestUtil.writeFile(fileSystem, filePath, "");
+      }
+      int user = RANDOM.nextInt(3);
+      switch (user) {
+        case 0:
+          break;
+        case 1:
+          fileSystem.setOwner(filePath, USERS[0], USERS[0]);
+          break;
+        case 2:
+          fileSystem.setOwner(filePath, USERS[1], USERS[1]);
+          break;
+        default:
+          break;
+      }
+      short repFactor = (short) RANDOM.nextInt(4);
+      if(repFactor != 0) {
+        fileSystem.setReplication(filePath, repFactor);
+      }
+      Thread.sleep(300L);
     }
   }
 }
