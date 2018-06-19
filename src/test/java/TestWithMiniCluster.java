@@ -23,6 +23,7 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -137,10 +138,34 @@ public class TestWithMiniCluster {
   public void testAddFiles() throws IOException, InterruptedException {
     FileSystem fileSystem = FileSystem.get(CONF);
     for (int i = 0; i < 90000000; i++) {
-      int dirNumber = RANDOM.nextInt(10);
-      Path dirPath = new Path("/dir" + dirNumber);
+      int dirNumber1 = RANDOM.nextInt(10);
+      Path dirPath = new Path("/dir" + dirNumber1);
+      int dirNumber2 = RANDOM.nextInt(10);
+      dirPath = dirPath.suffix("/dir" + dirNumber2);
+      int dirNumber3 = RANDOM.nextInt(10);
+      dirPath = dirPath.suffix("/dir" + dirNumber3);
       fileSystem.mkdirs(dirPath);
       Path filePath = dirPath.suffix("/file" + i);
+      int fileType = RANDOM.nextInt(5);
+      switch (fileType) {
+        case 0:
+          filePath = filePath.suffix(".zip");
+          break;
+        case 1:
+          filePath = filePath.suffix(".avro");
+          break;
+        case 2:
+          filePath = filePath.suffix(".orc");
+          break;
+        case 3:
+          filePath = filePath.suffix(".txt");
+          break;
+        case 4:
+          filePath = filePath.suffix(".json");
+          break;
+        default:
+          break;
+      }
       int fileSize = RANDOM.nextInt(4);
       switch (fileSize) {
         case 0:
@@ -174,6 +199,11 @@ public class TestWithMiniCluster {
       short repFactor = (short) RANDOM.nextInt(4);
       if (repFactor != 0) {
         fileSystem.setReplication(filePath, repFactor);
+      }
+      int weeksAgo = RANDOM.nextInt(10);
+      long timeStamp = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(weeksAgo * 7);
+      if (weeksAgo != 0) {
+        fileSystem.setTimes(filePath, timeStamp, timeStamp);
       }
       Thread.sleep(300L);
     }
