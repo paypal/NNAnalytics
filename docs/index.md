@@ -1,5 +1,4 @@
-
-# NameNode Analytics
+# <img src="images/NNA-logo.png" width="174" height="120" />
 
 "A Standby read-only HDFS NameNode, with no RPC server, that services clients over a REST API, utilizes Java 8 Stream API, all for the purpose of performing large and complicated scans of the entire file system metadata for end users."
 
