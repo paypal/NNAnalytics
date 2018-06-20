@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/paypal/NNAnalytics.svg?branch=master)](https://travis-ci.com/paypal/NNAnalytics)
 [![License](http://img.shields.io/:license-Apache%202-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 
-# NameNode Analytics
+# <img src="docs/images/NNA-logo.png" width="174" height="120" />
 
 "A Standby read-only HDFS NameNode, with no RPC server, that services clients over a REST API, utilizes Java 8 Stream API, all for the purpose of performing large and complicated scans of the entire file system metadata for end users."
 
