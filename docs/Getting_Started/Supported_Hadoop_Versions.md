@@ -9,4 +9,4 @@
 
 ** If you are building for 2.5.x you can re-use the 2.4.x build.
 
-** Check [How To Build](Getting_Started/How_To_Build.md) for how to set these versions in your build.
+** Check [How To Build](How_To_Build/) for how to set these versions in your build.
