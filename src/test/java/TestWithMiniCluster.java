@@ -135,6 +135,10 @@ public class TestWithMiniCluster {
     assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("INode GSet size: "));
   }
 
+  /**
+   * In 2.4.0, MiniQJMHACluster has a bug starting DNs so we will use directories to track updates
+   * instead of files.
+   */
   @Test(timeout = 60000L)
   public void testUpdateSeen() throws Exception {
     HttpGet get = new HttpGet("http://localhost:4567/filter?set=files&sum=count");
@@ -144,12 +148,12 @@ public class TestWithMiniCluster {
     int startingCount = Integer.parseInt(content);
 
     // Trigger file system updates.
-    addFiles(100, 0L);
+    addDirs(100, 0L);
 
     // Ensure NNA sees those updates in query.
     int checkCount;
     do {
-      HttpGet check = new HttpGet("http://localhost:4567/filter?set=files&sum=count");
+      HttpGet check = new HttpGet("http://localhost:4567/filter?set=dirs&sum=count");
       HttpResponse checkRes = client.execute(hostPort, check);
       assertThat(checkRes.getStatusLine().getStatusCode(), is(200));
       String checkContent = IOUtils.toString(checkRes.getEntity().getContent());
@@ -230,6 +234,22 @@ public class TestWithMiniCluster {
       if (weeksAgo != 0) {
         fileSystem.setTimes(filePath, timeStamp, timeStamp);
       }
+      if (sleepBetweenMs != 0L) {
+        Thread.sleep(sleepBetweenMs);
+      }
+    }
+  }
+
+  private void addDirs(int numOfDirs, long sleepBetweenMs) throws Exception {
+    DistributedFileSystem fileSystem = (DistributedFileSystem) FileSystem.get(CONF);
+    for (int i = 0; i < numOfDirs; i++) {
+      int dirNumber1 = RANDOM.nextInt(10);
+      Path dirPath = new Path("/dir" + dirNumber1);
+      int dirNumber2 = RANDOM.nextInt(10);
+      dirPath = dirPath.suffix("/dir" + dirNumber2);
+      int dirNumber3 = RANDOM.nextInt(10);
+      dirPath = dirPath.suffix("/dir" + dirNumber3);
+      fileSystem.mkdirs(dirPath);
       if (sleepBetweenMs != 0L) {
         Thread.sleep(sleepBetweenMs);
       }
