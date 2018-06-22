@@ -18,6 +18,7 @@
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
 
@@ -31,6 +32,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSTestUtil;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.qjournal.MiniQJMHACluster;
 import org.apache.hadoop.hdfs.server.namenode.SRandom;
@@ -43,7 +45,6 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -72,9 +73,10 @@ public class TestWithMiniCluster {
     RANDOM.nextBytes(SMALL_FILE_BYTES);
     RANDOM.nextBytes(MEDIUM_FILE_BYTES);
 
-    // disable block scanner
+    // Speed up editlog tailing.
+    CONF.setInt(DFSConfigKeys.DFS_HA_TAILEDITS_PERIOD_KEY, 1);
+    CONF.setInt(DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, 1);
     CONF.setInt(DFSConfigKeys.DFS_DATANODE_SCAN_PERIOD_HOURS_KEY, -1);
-    // Set short retry timeouts so this test runs faster
     CONF.setInt(DFSConfigKeys.DFS_CLIENT_RETRY_WINDOW_BASE, 10);
     CONF.setBoolean("fs.hdfs.impl.disable.cache", true);
     CONF.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, "hdfs://" + NAMESERVICE);
@@ -122,22 +124,45 @@ public class TestWithMiniCluster {
   public static void main(String[] args) throws Exception {
     beforeClass();
     TestWithMiniCluster test = new TestWithMiniCluster();
-    test.testAddFiles();
+    test.addFiles(10000, 300L);
   }
 
   @Test
-  public void testInfo() throws IOException {
+  public void testInfo() throws Exception {
     HttpGet get = new HttpGet("http://localhost:4567/info");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
     assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("INode GSet size: "));
   }
 
-  @Ignore("Test is just for showcasing")
-  @Test
-  public void testAddFiles() throws IOException, InterruptedException {
-    FileSystem fileSystem = FileSystem.get(CONF);
-    for (int i = 0; i < 90000000; i++) {
+  @Test(timeout = 60000L)
+  public void testUpdateSeen() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/filter?set=files&sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    String content = IOUtils.toString(res.getEntity().getContent());
+    int startingCount = Integer.parseInt(content);
+
+    // Trigger file system updates.
+    addFiles(100, 0L);
+
+    // Ensure NNA sees those updates in query.
+    int checkCount;
+    do {
+      HttpGet check = new HttpGet("http://localhost:4567/filter?set=files&sum=count");
+      HttpResponse checkRes = client.execute(hostPort, check);
+      assertThat(checkRes.getStatusLine().getStatusCode(), is(200));
+      String checkContent = IOUtils.toString(checkRes.getEntity().getContent());
+      checkCount = Integer.parseInt(checkContent);
+      Thread.sleep(200L);
+    } while (checkCount == startingCount);
+
+    assertThat(checkCount, is(greaterThan(startingCount)));
+  }
+
+  private void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {
+    DistributedFileSystem fileSystem = (DistributedFileSystem) FileSystem.get(CONF);
+    for (int i = 0; i < numOfFiles; i++) {
       int dirNumber1 = RANDOM.nextInt(10);
       Path dirPath = new Path("/dir" + dirNumber1);
       int dirNumber2 = RANDOM.nextInt(10);
@@ -205,7 +230,9 @@ public class TestWithMiniCluster {
       if (weeksAgo != 0) {
         fileSystem.setTimes(filePath, timeStamp, timeStamp);
       }
-      Thread.sleep(300L);
+      if (sleepBetweenMs != 0L) {
+        Thread.sleep(sleepBetweenMs);
+      }
     }
   }
 }
