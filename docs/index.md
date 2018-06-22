@@ -16,13 +16,14 @@ Contents
   * [How To Test](Getting_Started/How_To_Test.md)
   * [Supported Hadoop Versions](Getting_Started/Supported_Hadoop_Versions.md)
   * [Supported Operating Systems](Getting_Started/Supported_Operating_Systems.md)
-  
-Query Parameters:
-  * [Sets](Query_Parameters/1_Sets.md)
-  * [Filters](Query_Parameters/2_Filters.md)
-  * [FilterOps](Query_Parameters/3_FilterOps.md)
-  * [Sums](Query_Parameters/4_Sums.md)
-  * [Histograms](Query_Parameters/5_Histograms.md)
+
+**Query Parameters:**
+
+  1. [Sets](Query_Parameters/1_Sets.md)
+  2. [Filters](Query_Parameters/2_Filters.md)
+  3. [FilterOps](Query_Parameters/3_FilterOps.md)
+  4. [Sums](Query_Parameters/4_Sums.md)
+  5. [Histograms](Query_Parameters/5_Histograms.md)
 
 External
 =================
