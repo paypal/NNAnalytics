@@ -1,7 +1,7 @@
-[![Build Status](https://travis-ci.com/paypal/NNAnalytics.svg?branch=master)](https://travis-ci.com/paypal/NNAnalytics)
 [![License](http://img.shields.io/:license-Apache%202-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d47519e1762d4a74ae5720b05450a667)](https://www.codacy.com/app/Dee-Pac/NNAnalytics?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=paypal/NNAnalytics&amp;utm_campaign=Badge_Grade)
+[![Build Status](https://travis-ci.com/paypal/NNAnalytics.svg?branch=master)](https://travis-ci.com/paypal/NNAnalytics)
 [![Documentation Status](https://readthedocs.org/projects/nnanalytics/badge/?version=latest)](https://nnanalytics.readthedocs.io/en/latest/)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/acc8afc858ff485ea67653b23c8ea82b)](https://github.com/paypal/NNAnalytics/pulls)
 
 # <img src="docs/images/NNA-logo.png" width="174" height="120" />
 
