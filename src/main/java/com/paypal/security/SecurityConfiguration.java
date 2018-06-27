@@ -37,6 +37,15 @@ public class SecurityConfiguration {
   private static final String SEC_PROPERTIES = "security.properties";
   private final Properties properties = new Properties();
 
+  private static final String NNA_PORT_DEFAULT = "8080";
+  private static final String NNA_HISTORICAL_DEFAULT = "false";
+  private static final String LDAP_ENABLED_DEFAULT = "false";
+  private static final String AUTHORIZATION_ENABLED_DEFAULT = "false";
+  private static final String LDAP_USE_STARTTLS_DEFAULT = "false";
+  private static final String LDAP_CONNECT_TIMEOUT_DEFAULT = "1000";
+  private static final String LDAP_RESPONSE_TIMEOUT_DEFAULT = "1000";
+  private static final String NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT = "900000";
+
   public SecurityConfiguration() {
     InputStream input = this.getClass().getClassLoader().getResourceAsStream(SEC_PROPERTIES);
     try {
@@ -47,15 +56,16 @@ public class SecurityConfiguration {
   }
 
   public boolean getHistoricalEnabled() {
-    return Boolean.parseBoolean(properties.getProperty("nna.historical"));
+    return Boolean.parseBoolean(properties.getProperty("nna.historical", NNA_HISTORICAL_DEFAULT));
   }
 
   public boolean getAuthorizationEnabled() {
-    return Boolean.parseBoolean(properties.getProperty("authorization.enable"));
+    return Boolean.parseBoolean(
+        properties.getProperty("authorization.enable", AUTHORIZATION_ENABLED_DEFAULT));
   }
 
   public boolean getLdapEnabled() {
-    return Boolean.parseBoolean(properties.getProperty("ldap.enable"));
+    return Boolean.parseBoolean(properties.getProperty("ldap.enable", LDAP_ENABLED_DEFAULT));
   }
 
   public String getLdapUrl() {
@@ -82,15 +92,18 @@ public class SecurityConfiguration {
   }
 
   public boolean getLdapUseStartTLS() {
-    return Boolean.parseBoolean(properties.getProperty("ldap.use.starttls"));
+    return Boolean.parseBoolean(
+        properties.getProperty("ldap.use.starttls", LDAP_USE_STARTTLS_DEFAULT));
   }
 
   public int getLdapConnectTimeout() {
-    return Integer.parseInt(properties.getProperty("ldap.connect.timeout"));
+    return Integer.parseInt(
+        properties.getProperty("ldap.connect.timeout", LDAP_CONNECT_TIMEOUT_DEFAULT));
   }
 
   public int getLdapResponseTimeout() {
-    return Integer.parseInt(properties.getProperty("ldap.response.timeout"));
+    return Integer.parseInt(
+        properties.getProperty("ldap.response.timeout", LDAP_RESPONSE_TIMEOUT_DEFAULT));
   }
 
   public int getLdapConnectionPoolMinSize() {
@@ -102,7 +115,9 @@ public class SecurityConfiguration {
   }
 
   public int getSuggestionsReloadSleepMs() {
-    return Integer.parseInt(properties.getProperty("nna.suggestions.reload.sleep.ms"));
+    return Integer.parseInt(
+        properties.getProperty(
+            "nna.suggestions.reload.sleep.ms", NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT));
   }
 
   public String getJwtSignatureSecret() {
@@ -182,7 +197,7 @@ public class SecurityConfiguration {
   }
 
   public int getPort() {
-    return Integer.parseInt(properties.getProperty("nna.port"));
+    return Integer.parseInt(properties.getProperty("nna.port", NNA_PORT_DEFAULT));
   }
 
   public String getHistoricalUsername() {
