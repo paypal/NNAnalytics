@@ -175,7 +175,7 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpu(
-      Collection<INode> inodes, String sum, NNLoader nnLoader) {
+      Collection<INode> inodes, String sum, QueryEngine qEngine) {
     List<Long> distinctStorageIds = StorageTypeHistogram.bins;
     List<String> distinctStorageKeys = StorageTypeHistogram.keys;
     Map<String, Long> storageIdToIndexToKeyMap =
@@ -195,7 +195,7 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpuWithFind(
-      Collection<INode> inodes, String find, NNLoader nnLoader) {
+      Collection<INode> inodes, String find, QueryEngine qEngine) {
     List<Long> distinctStorageIds = StorageTypeHistogram.bins;
     List<String> distinctStorageKeys = StorageTypeHistogram.keys;
     Map<String, Long> storageIdToIndexToKeyMap =

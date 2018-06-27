@@ -34,6 +34,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 
 class MailOutput {
 
@@ -41,8 +42,9 @@ class MailOutput {
   private static final String MAIL_SMTP_HOST = "mail.smtp.host";
 
   static void check(String emailConditionsStr, long value, NNLoader nnLoader) throws IOException {
-    List<Function<Long, Boolean>> comparisons = nnLoader.createComparisons(emailConditionsStr);
-    boolean shouldEmail = nnLoader.check(comparisons, value);
+    QueryEngine qEngine = nnLoader.getQueryEngine();
+    List<Function<Long, Boolean>> comparisons = qEngine.createComparisons(emailConditionsStr);
+    boolean shouldEmail = qEngine.check(comparisons, value);
     if (!shouldEmail) {
       throw new IOException("Failed to meet requirements for email.");
     }
@@ -54,10 +56,11 @@ class MailOutput {
       Set<String> highlightKeys,
       NNLoader nnLoader)
       throws IOException {
-    List<Function<Long, Boolean>> comparisons = nnLoader.createComparisons(emailConditionsStr);
+    QueryEngine qEngine = nnLoader.getQueryEngine();
+    List<Function<Long, Boolean>> comparisons = qEngine.createComparisons(emailConditionsStr);
     boolean shouldEmail = false;
     for (Map.Entry<String, Long> entry : histogram.entrySet()) {
-      boolean columnCheck = nnLoader.check(comparisons, entry.getValue());
+      boolean columnCheck = qEngine.check(comparisons, entry.getValue());
       if (columnCheck) {
         shouldEmail = true;
         highlightKeys.add(entry.getKey());
