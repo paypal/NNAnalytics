@@ -46,6 +46,7 @@ apply plugin: 'license'
 apply plugin: 'com.diffplug.gradle.spotless'
 
 ext {
+    mainClass = (properties.get("mainClass") == null) ? "" : "${mainClass}"
     hadoopVersion = (properties.get("hadoopVersion") == null) ? "2.7.0" : "${hadoopVersion}"
     println("Building with hadoopVersion: ${hadoopVersion}")
 }
@@ -80,6 +81,11 @@ findbugs {
 
 jacoco {
     toolVersion = "0.8.1"
+}
+
+task(execute, dependsOn: 'testClasses', type: JavaExec) {
+    main = "${mainClass}"
+    classpath = sourceSets.test.runtimeClasspath
 }
 
 tasks.withType(FindBugs) {
