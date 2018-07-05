@@ -121,6 +121,10 @@ public class TestWithMiniCluster {
     client = new DefaultHttpClient();
   }
 
+  /**
+   * Long running execution that will launch an NNA instance backed by a live updating HA-enabled
+   * HDFS instance. NNA will update every minute or so with new analysis.
+   */
   public static void main(String[] args) throws Exception {
     beforeClass();
     TestWithMiniCluster test = new TestWithMiniCluster();
@@ -211,6 +215,7 @@ public class TestWithMiniCluster {
           break;
         default:
           DFSTestUtil.writeFile(fileSystem, filePath, "");
+          break;
       }
       int user = RANDOM.nextInt(3);
       switch (user) {

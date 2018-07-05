@@ -158,8 +158,6 @@ public class NNAnalyticsRestAPI {
     }
   }
 
-  public NNAnalyticsRestAPI() {}
-
   @VisibleForTesting
   public NNLoader initLoader(GSet<INode, INodeWithAdditionalFields> inodes, Boolean historical)
       throws Exception {

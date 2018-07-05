@@ -37,8 +37,6 @@ public class CacheManager {
 
   private DB cache;
 
-  public CacheManager() {}
-
   public Map<String, Map<String, Long>> getCachedMapToMap(String mapToMapName) {
     return cache.hashMap(mapToMapName, Serializer.STRING, new MapSerializer()).createOrOpen();
   }
@@ -59,6 +57,7 @@ public class CacheManager {
     cache.close();
   }
 
+  /** Opens and initializes the cache for reading / writing. */
   public void start() {
     cache =
         DBMaker.fileDB("/usr/local/nn-analytics/db/nna_cache")

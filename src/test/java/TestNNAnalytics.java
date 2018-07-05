@@ -61,6 +61,7 @@ public class TestNNAnalytics {
   private static HttpClient client;
   private static NNAnalyticsRestAPI nna;
 
+  /** Long running execution that will launch an NNA instance with a non-updating namespace. */
   public static void main(String[] args) throws Exception {
     beforeClass();
     while (true) {
