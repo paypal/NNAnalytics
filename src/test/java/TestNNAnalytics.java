@@ -53,14 +53,15 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import spark.Spark;
 
 @RunWith(JUnit4.class)
 public class TestNNAnalytics {
 
   private static HttpHost hostPort;
   private static HttpClient client;
+  private static NNAnalyticsRestAPI nna;
 
+  /** Long running execution that will launch an NNA instance with a non-updating namespace. */
   public static void main(String[] args) throws Exception {
     beforeClass();
     while (true) {
@@ -73,15 +74,16 @@ public class TestNNAnalytics {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    NNAnalyticsRestAPI.initAuth(false, false);
-    NNAnalyticsRestAPI.initRestServer();
-    NNAnalyticsRestAPI.initLoader(gset, true);
+    nna = new NNAnalyticsRestAPI();
+    nna.initAuth(false, false);
+    nna.initRestServer();
+    nna.initLoader(gset, false);
     hostPort = new HttpHost("localhost", 4567);
   }
 
   @AfterClass
   public static void tearDown() {
-    Spark.stop();
+    nna.shutdown();
   }
 
   @Before

@@ -44,13 +44,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import spark.Spark;
 
 @RunWith(JUnit4.class)
 public class TestFinderQuery {
 
   private static HttpHost hostPort;
   private static DefaultHttpClient client;
+  private static NNAnalyticsRestAPI nna;
   private static int count = 0;
   private static long timeTaken = 0;
 
@@ -59,15 +59,16 @@ public class TestFinderQuery {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    NNAnalyticsRestAPI.initAuth(false, false);
-    NNAnalyticsRestAPI.initRestServer();
-    NNAnalyticsRestAPI.initLoader(gset, false);
+    nna = new NNAnalyticsRestAPI();
+    nna.initAuth(false, false);
+    nna.initRestServer();
+    nna.initLoader(gset, false);
     hostPort = new HttpHost("localhost", 4567);
   }
 
   @AfterClass
   public static void tearDown() {
-    Spark.stop();
+    nna.shutdown();
     System.out.println("Total # of completed query check for benchmarking: " + count);
     System.out.println("Total time taken in milliseconds: " + timeTaken);
   }

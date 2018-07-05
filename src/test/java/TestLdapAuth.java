@@ -38,27 +38,28 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import spark.Spark;
 
 public class TestLdapAuth {
 
   private static HttpHost hostPort;
   private static HttpClient client;
+  private static NNAnalyticsRestAPI nna;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    NNAnalyticsRestAPI.initAuth(false, false);
-    NNAnalyticsRestAPI.initRestServer();
-    NNAnalyticsRestAPI.initLoader(gset, false);
+    nna = new NNAnalyticsRestAPI();
+    nna.initAuth(false, false);
+    nna.initRestServer();
+    nna.initLoader(gset, false);
     hostPort = new HttpHost("localhost", 4567);
   }
 
   @AfterClass
   public static void tearDown() {
-    Spark.stop();
+    nna.shutdown();
   }
 
   @Before
