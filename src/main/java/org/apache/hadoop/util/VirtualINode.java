@@ -26,15 +26,16 @@ public class VirtualINode {
 
   private VirtualINode parent;
   private String data;
+  /* Score is used to give weight to VirtualINode branches and determine ancestors */
   private int score;
 
-  List<VirtualINode> children;
+  private List<VirtualINode> children;
 
   public VirtualINode(VirtualINode parent, String nodeValue) {
     this.parent = parent;
-    children = new ArrayList<>();
-    data = nodeValue;
-    score = 0;
+    this.children = new ArrayList<>();
+    this.data = nodeValue;
+    this.score = 0;
   }
 
   public VirtualINode parent() {
@@ -49,6 +50,7 @@ public class VirtualINode {
     return parent == null;
   }
 
+  /** @return The path this VirtualINode represents. */
   public String path() {
     if (isRoot()) {
       return "/";
@@ -73,6 +75,14 @@ public class VirtualINode {
     child.incrementScore();
   }
 
+  public List<VirtualINode> getChildren() {
+    return children;
+  }
+
+  /**
+   * @param element - The child name to look for.
+   * @return Either the node representing the child or null.
+   */
   public VirtualINode getChild(String element) {
     for (VirtualINode child : children) {
       if (child.data.equals(element)) {

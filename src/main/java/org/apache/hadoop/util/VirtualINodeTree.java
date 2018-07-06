@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 
 public class VirtualINodeTree {
 
@@ -41,6 +40,13 @@ public class VirtualINodeTree {
     return paths.size();
   }
 
+  /**
+   * This will add a path to the virtual tree. The path is broken up into its elements by splitting
+   * on the '/' separator and adding all non-existing VirtualINodes along the way. If any
+   * VirtualINodes along the way already exists, its "score" is incremented.
+   *
+   * @param path - The full path to add to the tree.
+   */
   public void addElement(String path) {
     if (paths.contains(path)) {
       return;
@@ -59,7 +65,7 @@ public class VirtualINodeTree {
         currParent = nextParent;
       } else {
         VirtualINode newChild = new VirtualINode(currParent, element);
-        if (!currParent.children.isEmpty()) {
+        if (!currParent.getChildren().isEmpty()) {
           currParent.incrementScore();
         }
         currParent.addChild(newChild);
@@ -70,6 +76,12 @@ public class VirtualINodeTree {
     paths.add(path);
   }
 
+  /**
+   * Fetches the VirtualINode that represents the parameter path.
+   *
+   * @param path - The full path to fetch.
+   * @return The VirtualINodes representing the parameter path or null.
+   */
   public VirtualINode getElement(String path) {
     String[] elements = path.split("/");
 
@@ -94,22 +106,20 @@ public class VirtualINodeTree {
     return currParent;
   }
 
+  /** @return Set of all VirtualINodes in the tree. */
   public Set<VirtualINode> getAllNodes() {
     Set<VirtualINode> nodes = new HashSet<>();
     addAllChildren(root, nodes);
     return nodes;
   }
 
-  private void addAllChildren(VirtualINode node, Set<VirtualINode> list) {
-    list.add(node);
-    if (node.children != null && !node.children.isEmpty()) {
-      list.addAll(node.children);
-      for (VirtualINode child : node.children) {
-        addAllChildren(child, list);
-      }
-    }
-  }
-
+  /**
+   * This must return a list of paths that in total will account for all the deepest children of the
+   * entire tree. This is vital to NNA directory caching optimization.
+   *
+   * @see org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine
+   * @return set of lowest common ancestor VirtualINodes
+   */
   public Set<VirtualINode> getCommonAncestors() {
     Set<VirtualINode> commonAncestors = new HashSet<>();
     for (String path : paths) {
@@ -130,6 +140,27 @@ public class VirtualINodeTree {
     return prunedAncestors(commonAncestors);
   }
 
+  /**
+   * This must return a list of paths that in total will account for all the deepest children of the
+   * entire tree. This is vital to NNA directory caching optimization.
+   *
+   * @see org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine
+   * @return set of lowest common ancestor String paths
+   */
+  public List<String> getCommonAncestorsAsStrings() {
+    return getCommonAncestors().stream().map(VirtualINode::path).collect(Collectors.toList());
+  }
+
+  private void addAllChildren(VirtualINode node, Set<VirtualINode> list) {
+    list.add(node);
+    if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+      list.addAll(node.getChildren());
+      for (VirtualINode child : node.getChildren()) {
+        addAllChildren(child, list);
+      }
+    }
+  }
+
   /*
    * O(n^2) implementation for removing longer ancestors.
    * This is used in the case that /A and /A/B show up as ancestors.
@@ -148,16 +179,5 @@ public class VirtualINodeTree {
     }
     toRemove.forEach(ancestorPaths::remove);
     return new HashSet<>(ancestorPaths.values());
-  }
-
-  /**
-   * This must return a list of paths that in total will account for all the deepest children of the
-   * entire tree. This is vital to NNA directory caching optimization.
-   *
-   * @see org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine#reloadSuggestions(NNLoader)
-   * @return set of lowest common ancestor paths
-   */
-  public List<String> getCommonAncestorsAsStrings() {
-    return getCommonAncestors().stream().map(VirtualINode::path).collect(Collectors.toList());
   }
 }

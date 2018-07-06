@@ -37,7 +37,7 @@ import org.junit.Test;
  */
 public class TestVirtualTree {
 
-  private static VirtualINodeTree tree;
+  private VirtualINodeTree tree;
 
   @Before
   public void before() {
@@ -46,7 +46,7 @@ public class TestVirtualTree {
 
   @Test
   public void testGetINode() {
-    String slist[] = new String[] {"/A/B/C/D/1", "/A/B/C/F/1", "/A/B/C/E/1", "/A/B/C/E/2"};
+    String[] slist = new String[] {"/A/B/C/D/1", "/A/B/C/F/1", "/A/B/C/E/1", "/A/B/C/E/2"};
 
     for (String data : slist) {
       tree.addElement(data);
@@ -59,7 +59,7 @@ public class TestVirtualTree {
 
   @Test
   public void testScore() {
-    String slist[] = new String[] {"/A/B/C/D/1", "/A/B/C/F/1", "/A/B/C/E/1", "/A/B/C/E/2"};
+    String[] slist = new String[] {"/A/B/C/D/1", "/A/B/C/F/1", "/A/B/C/E/1", "/A/B/C/E/2"};
 
     for (String data : slist) {
       tree.addElement(data);
@@ -78,7 +78,7 @@ public class TestVirtualTree {
 
   @Test
   public void testOneCommonAncestor() {
-    String slist[] = new String[] {"/A/B/C/D/1", "/A/B/C/F/1", "/A/B/C/E/1", "/A/B/C/E/2"};
+    String[] slist = new String[] {"/A/B/C/D/1", "/A/B/C/F/1", "/A/B/C/E/1", "/A/B/C/E/2"};
 
     for (String data : slist) {
       tree.addElement(data);
@@ -91,7 +91,7 @@ public class TestVirtualTree {
 
   @Test
   public void testBigDepth() {
-    String slist[] =
+    String[] slist =
         new String[] {
           "/A",
           "/A/Q",
@@ -118,7 +118,7 @@ public class TestVirtualTree {
 
   @Test
   public void testBigDepthReversed() {
-    String slist[] =
+    String[] slist =
         new String[] {
           "/A/Q/P/Z/D/G/W/L/U/B/C/A",
           "/A/Q/P/Z/D/G/W/L/U/B/C",
@@ -145,7 +145,7 @@ public class TestVirtualTree {
 
   @Test
   public void testBigBreadth() {
-    String slist[] =
+    String[] slist =
         new String[] {
           "/A/Q/P/1",
           "/A/Q/P/2",
@@ -175,7 +175,7 @@ public class TestVirtualTree {
 
   @Test
   public void testBreadth1() {
-    String slist[] =
+    String[] slist =
         new String[] {
           "/A/P/1",
           "/A/P/2",
@@ -203,7 +203,7 @@ public class TestVirtualTree {
 
   @Test
   public void testBreadth2() {
-    String slist[] =
+    String[] slist =
         new String[] {
           "/A/B/1",
           "/A/B/2",
@@ -233,7 +233,7 @@ public class TestVirtualTree {
 
   @Test
   public void testIsolation() {
-    String slist[] =
+    String[] slist =
         new String[] {"/A/B/C/D", "/B/C/D/E", "/C/D/E/F", "/E/F/G/H", "/F/G/H/I", "/J/K/L/M"};
 
     for (String data : slist) {
