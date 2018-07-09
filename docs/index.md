@@ -24,6 +24,7 @@ Contents
   3. [FilterOps](Query_Parameters/3_FilterOps.md)
   4. [Sums](Query_Parameters/4_Sums.md)
   5. [Histograms](Query_Parameters/5_Histograms.md)
+  6. [Finds](Query_Parameters/6_Finds.md)
 
 External
 =================
