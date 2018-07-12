@@ -9,4 +9,6 @@
 
 ** If you are building for 2.5.x you can re-use the 2.4.x build.
 
+** Compiling and running requires Java 8 or higher to be installed.
+
 ** Check [How To Build](How_To_Build/) for how to set these versions in your build.
