@@ -106,7 +106,11 @@ public class VirtualINodeTree {
     return currParent;
   }
 
-  /** @return Set of all VirtualINodes in the tree. */
+  /**
+   * Get the set of all VirtualINodes in the tree.
+   *
+   * @return Set of all VirtualINodes in the tree.
+   */
   public Set<VirtualINode> getAllNodes() {
     Set<VirtualINode> nodes = new HashSet<>();
     addAllChildren(root, nodes);

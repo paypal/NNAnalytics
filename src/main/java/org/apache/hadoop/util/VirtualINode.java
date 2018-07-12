@@ -31,6 +31,12 @@ public class VirtualINode {
 
   private List<VirtualINode> children;
 
+  /**
+   * VirtualINode constructor.
+   *
+   * @param parent The parent VirtualINode; assumed root if null.
+   * @param nodeValue The name of this VirtualINode.
+   */
   public VirtualINode(VirtualINode parent, String nodeValue) {
     this.parent = parent;
     this.children = new ArrayList<>();
@@ -50,7 +56,11 @@ public class VirtualINode {
     return parent == null;
   }
 
-  /** @return The path this VirtualINode represents. */
+  /**
+   * Traverses parents upwards and rebuilds the entire path.
+   *
+   * @return The path this VirtualINode represents.
+   */
   public String path() {
     if (isRoot()) {
       return "/";
@@ -80,6 +90,8 @@ public class VirtualINode {
   }
 
   /**
+   * Gets a child VirtualINode of this VirtualINode.
+   *
    * @param element - The child name to look for.
    * @return Either the node representing the child or null.
    */
