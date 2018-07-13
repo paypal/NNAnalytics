@@ -28,6 +28,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
@@ -75,9 +76,11 @@ public class TestNNAnalytics {
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
     nna = new NNAnalyticsRestAPI();
-    nna.initAuth(false, false);
-    nna.initRestServer();
-    nna.initLoader(gset, false);
+    SecurityConfiguration conf = new SecurityConfiguration();
+    conf.set("ldap.enable", "false");
+    conf.set("authorization.enable", "false");
+    conf.set("nna.historical", "false");
+    nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);
   }
 

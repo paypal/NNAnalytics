@@ -58,9 +58,7 @@ public class TestINodeTransfer {
   public void filterAll() {
     long start = System.currentTimeMillis();
     List<INodeWithAdditionalFields> allNodes =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(node -> true)
-            .collect(Collectors.toList());
+        StreamSupport.stream(gset.spliterator(), true).collect(Collectors.toList());
     long end = System.currentTimeMillis();
     System.out.println("Took " + (end - start) + " ms.");
     assertThat(allNodes.size(), is(gset.size()));

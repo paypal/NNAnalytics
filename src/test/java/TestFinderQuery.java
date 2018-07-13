@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,9 +61,11 @@ public class TestFinderQuery {
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
     nna = new NNAnalyticsRestAPI();
-    nna.initAuth(false, false);
-    nna.initRestServer();
-    nna.initLoader(gset, false);
+    SecurityConfiguration conf = new SecurityConfiguration();
+    conf.set("ldap.enable", "false");
+    conf.set("authorization.enable", "false");
+    conf.set("nna.historical", "false");
+    nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);
   }
 

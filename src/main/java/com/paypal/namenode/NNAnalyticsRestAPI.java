@@ -49,6 +49,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -63,6 +64,16 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.ENDPOINT;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.FILTER;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.FILTER_OP;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.FIND;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.HISTOGRAM;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.HISTOGRAM_OUTPUT;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.OPERATION;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.SET;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.SUM;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.TRANSFORM;
 import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
@@ -150,76 +161,36 @@ public class NNAnalyticsRestAPI {
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
       NNAnalyticsRestAPI main = new NNAnalyticsRestAPI();
-      main.initAuth(null, null);
-      main.initRestServer();
-      main.initLoader(null, null);
+      SecurityConfiguration conf = new SecurityConfiguration();
+      main.init(conf);
     } catch (Throwable e) {
       LOG.info("FATAL: {}", e);
     }
   }
 
   @VisibleForTesting
-  public NNLoader initLoader(GSet<INode, INodeWithAdditionalFields> inodes, Boolean historical)
-      throws Exception {
-    return initLoader(inodes, historical, null);
-  }
-
-  /**
-   * This is the method responsible for initializing the core of NNA -- the NNLoader. It is made
-   * public for those wishing to set-up a customized NNA instance in tests.
-   *
-   * @param inodes Optional parameter if you wish to initialize NNLoader with your own set of
-   *     INodes.
-   * @param historical Optional parameter whether to load up embedded SQL DB for historical
-   *     tracking; null means default to configuration. tracking; null means default to
-   *     configuration.
-   * @param preloadedHadoopConf Optional parameter for whether you want to load with predetermined
-   *     configuration; null means to load configuration from classpath.
-   * @return An initialized NNLoader with predetermined INodes else INodes loaded from local
-   *     FSImage.
-   * @throws Exception SQLException, InterruptedException, NoSuchFieldException,
-   *     IllegalAccessException
-   */
-  @VisibleForTesting
-  public NNLoader initLoader(
-      GSet<INode, INodeWithAdditionalFields> inodes,
-      Boolean historical,
-      Configuration preloadedHadoopConf)
-      throws Exception {
-    SecurityConfiguration secConf = new SecurityConfiguration();
-    hsqlDriver.dropConnection();
-    if (historical != null) {
-      nnLoader.initHistoryRecorder(hsqlDriver, secConf, historical);
-    } else {
-      nnLoader.initHistoryRecorder(hsqlDriver, secConf, secConf.getHistoricalEnabled());
-    }
-    nnLoader.load(inodes, preloadedHadoopConf);
-    nnLoader.initReloadThreads(internalService, secConf);
+  public NNLoader getLoader() {
     return nnLoader;
   }
 
-  /**
-   * This is the method responsible for initializing the security layer of NNA -- the
-   * SecurityContext. It is made public for those wishing to set-up a customized NNA instance in
-   * tests.
-   *
-   * @param overrideAuthentication Optional parameter dictating how you wish to override LDAP
-   *     authentication; null means default to configuration.
-   * @param overrideAuthorization Optional parameter dictating how you wish to override
-   *     authorization; null means default to configuration.
-   */
-  @VisibleForTesting
-  public void initAuth(Boolean overrideAuthentication, Boolean overrideAuthorization) {
-    SecurityConfiguration secConf = new SecurityConfiguration();
-    if (overrideAuthentication != null) {
-      secConf.overrideLdapEnabled(overrideAuthentication);
-    }
-    if (overrideAuthorization != null) {
-      secConf.overrideAuthorization(overrideAuthorization);
-    }
+  public void init(SecurityConfiguration conf) throws Exception {
+    init(conf, null);
+  }
 
-    String sslKeystorePath = secConf.getSslKeystorePath();
-    String sslKeystorePassword = secConf.getSslKeystorePassword();
+  @VisibleForTesting
+  public void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> gSet)
+      throws Exception {
+    init(conf, gSet, null);
+  }
+
+  @VisibleForTesting
+  public void init(
+      SecurityConfiguration conf,
+      GSet<INode, INodeWithAdditionalFields> gSet,
+      Configuration preloadedHadoopConf)
+      throws Exception {
+    String sslKeystorePath = conf.getSslKeystorePath();
+    String sslKeystorePassword = conf.getSslKeystorePassword();
     if (sslKeystorePath == null && sslKeystorePassword == null) {
       LOG.info("Running web server in HTTP mode.");
     } else if (sslKeystorePath != null && sslKeystorePassword != null) {
@@ -230,35 +201,35 @@ public class NNAnalyticsRestAPI {
           "Illegal SSL configuration. Check config/security.properties file.");
     }
 
-    boolean ldapEnabled = secConf.getLdapEnabled();
-    Spark.port(secConf.getPort());
+    boolean ldapEnabled = conf.getLdapEnabled();
+    Spark.port(conf.getPort());
     if (ldapEnabled) {
       LOG.info("Enabled web security.");
       // jwt:
       SignatureConfiguration sigConf =
-          new SecretSignatureConfiguration(secConf.getJwtSignatureSecret());
+          new SecretSignatureConfiguration(conf.getJwtSignatureSecret());
       EncryptionConfiguration encConf =
           new SecretEncryptionConfiguration(
-              secConf.getJwtEncryptionSecret(), JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
+              conf.getJwtEncryptionSecret(), JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
       JwtGenerator<CommonProfile> jwtGenerator = new JwtGenerator<>(sigConf, encConf);
       JwtAuthenticator jwtAuthenticator = new JwtAuthenticator(sigConf, encConf);
 
       // ldaptive:
       ConnectionConfig connectionConfig = new ConnectionConfig();
       KeyStoreCredentialConfig keyStoreCredentialConfig = new KeyStoreCredentialConfig();
-      keyStoreCredentialConfig.setTrustStore(secConf.getLdapTrustStorePath());
-      keyStoreCredentialConfig.setTrustStorePassword(secConf.getLdapTruststorePassword());
-      connectionConfig.setUseStartTLS(secConf.getLdapUseStartTLS());
+      keyStoreCredentialConfig.setTrustStore(conf.getLdapTrustStorePath());
+      keyStoreCredentialConfig.setTrustStorePassword(conf.getLdapTruststorePassword());
+      connectionConfig.setUseStartTLS(conf.getLdapUseStartTLS());
       connectionConfig.setUseSSL(true);
       connectionConfig.setSslConfig(new SslConfig(keyStoreCredentialConfig));
-      connectionConfig.setConnectTimeout(secConf.getLdapConnectTimeout());
-      connectionConfig.setResponseTimeout(secConf.getLdapResponseTimeout());
-      connectionConfig.setLdapUrl(secConf.getLdapUrl());
+      connectionConfig.setConnectTimeout(conf.getLdapConnectTimeout());
+      connectionConfig.setResponseTimeout(conf.getLdapResponseTimeout());
+      connectionConfig.setLdapUrl(conf.getLdapUrl());
       DefaultConnectionFactory connectionFactory = new DefaultConnectionFactory();
       connectionFactory.setConnectionConfig(connectionConfig);
       PoolConfig poolConfig = new PoolConfig();
-      poolConfig.setMinPoolSize(secConf.getLdapConnectionPoolMinSize());
-      poolConfig.setMaxPoolSize(secConf.getLdapConnectionPoolMaxSize());
+      poolConfig.setMinPoolSize(conf.getLdapConnectionPoolMinSize());
+      poolConfig.setMaxPoolSize(conf.getLdapConnectionPoolMaxSize());
       poolConfig.setValidateOnCheckOut(true);
       poolConfig.setValidateOnCheckIn(true);
       poolConfig.setValidatePeriodically(false);
@@ -281,22 +252,12 @@ public class NNAnalyticsRestAPI {
       LdapAuthenticator ldapAuth = new LdapAuthenticator();
       ldapAuth.setLdapAuthenticator(ldaptiveAuthenticator);
 
-      secContext.init(secConf, jwtAuthenticator, jwtGenerator, ldapAuth);
+      secContext.init(conf, jwtAuthenticator, jwtGenerator, ldapAuth);
     } else {
-      secContext.init(secConf, null, null, null);
+      secContext.init(conf, null, null, null);
       LOG.info("Disabled web security.");
     }
-  }
 
-  /**
-   * This is the main method for launching the SparkJava web server. Once this call is made the web
-   * server will run and REST API endpoints will be available.
-   *
-   * <p>It is made public for those wishing to have control of the Rest Server start-up of NNA
-   * instances in tests.
-   */
-  @VisibleForTesting
-  public void initRestServer() {
     /* This is the call to load everything under ./resources/public as HTML resources. */
     Spark.staticFileLocation("/public");
 
@@ -304,7 +265,7 @@ public class NNAnalyticsRestAPI {
     get(
         "/endpoints",
         (req, res) -> {
-          NNAHelper.toJsonList(res.raw(), NNAConstants.ENDPOINT.values());
+          NNAHelper.toJsonList(res.raw(), ENDPOINT.values());
           return res;
         });
 
@@ -387,9 +348,9 @@ public class NNAnalyticsRestAPI {
           sb.append("Ready to service history: ").append(isHistorical).append("\n");
           sb.append("Ready to service suggestions: ").append(isProvidingSuggestions).append("\n\n");
           if (isInit) {
-            long allSetSize = nnLoader.getINodeSet(NNAConstants.SET.all.name()).size();
-            long fileSetSize = nnLoader.getINodeSet(NNAConstants.SET.files.name()).size();
-            long dirSetSize = nnLoader.getINodeSet(NNAConstants.SET.dirs.name()).size();
+            long allSetSize = nnLoader.getINodeSet(SET.all.name()).size();
+            long fileSetSize = nnLoader.getINodeSet(SET.files.name()).size();
+            long dirSetSize = nnLoader.getINodeSet(SET.dirs.name()).size();
             sb.append("Current TxID: ").append(nnLoader.getCurrentTxID()).append("\n");
             sb.append("INode GSet size: ").append(allSetSize).append("\n\n");
             sb.append("INodeFile set size: ").append(fileSetSize).append("\n");
@@ -522,7 +483,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.HISTOGRAM.values());
+          NNAHelper.toJsonList(res.raw(), HISTOGRAM.values());
           return res;
         });
 
@@ -534,7 +495,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.HISTOGRAM_OUTPUT.values());
+          NNAHelper.toJsonList(res.raw(), HISTOGRAM_OUTPUT.values());
           return res;
         });
 
@@ -546,7 +507,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.FILTER.values());
+          NNAHelper.toJsonList(res.raw(), FILTER.values());
           return res;
         });
 
@@ -558,7 +519,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.FIND.values());
+          NNAHelper.toJsonList(res.raw(), FIND.values());
           return res;
         });
 
@@ -571,7 +532,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.TRANSFORM.values());
+          NNAHelper.toJsonList(res.raw(), TRANSFORM.values());
           return res;
         });
 
@@ -583,7 +544,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.SET.values());
+          NNAHelper.toJsonList(res.raw(), SET.values());
           return res;
         });
 
@@ -597,7 +558,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.FILTER_OP.values());
+          NNAHelper.toJsonList(res.raw(), FILTER_OP.values());
           return res;
         });
 
@@ -610,7 +571,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.SUM.values());
+          NNAHelper.toJsonList(res.raw(), SUM.values());
           return res;
         });
 
@@ -622,7 +583,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), NNAConstants.OPERATION.values());
+          NNAHelper.toJsonList(res.raw(), OPERATION.values());
           return res;
         });
 
@@ -853,7 +814,7 @@ public class NNAnalyticsRestAPI {
             QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
             Collection<INode> inodes = NNAHelper.performFilters(nnLoader, set, filters, filterOps);
 
-            NNAConstants.HISTOGRAM htEnum = NNAConstants.HISTOGRAM.valueOf(histType);
+            HISTOGRAM htEnum = HISTOGRAM.valueOf(histType);
             Map<String, Function<INode, Long>> transformMap =
                 Transforms.getAttributeTransforms(
                     transformConditionsStr, transformFieldsStr, transformOutputsStr, nnLoader);
@@ -976,8 +937,7 @@ public class NNAnalyticsRestAPI {
             }
 
             // Return final histogram to Web UI as output type.
-            NNAConstants.HISTOGRAM_OUTPUT output =
-                NNAConstants.HISTOGRAM_OUTPUT.valueOf(outputType);
+            HISTOGRAM_OUTPUT output = HISTOGRAM_OUTPUT.valueOf(outputType);
             switch (output) {
               case chart:
                 res.header("Content-Type", "application/json");
@@ -1044,7 +1004,7 @@ public class NNAnalyticsRestAPI {
             }
             Collection<INode> inodes = NNAHelper.performFilters(nnLoader, set, filters, filterOps);
 
-            NNAConstants.HISTOGRAM htEnum = NNAConstants.HISTOGRAM.valueOf(histType);
+            HISTOGRAM htEnum = HISTOGRAM.valueOf(histType);
             List<Map<String, Long>> histograms = new ArrayList<>(sums.length + finds.length);
 
             long startTime = System.currentTimeMillis();
@@ -1114,7 +1074,7 @@ public class NNAnalyticsRestAPI {
                     .flatMap(m -> m.entrySet().stream())
                     .collect(
                         Collectors.groupingBy(
-                            Map.Entry::getKey,
+                            Entry::getKey,
                             Collector.of(
                                 ArrayList<Long>::new,
                                 (list, item) -> list.add(item.getValue()),
@@ -1142,8 +1102,7 @@ public class NNAnalyticsRestAPI {
             LOG.info("Performing histogram2: {} took: {} ms.", histType, (endTime - startTime));
 
             // Return final histogram to Web UI as output type.
-            NNAConstants.HISTOGRAM_OUTPUT output =
-                NNAConstants.HISTOGRAM_OUTPUT.valueOf(outputType);
+            HISTOGRAM_OUTPUT output = HISTOGRAM_OUTPUT.valueOf(outputType);
             switch (output) {
               case json:
                 res.header("Content-Type", "application/json");
@@ -1286,10 +1245,10 @@ public class NNAnalyticsRestAPI {
               limit = 1;
             }
             if (identity == null || identity.length() == 0) {
-              Set<Map.Entry<String, BaseOperation>> entries = runningOperations.entrySet();
+              Set<Entry<String, BaseOperation>> entries = runningOperations.entrySet();
               StringBuilder sb = new StringBuilder();
               sb.append("Total Operations: ").append(entries.size()).append('\n');
-              for (Map.Entry<String, BaseOperation> entry : entries) {
+              for (Entry<String, BaseOperation> entry : entries) {
                 BaseOperation operation = entry.getValue();
                 sb.append("ID: ");
                 sb.append(entry.getKey());
@@ -1727,6 +1686,10 @@ public class NNAnalyticsRestAPI {
         });
 
     Spark.awaitInitialization();
+
+    nnLoader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
+    nnLoader.load(gSet, preloadedHadoopConf);
+    nnLoader.initReloadThreads(internalService, conf);
   }
 
   @VisibleForTesting

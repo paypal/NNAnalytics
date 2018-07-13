@@ -23,13 +23,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.security.SecurityConfiguration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.hdfs.server.namenode.queries.Transforms;
 import org.apache.hadoop.util.GSet;
 import org.junit.AfterClass;
@@ -42,7 +42,6 @@ import org.junit.runners.JUnit4;
 public class TestTransforms {
 
   private static NNAnalyticsRestAPI nna;
-  private static NNLoader loader;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -50,9 +49,11 @@ public class TestTransforms {
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
     nna = new NNAnalyticsRestAPI();
-    nna.initAuth(false, false);
-    nna.initRestServer();
-    loader = nna.initLoader(gset, false);
+    SecurityConfiguration conf = new SecurityConfiguration();
+    conf.set("ldap.enable", "false");
+    conf.set("authorization.enable", "false");
+    conf.set("nna.historical", "false");
+    nna.init(conf, gset);
   }
 
   @AfterClass
@@ -63,11 +64,11 @@ public class TestTransforms {
   @Test
   public void testTransformReplicationFactor() {
     Map<String, Function<INode, Long>> transformMap =
-        Transforms.getAttributeTransforms("fileReplica:gte:2", "fileReplica", "1", loader);
+        Transforms.getAttributeTransforms("fileReplica:gte:2", "fileReplica", "1", nna.getLoader());
     assertThat(transformMap.size(), is(not(0)));
     Function<INode, Long> fileReplicaTransform = transformMap.get("fileReplica");
     assertThat(fileReplicaTransform, is(notNullValue()));
-    for (INode node : loader.getINodeSet("files")) {
+    for (INode node : nna.getLoader().getINodeSet("files")) {
       Long transformedFileReplica = fileReplicaTransform.apply(node);
       assertThat(transformedFileReplica, is(1L));
     }
@@ -76,11 +77,11 @@ public class TestTransforms {
   @Test
   public void testTransformDiskspaceConsumedByReplFactor() {
     Map<String, Function<INode, Long>> transformMap =
-        Transforms.getAttributeTransforms("fileReplica:gte:2", "fileReplica", "1", loader);
+        Transforms.getAttributeTransforms("fileReplica:gte:2", "fileReplica", "1", nna.getLoader());
     assertThat(transformMap.size(), is(not(0)));
     Function<INode, Long> fileReplicaTransform = transformMap.get("diskspaceConsumed");
     assertThat(fileReplicaTransform, is(notNullValue()));
-    Collection<INode> files = loader.getINodeSet("files");
+    Collection<INode> files = nna.getLoader().getINodeSet("files");
     long diskspaceConsumed =
         files
             .stream()

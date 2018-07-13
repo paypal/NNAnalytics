@@ -23,6 +23,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
@@ -91,9 +92,11 @@ public class TestWithMiniCluster {
     CONF.set("dfs.nameservice.id", NAMESERVICE);
 
     nna = new NNAnalyticsRestAPI();
-    nna.initAuth(false, false);
-    nna.initRestServer();
-    nna.initLoader(null, null, CONF);
+    SecurityConfiguration nnaConf = new SecurityConfiguration();
+    nnaConf.set("ldap.enable", "false");
+    nnaConf.set("authorization.enable", "false");
+    nnaConf.set("nna.historical", "false");
+    nna.init(nnaConf, null, CONF);
     hostPort = new HttpHost("localhost", 4567);
     client = new DefaultHttpClient();
 
