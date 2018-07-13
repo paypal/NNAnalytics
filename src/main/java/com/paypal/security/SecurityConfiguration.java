@@ -55,6 +55,10 @@ public class SecurityConfiguration {
     }
   }
 
+  public void set(String key, String value) {
+    properties.setProperty(key, value);
+  }
+
   public boolean getHistoricalEnabled() {
     return Boolean.parseBoolean(properties.getProperty("nna.historical", NNA_HISTORICAL_DEFAULT));
   }

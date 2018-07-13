@@ -22,6 +22,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
@@ -50,9 +51,11 @@ public class TestNoHistorical {
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
     nna = new NNAnalyticsRestAPI();
-    nna.initAuth(false, false);
-    nna.initRestServer();
-    nna.initLoader(gset, false);
+    SecurityConfiguration conf = new SecurityConfiguration();
+    conf.set("ldap.enable", "false");
+    conf.set("authorization.enable", "false");
+    conf.set("nna.historical", "false");
+    nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);
   }
 
