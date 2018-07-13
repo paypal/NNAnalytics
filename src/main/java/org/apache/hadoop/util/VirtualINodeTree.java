@@ -19,52 +19,169 @@
 
 package org.apache.hadoop.util;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class VirtualINodeTree {
 
   private VirtualINode root;
+  private Set<String> paths = new HashSet<>();
 
   public VirtualINodeTree() {
-    this.root = new VirtualINode("", "");
+    this.root = new VirtualINode(null, "");
   }
 
-  public void addElement(String elementValue) {
-    String[] list = elementValue.split("/");
-
-    // latest element of the list is the filename.extrension
-    root.addElement(root.path(), list);
+  private int getNumPathsAdded() {
+    return paths.size();
   }
 
-  public List<VirtualINode> getCommonRoots() {
-    List<VirtualINode> list = new ArrayList<>();
+  /**
+   * This will add a path to the virtual tree. The path is broken up into its elements by splitting
+   * on the '/' separator and adding all non-existing VirtualINodes along the way. If any
+   * VirtualINodes along the way already exists, its "score" is incremented.
+   *
+   * @param path - The full path to add to the tree.
+   */
+  public void addElement(String path) {
+    if (paths.contains(path)) {
+      return;
+    }
 
-    List<VirtualINode> childs = root.childs;
-    List<VirtualINode> leafs = root.leafs;
-    list.addAll(leafs);
-    for (VirtualINode child1 : childs) {
-      List<VirtualINode> childs1 = child1.childs;
-      List<VirtualINode> leafs1 = child1.leafs;
-      list.addAll(leafs1);
-      for (VirtualINode child2 : childs1) {
-        if (child2.leafs.size() <= 0 && child2.childs.size() == 0) {
-          list.add(child2);
-          continue;
+    String[] elements = path.split("/");
+    // Avoid first element that can be an empty string if you split a string that has a starting /
+    while (elements[0] == null || elements[0].equals("")) {
+      elements = Arrays.copyOfRange(elements, 1, elements.length);
+    }
+
+    VirtualINode currParent = root;
+    for (String element : elements) {
+      VirtualINode nextParent = currParent.getChild(element);
+      if (nextParent != null) {
+        currParent = nextParent;
+      } else {
+        VirtualINode newChild = new VirtualINode(currParent, element);
+        if (!currParent.getChildren().isEmpty()) {
+          currParent.incrementScore();
         }
-        VirtualINode current = child2;
-        while (current.leafs.size() <= 0) {
-          current = current.childs.get(0);
-        }
-        list.add(current);
+        currParent.addChild(newChild);
+        currParent = newChild;
       }
     }
 
-    return list;
+    paths.add(path);
   }
 
-  public List<String> getCommonRootsAsStrings() {
-    return getCommonRoots().stream().map(VirtualINode::path).collect(Collectors.toList());
+  /**
+   * Fetches the VirtualINode that represents the parameter path.
+   *
+   * @param path - The full path to fetch.
+   * @return The VirtualINodes representing the parameter path or null.
+   */
+  public VirtualINode getElement(String path) {
+    String[] elements = path.split("/");
+
+    if (elements.length == 0) {
+      return root;
+    }
+
+    // Avoid first element that can be an empty string if you split a string that has a starting /
+    while (elements[0] == null || elements[0].equals("")) {
+      elements = Arrays.copyOfRange(elements, 1, elements.length);
+    }
+
+    VirtualINode currParent = root;
+    for (String element : elements) {
+      VirtualINode nextParent = currParent.getChild(element);
+      if (nextParent != null) {
+        currParent = nextParent;
+      } else {
+        return null;
+      }
+    }
+    return currParent;
+  }
+
+  /**
+   * Get the set of all VirtualINodes in the tree.
+   *
+   * @return Set of all VirtualINodes in the tree.
+   */
+  public Set<VirtualINode> getAllNodes() {
+    Set<VirtualINode> nodes = new HashSet<>();
+    addAllChildren(root, nodes);
+    return nodes;
+  }
+
+  /**
+   * This must return a list of paths that in total will account for all the deepest children of the
+   * entire tree. This is vital to NNA directory caching optimization.
+   *
+   * @see org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine
+   * @return set of lowest common ancestor VirtualINodes
+   */
+  public Set<VirtualINode> getCommonAncestors() {
+    Set<VirtualINode> commonAncestors = new HashSet<>();
+    for (String path : paths) {
+      VirtualINode deepChild = getElement(path);
+      VirtualINode currentAncestor = deepChild;
+      VirtualINode currentParent = deepChild.parent();
+      while (currentParent != null) {
+        if (currentParent.isRoot() && getNumPathsAdded() > 1) {
+          break;
+        }
+        if (currentParent.score() > currentAncestor.score()) {
+          currentAncestor = currentParent;
+        }
+        currentParent = currentParent.parent();
+      }
+      commonAncestors.add(currentAncestor);
+    }
+    return prunedAncestors(commonAncestors);
+  }
+
+  /**
+   * This must return a list of paths that in total will account for all the deepest children of the
+   * entire tree. This is vital to NNA directory caching optimization.
+   *
+   * @see org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine
+   * @return set of lowest common ancestor String paths
+   */
+  public List<String> getCommonAncestorsAsStrings() {
+    return getCommonAncestors().stream().map(VirtualINode::path).collect(Collectors.toList());
+  }
+
+  private void addAllChildren(VirtualINode node, Set<VirtualINode> list) {
+    list.add(node);
+    if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+      list.addAll(node.getChildren());
+      for (VirtualINode child : node.getChildren()) {
+        addAllChildren(child, list);
+      }
+    }
+  }
+
+  /*
+   * O(n^2) implementation for removing longer ancestors.
+   * This is used in the case that /A and /A/B show up as ancestors.
+   * It is assumed that the total number of added elements for analysis will be small.
+   */
+  private Set<VirtualINode> prunedAncestors(Set<VirtualINode> commonAncestors) {
+    Map<String, VirtualINode> ancestorPaths =
+        commonAncestors.stream().collect(Collectors.toMap(VirtualINode::path, Function.identity()));
+    Set<String> toRemove = new HashSet<>();
+    for (String ancestorPath : ancestorPaths.keySet()) {
+      for (String compare : ancestorPaths.keySet()) {
+        if (compare.startsWith(ancestorPath) && compare.length() > ancestorPath.length()) {
+          toRemove.add(compare);
+        }
+      }
+    }
+    toRemove.forEach(ancestorPaths::remove);
+    return new HashSet<>(ancestorPaths.values());
   }
 }
