@@ -8,6 +8,12 @@
 
 "A Standby read-only HDFS NameNode, with no RPC server, that services clients over a REST API, utilizes Java 8 Stream API, all for the purpose of performing large and complicated scans of the entire file system metadata for end users."
 
+Run a demo locally and instantly! Just run the following command on a workspace directory:
+```
+git clone https://github.com/paypal/NNAnalytics.git nna && cd ./nna && ./gradlew -PmainClass=TestWithMiniCluster execute
+```
+Then go to http://localhost:4567 and you will have an NNA instance complete with a mini HA-enabled HDFS instance all updating in real time on your local machine!
+
 __________________________________________________________________________________________________________________
 
 
