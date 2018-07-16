@@ -1833,21 +1833,24 @@ public class NNLoader {
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
 
-      LOG.info(
-          "Setting: {} to: /usr/local/nn-analytics/dfs/name",
-          DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
-      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, "/usr/local/nn-analytics/dfs/name");
+      String baseDir = nnaConf.getBaseDir();
+      LOG.info("Setting: {} to: {}/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir);
+      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir + "/dfs/name");
 
       String nameserviceId = DFSUtil.getOnlyNameServiceIdOrNull(conf);
       nameserviceId =
           (nameserviceId == null) ? conf.get(DFSConfigKeys.DFS_NAMESERVICE_ID) : nameserviceId;
       if (nameserviceId == null || nameserviceId.isEmpty()) {
-        /* Hack for 2.4.0 support. attempt to override with internal nameservices. */
+        /* Hack for 2.4.0 support. Attempt to override with internal nameservices. */
         nameserviceId = conf.get("dfs.internal.nameservices");
 
         LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_NAMESERVICE_ID, nameserviceId);
         conf.set(DFSConfigKeys.DFS_NAMESERVICE_ID, nameserviceId);
       }
+
+      /* Hack for 2.4.0 support. Unset external attribute provider. No Ranger support. */
+      LOG.info("Unsetting: dfs.namenode.inode.attributes.provider.class");
+      conf.unset("dfs.namenode.inode.attributes.provider.class");
 
       UserGroupInformation.setConfiguration(conf);
       reloadKeytab();
