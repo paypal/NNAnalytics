@@ -45,6 +45,7 @@ public class SecurityConfiguration {
   private static final String LDAP_CONNECT_TIMEOUT_DEFAULT = "1000";
   private static final String LDAP_RESPONSE_TIMEOUT_DEFAULT = "1000";
   private static final String NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT = "900000";
+  private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
 
   public SecurityConfiguration() {
     InputStream input = this.getClass().getClassLoader().getResourceAsStream(SEC_PROPERTIES);
@@ -57,6 +58,10 @@ public class SecurityConfiguration {
 
   public void set(String key, String value) {
     properties.setProperty(key, value);
+  }
+
+  public String getBaseDir() {
+    return properties.getProperty("nna.base.dir", NNA_BASE_DIR_DEFAULT);
   }
 
   public boolean getHistoricalEnabled() {

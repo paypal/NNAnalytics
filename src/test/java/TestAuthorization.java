@@ -22,8 +22,11 @@ import static org.hamcrest.core.Is.is;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
 import com.paypal.security.SecurityConfiguration;
+import java.io.File;
 import java.io.IOException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
@@ -53,6 +56,10 @@ public class TestAuthorization {
     SecurityConfiguration conf = new SecurityConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "true");
+    // Create temporary DB directory.
+    String baseDir = MiniDFSCluster.getBaseDirectory();
+    FileUtils.forceMkdir(new File(baseDir + "/db"));
+    conf.set("nna.base.dir", baseDir);
     nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);
   }

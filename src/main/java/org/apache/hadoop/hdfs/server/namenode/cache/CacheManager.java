@@ -19,6 +19,7 @@
 
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
+import com.paypal.security.SecurityConfiguration;
 import java.util.Map;
 import java.util.Set;
 import org.apache.hadoop.util.MapSerializer;
@@ -58,9 +59,9 @@ public class CacheManager {
   }
 
   /** Opens and initializes the cache for reading / writing. */
-  public void start() {
+  public void start(SecurityConfiguration conf) {
     cache =
-        DBMaker.fileDB("/usr/local/nn-analytics/db/nna_cache")
+        DBMaker.fileDB(conf.getBaseDir() + "/db/nna_cache")
             .fileMmapEnable()
             .transactionEnable()
             .closeOnJvmShutdown()

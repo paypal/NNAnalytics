@@ -1801,14 +1801,16 @@ public class NNLoader {
 
   @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
   public void load(
-      GSet<INode, INodeWithAdditionalFields> preloadedInodes, Configuration preloadedHadoopConf)
+      GSet<INode, INodeWithAdditionalFields> preloadedInodes,
+      Configuration preloadedHadoopConf,
+      SecurityConfiguration nnaConf)
       throws InterruptedException, NoSuchFieldException, IllegalAccessException {
     /*
      * Configuration standard is: /etc/hadoop/conf.
      * Goal is to let configuration tell us where the FsImage and EditLogs are for loading.
      */
 
-    suggestionsEngine.start();
+    suggestionsEngine.start(nnaConf);
     if (conf == null) {
       if (preloadedHadoopConf != null) {
         conf = preloadedHadoopConf;

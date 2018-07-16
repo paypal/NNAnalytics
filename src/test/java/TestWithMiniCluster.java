@@ -24,8 +24,10 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
 import com.paypal.security.SecurityConfiguration;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -35,6 +37,7 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.qjournal.MiniQJMHACluster;
 import org.apache.hadoop.hdfs.server.namenode.SRandom;
 import org.apache.hadoop.hdfs.server.namenode.ha.HATestUtil;
@@ -95,7 +98,13 @@ public class TestWithMiniCluster {
     SecurityConfiguration nnaConf = new SecurityConfiguration();
     nnaConf.set("ldap.enable", "false");
     nnaConf.set("authorization.enable", "false");
-    nnaConf.set("nna.historical", "false");
+    nnaConf.set("nna.historical", "true");
+
+    // Create temporary DB directory.
+    String baseDir = MiniDFSCluster.getBaseDirectory();
+    FileUtils.forceMkdir(new File(baseDir + "/db"));
+
+    nnaConf.set("nna.base.dir", baseDir);
     nna.init(nnaConf, null, CONF);
     hostPort = new HttpHost("localhost", 4567);
     client = new DefaultHttpClient();
