@@ -35,6 +35,7 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.qjournal.MiniQJMHACluster;
 import org.apache.hadoop.hdfs.server.namenode.SRandom;
 import org.apache.hadoop.hdfs.server.namenode.ha.HATestUtil;
@@ -95,7 +96,8 @@ public class TestWithMiniCluster {
     SecurityConfiguration nnaConf = new SecurityConfiguration();
     nnaConf.set("ldap.enable", "false");
     nnaConf.set("authorization.enable", "false");
-    nnaConf.set("nna.historical", "false");
+    nnaConf.set("nna.historical", "true");
+    nnaConf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
     nna.init(nnaConf, null, CONF);
     hostPort = new HttpHost("localhost", 4567);
     client = new DefaultHttpClient();

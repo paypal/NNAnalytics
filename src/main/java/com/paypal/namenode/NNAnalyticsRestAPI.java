@@ -1587,7 +1587,7 @@ public class NNAnalyticsRestAPI {
           lock.writeLock().lock();
           try {
             nnLoader.clear();
-            nnLoader.load(null, null);
+            nnLoader.load(null, null, conf);
             res.body("Reload complete.");
           } catch (Throwable e) {
             res.body("Reload failed: " + e);
@@ -1688,7 +1688,7 @@ public class NNAnalyticsRestAPI {
     Spark.awaitInitialization();
 
     nnLoader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
-    nnLoader.load(gSet, preloadedHadoopConf);
+    nnLoader.load(gSet, preloadedHadoopConf, conf);
     nnLoader.initReloadThreads(internalService, conf);
   }
 

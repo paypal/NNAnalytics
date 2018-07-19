@@ -21,6 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import com.google.common.collect.Sets;
 import com.paypal.namenode.HSQLDriver;
+import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -673,8 +674,8 @@ public class SuggestionsEngine {
     cacheManager.stop();
   }
 
-  public void start() {
-    cacheManager.start();
+  public void start(SecurityConfiguration conf) throws IOException {
+    cacheManager.start(conf);
     this.cachedDirs = Collections.synchronizedSet(cacheManager.getCachedSet("cachedDirs"));
     this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));
     this.cachedValues = Collections.synchronizedMap(cacheManager.getCachedMap("cachedValues"));

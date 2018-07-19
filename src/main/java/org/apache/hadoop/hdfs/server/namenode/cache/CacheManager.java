@@ -19,8 +19,12 @@
 
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
+import com.paypal.security.SecurityConfiguration;
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.util.MapSerializer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -58,9 +62,14 @@ public class CacheManager {
   }
 
   /** Opens and initializes the cache for reading / writing. */
-  public void start() {
+  public void start(SecurityConfiguration conf) throws IOException {
+    String baseDir = conf.getBaseDir();
+    File expectedDbDir = new File(baseDir + "/db");
+    if (!expectedDbDir.exists()) {
+      FileUtils.forceMkdir(new File(baseDir + "/db"));
+    }
     cache =
-        DBMaker.fileDB("/usr/local/nn-analytics/db/nna_cache")
+        DBMaker.fileDB(baseDir + "/db/nna_cache")
             .fileMmapEnable()
             .transactionEnable()
             .closeOnJvmShutdown()

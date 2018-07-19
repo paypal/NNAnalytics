@@ -61,7 +61,8 @@ public class HSQLDriver {
     }
     String user = conf.getHistoricalUsername();
     String pass = conf.getHistoricalPassword();
-    con = DriverManager.getConnection("jdbc:hsqldb:file:/usr/local/nn-analytics/db/db", user, pass);
+    String baseDir = conf.getBaseDir();
+    con = DriverManager.getConnection("jdbc:hsqldb:file:" + baseDir + "/db/db", user, pass);
   }
 
   public void createTable() throws SQLException {

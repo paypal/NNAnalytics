@@ -27,6 +27,7 @@ import com.paypal.security.SecurityConfiguration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
@@ -53,6 +54,7 @@ public class TestTransforms {
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
     conf.set("nna.historical", "false");
+    conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
     nna.init(conf, gset);
   }
 
