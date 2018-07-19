@@ -20,7 +20,7 @@
 package org.apache.hadoop.hdfs.server.namenode;
 
 import com.paypal.namenode.HSQLDriver;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
@@ -61,7 +61,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
-import org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine;
+import org.apache.hadoop.hdfs.server.namenode.cache.StatusEngine;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
@@ -84,12 +84,12 @@ import org.codehaus.jackson.JsonGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NNLoader {
+public class NameNodeLoader {
 
-  public static final Logger LOG = LoggerFactory.getLogger(NNLoader.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(NameNodeLoader.class.getName());
 
   private final VersionInterface versionLoader;
-  private final SuggestionsEngine suggestionsEngine;
+  private final StatusEngine statusEngine;
 
   private AtomicBoolean inited = new AtomicBoolean(false);
   private AtomicBoolean historical = new AtomicBoolean(false);
@@ -101,9 +101,9 @@ public class NNLoader {
   private Map<INode, INode> dirs = null;
   private TokenExtractor tokenExtractor = null;
 
-  public NNLoader() {
+  public NameNodeLoader() {
     versionLoader = new VersionContext();
-    suggestionsEngine = new SuggestionsEngine();
+    statusEngine = new StatusEngine();
   }
 
   public TokenExtractor getTokenExtractor() {
@@ -114,8 +114,8 @@ public class NNLoader {
     return hsqlDriver;
   }
 
-  public SuggestionsEngine getSuggestionsEngine() {
-    return suggestionsEngine;
+  public StatusEngine getStatusEngine() {
+    return statusEngine;
   }
 
   public boolean isInit() {
@@ -1803,14 +1803,14 @@ public class NNLoader {
   public void load(
       GSet<INode, INodeWithAdditionalFields> preloadedInodes,
       Configuration preloadedHadoopConf,
-      SecurityConfiguration nnaConf)
+      ApplicationConfiguration appConf)
       throws IOException, NoSuchFieldException, IllegalAccessException {
     /*
      * Configuration standard is: /etc/hadoop/conf.
      * Goal is to let configuration tell us where the FsImage and EditLogs are for loading.
      */
 
-    suggestionsEngine.start(nnaConf);
+    statusEngine.start(appConf);
     if (conf == null) {
       if (preloadedHadoopConf != null) {
         conf = preloadedHadoopConf;
@@ -1833,7 +1833,7 @@ public class NNLoader {
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
 
-      String baseDir = nnaConf.getBaseDir();
+      String baseDir = appConf.getBaseDir();
       LOG.info("Setting: {} to: {}/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir);
       conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir + "/dfs/name");
 
@@ -1917,7 +1917,7 @@ public class NNLoader {
     }
 
     long end = System.currentTimeMillis();
-    LOG.info("NNLoader bootstrap'd in: {} ms.", (end - start));
+    LOG.info("NameNodeLoader bootstrap'd in: {} ms.", (end - start));
     inited.set(true);
   }
 
@@ -1959,7 +1959,7 @@ public class NNLoader {
   }
 
   public void clear() {
-    suggestionsEngine.stop();
+    statusEngine.stop();
     if (namesystem != null) {
       try {
         namesystem.stopStandbyServices();
@@ -2134,21 +2134,21 @@ public class NNLoader {
     }
   }
 
-  public void initReloadThreads(ExecutorService internalService, SecurityConfiguration conf) {
+  public void initReloadThreads(ExecutorService internalService, ApplicationConfiguration conf) {
     Future<Void> reload =
         internalService.submit(
             () -> {
               while (true) {
                 try {
-                  suggestionsEngine.reloadSuggestions(this);
+                  statusEngine.reloadStatus(this);
                 } catch (Throwable e) {
-                  LOG.info("Suggestion reload failed: {}", e);
+                  LOG.info("Status reload failed: {}", e);
                   for (StackTraceElement element : e.getStackTrace()) {
                     LOG.info(element.toString());
                   }
                 }
                 try {
-                  Thread.sleep(conf.getSuggestionsReloadSleepMs());
+                  Thread.sleep(conf.getStatusReloadSleepMs());
                 } catch (InterruptedException ignored) {
                 }
               }
@@ -2166,7 +2166,7 @@ public class NNLoader {
               }
             });
     if (reload.isDone()) {
-      LOG.error("Suggestion reload service exited; suggestions will not update.");
+      LOG.error("Status reload service exited; status will not update.");
     }
     if (keytab.isDone()) {
       LOG.error("Keytab reload service exited; keytab will expire.");
@@ -2174,7 +2174,7 @@ public class NNLoader {
   }
 
   public void initHistoryRecorder(
-      HSQLDriver hsqlDriver, SecurityConfiguration conf, boolean isEnabled) throws SQLException {
+      HSQLDriver hsqlDriver, ApplicationConfiguration conf, boolean isEnabled) throws SQLException {
     if (isEnabled && hsqlDriver != null) {
       this.hsqlDriver = hsqlDriver;
       hsqlDriver.startDatabase(conf);

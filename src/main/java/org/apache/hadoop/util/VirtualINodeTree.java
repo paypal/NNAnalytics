@@ -121,7 +121,7 @@ public class VirtualINodeTree {
    * This must return a list of paths that in total will account for all the deepest children of the
    * entire tree. This is vital to NNA directory caching optimization.
    *
-   * @see org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine
+   * @see org.apache.hadoop.hdfs.server.namenode.cache.StatusEngine
    * @return set of lowest common ancestor VirtualINodes
    */
   public Set<VirtualINode> getCommonAncestors() {
@@ -148,7 +148,7 @@ public class VirtualINodeTree {
    * This must return a list of paths that in total will account for all the deepest children of the
    * entire tree. This is vital to NNA directory caching optimization.
    *
-   * @see org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine
+   * @see org.apache.hadoop.hdfs.server.namenode.cache.StatusEngine
    * @return set of lowest common ancestor String paths
    */
   public List<String> getCommonAncestorsAsStrings() {

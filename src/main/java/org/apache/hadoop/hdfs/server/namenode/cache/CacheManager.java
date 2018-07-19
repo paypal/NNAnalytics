@@ -19,7 +19,7 @@
 
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -62,7 +62,7 @@ public class CacheManager {
   }
 
   /** Opens and initializes the cache for reading / writing. */
-  public void start(SecurityConfiguration conf) throws IOException {
+  public void start(ApplicationConfiguration conf) throws IOException {
     String baseDir = conf.getBaseDir();
     File expectedDbDir = new File(baseDir + "/db");
     if (!expectedDbDir.exists()) {

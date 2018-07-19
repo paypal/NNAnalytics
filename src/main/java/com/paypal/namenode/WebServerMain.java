@@ -27,7 +27,7 @@ import static spark.Spark.get;
 import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import com.paypal.security.SecurityContext;
 import com.sun.management.OperatingSystemMXBean;
 import java.io.IOException;
@@ -74,7 +74,7 @@ import org.apache.hadoop.hdfs.server.namenode.NNAConstants.OPERATION;
 import org.apache.hadoop.hdfs.server.namenode.NNAConstants.SET;
 import org.apache.hadoop.hdfs.server.namenode.NNAConstants.SUM;
 import org.apache.hadoop.hdfs.server.namenode.NNAConstants.TRANSFORM;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
 import org.apache.hadoop.hdfs.server.namenode.operations.Delete;
@@ -131,13 +131,13 @@ import spark.Spark;
  * against the NNA instance while it is updating since all queries are performed as read operations
  * and all filtered results are separate from the set of updating INodes in-memory.
  */
-public class NNAnalyticsRestAPI {
+public class WebServerMain {
 
-  public static final Logger LOG = LoggerFactory.getLogger(NNAnalyticsRestAPI.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(WebServerMain.class.getName());
 
-  private final NNLoader nnLoader = new NNLoader();
+  private final NameNodeLoader loader = new NameNodeLoader();
   private final HSQLDriver hsqlDriver = new HSQLDriver();
-  private final TransferFsImageWrapper transferFsImage = new TransferFsImageWrapper(nnLoader);
+  private final TransferFsImageWrapper transferFsImage = new TransferFsImageWrapper(loader);
   private final List<BaseQuery> runningQueries = Collections.synchronizedList(new LinkedList<>());
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
   private final SecurityContext secContext = new SecurityContext();
@@ -160,8 +160,8 @@ public class NNAnalyticsRestAPI {
   public static void main(String[] args)
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
-      NNAnalyticsRestAPI main = new NNAnalyticsRestAPI();
-      SecurityConfiguration conf = new SecurityConfiguration();
+      WebServerMain main = new WebServerMain();
+      ApplicationConfiguration conf = new ApplicationConfiguration();
       main.init(conf);
     } catch (Throwable e) {
       LOG.info("FATAL: {}", e);
@@ -169,23 +169,23 @@ public class NNAnalyticsRestAPI {
   }
 
   @VisibleForTesting
-  public NNLoader getLoader() {
-    return nnLoader;
+  public NameNodeLoader getLoader() {
+    return loader;
   }
 
-  public void init(SecurityConfiguration conf) throws Exception {
+  public void init(ApplicationConfiguration conf) throws Exception {
     init(conf, null);
   }
 
   @VisibleForTesting
-  public void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> gSet)
+  public void init(ApplicationConfiguration conf, GSet<INode, INodeWithAdditionalFields> gSet)
       throws Exception {
     init(conf, gSet, null);
   }
 
   @VisibleForTesting
   public void init(
-      SecurityConfiguration conf,
+      ApplicationConfiguration conf,
       GSet<INode, INodeWithAdditionalFields> gSet,
       Configuration preloadedHadoopConf)
       throws Exception {
@@ -198,7 +198,7 @@ public class NNAnalyticsRestAPI {
       Spark.secure(sslKeystorePath, sslKeystorePassword, null, null);
     } else {
       throw new IllegalStateException(
-          "Illegal SSL configuration. Check config/security.properties file.");
+          "Illegal SSL configuration. Check config/application.properties file.");
     }
 
     boolean ldapEnabled = conf.getLdapEnabled();
@@ -275,7 +275,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          nnLoader.sendLoadingStatus(res.raw());
+          loader.sendLoadingStatus(res.raw());
           return res;
         });
 
@@ -340,18 +340,18 @@ public class NNAnalyticsRestAPI {
           }
           sb.append("\n");
 
-          boolean isInit = nnLoader.isInit();
-          boolean isHistorical = nnLoader.isHistorical();
-          boolean isProvidingSuggestions = nnLoader.getSuggestionsEngine().isLoaded();
+          boolean isInit = loader.isInit();
+          boolean isHistorical = loader.isHistorical();
+          boolean isProvidingStatus = loader.getStatusEngine().isLoaded();
           sb.append("Current system time (ms): ").append(Time.now()).append("\n");
           sb.append("Ready to service queries: ").append(isInit).append("\n");
           sb.append("Ready to service history: ").append(isHistorical).append("\n");
-          sb.append("Ready to service suggestions: ").append(isProvidingSuggestions).append("\n\n");
+          sb.append("Ready to service status: ").append(isProvidingStatus).append("\n\n");
           if (isInit) {
-            long allSetSize = nnLoader.getINodeSet(SET.all.name()).size();
-            long fileSetSize = nnLoader.getINodeSet(SET.files.name()).size();
-            long dirSetSize = nnLoader.getINodeSet(SET.dirs.name()).size();
-            sb.append("Current TxID: ").append(nnLoader.getCurrentTxID()).append("\n");
+            long allSetSize = loader.getINodeSet(SET.all.name()).size();
+            long fileSetSize = loader.getINodeSet(SET.files.name()).size();
+            long dirSetSize = loader.getINodeSet(SET.dirs.name()).size();
+            sb.append("Current TxID: ").append(loader.getCurrentTxID()).append("\n");
             sb.append("INode GSet size: ").append(allSetSize).append("\n\n");
             sb.append("INodeFile set size: ").append(fileSetSize).append("\n");
             sb.append("INodeFile set percentage: ")
@@ -363,7 +363,7 @@ public class NNAnalyticsRestAPI {
                 .append("\n\n");
           }
           sb.append("Cached directories for analysis::\n");
-          Set<String> dirs = nnLoader.getSuggestionsEngine().getDirectoriesForAnalysis();
+          Set<String> dirs = loader.getStatusEngine().getDirectoriesForAnalysis();
           sb.append("Cached directories size: ").append(dirs.size()).append("\n");
           for (String dir : dirs) {
             sb.append(dir).append("\n");
@@ -440,10 +440,10 @@ public class NNAnalyticsRestAPI {
           String key = req.queryMap("key").value();
           if (key != null && !key.isEmpty()) {
             res.header("Content-Type", "text/plain");
-            return nnLoader.getConfigValue(key);
+            return loader.getConfigValue(key);
           } else {
             res.header("Content-Type", "application/xml; charset=UTF-8");
-            nnLoader.dumpConfig(res.raw());
+            loader.dumpConfig(res.raw());
             return res;
           }
         });
@@ -453,7 +453,7 @@ public class NNAnalyticsRestAPI {
         "/refresh",
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
-          secContext.refresh(new SecurityConfiguration());
+          secContext.refresh(new ApplicationConfiguration());
           res.body(secContext.toString());
           return res;
         });
@@ -593,11 +593,11 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!loader.isInit()) {
             return "Namesystem is not fully initialized.\n";
           }
           String path = req.queryMap("path").value();
-          nnLoader.dumpINodeInDetail(path, res.raw());
+          loader.dumpINodeInDetail(path, res.raw());
           return res;
         });
 
@@ -608,7 +608,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!loader.isInit()) {
             return "";
           }
 
@@ -637,13 +637,13 @@ public class NNAnalyticsRestAPI {
             QueryChecker.isValidQuery(set2, filters2, null, sum2, filterOps2, null);
 
             Collection<INode> inodes1 =
-                NNAHelper.performFilters(nnLoader, set1, filters1, filterOps1);
+                NNAHelper.performFilters(loader, set1, filters1, filterOps1);
             Collection<INode> inodes2 =
-                NNAHelper.performFilters(nnLoader, set2, filters2, filterOps2);
+                NNAHelper.performFilters(loader, set2, filters2, filterOps2);
 
             if (!sum1.isEmpty() && !sum2.isEmpty()) {
-              long sumValue1 = nnLoader.sum(inodes1, sum1);
-              long sumValue2 = nnLoader.sum(inodes2, sum2);
+              long sumValue1 = loader.sum(inodes1, sum1);
+              long sumValue2 = loader.sum(inodes2, sum2);
               float division = (float) sumValue1 / (float) sumValue2;
 
               LOG.info("The result of {} dividied by {} is: {}", sumValue1, sumValue2, division);
@@ -657,10 +657,10 @@ public class NNAnalyticsRestAPI {
                   && emailsTo.length != 0
                   && emailHost != null
                   && emailFrom != null) {
-                String subject = nnLoader.getAuthority() + " | DIVISION";
+                String subject = loader.getAuthority() + " | DIVISION";
                 try {
                   if (emailConditionsStr != null) {
-                    MailOutput.check(emailConditionsStr, (long) division, nnLoader);
+                    MailOutput.check(emailConditionsStr, (long) division, loader);
                   }
                   MailOutput.write(subject, message, emailHost, emailsTo, emailsCC, emailFrom);
                 } catch (Exception e) {
@@ -686,7 +686,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!loader.isInit()) {
             return "";
           }
 
@@ -716,18 +716,18 @@ public class NNAnalyticsRestAPI {
             }
 
             Collection<INode> inodes =
-                NNAHelper.performFilters(nnLoader, set, filters, filterOps, find);
+                NNAHelper.performFilters(loader, set, filters, filterOps, find);
 
             if (sums.length == 1 && sumStr != null) {
               String sum = sums[0];
-              long sumValue = nnLoader.sum(inodes, sum);
+              long sumValue = loader.sum(inodes, sum);
               String message = String.valueOf(sumValue);
               if (emailsTo != null
                   && emailsTo.length != 0
                   && emailHost != null
                   && emailFrom != null) {
                 String subject =
-                    nnLoader.getAuthority()
+                    loader.getAuthority()
                         + " | "
                         + sum
                         + " | "
@@ -736,7 +736,7 @@ public class NNAnalyticsRestAPI {
                         + fullFilterStr;
                 try {
                   if (emailConditionsStr != null) {
-                    MailOutput.check(emailConditionsStr, sumValue, nnLoader);
+                    MailOutput.check(emailConditionsStr, sumValue, loader);
                   }
                   MailOutput.write(subject, message, emailHost, emailsTo, emailsCC, emailFrom);
                 } catch (Exception e) {
@@ -748,12 +748,12 @@ public class NNAnalyticsRestAPI {
             } else if (sums.length > 1 && sumStr != null) {
               StringBuilder message = new StringBuilder();
               for (String sum : sums) {
-                long sumValue = nnLoader.sum(inodes, sum);
+                long sumValue = loader.sum(inodes, sum);
                 message.append(sumValue).append("\n");
               }
               res.body(message.toString());
             } else {
-              nnLoader.dumpINodePaths(inodes, limit, res.raw());
+              loader.dumpINodePaths(inodes, limit, res.raw());
             }
 
             return res;
@@ -773,7 +773,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
 
-          if (!nnLoader.isInit()) {
+          if (!loader.isInit()) {
             res.header("Content-Type", "application/json");
             return Histograms.toChartJsJson(new HashMap<>(), "not_loaded", "", "");
           }
@@ -812,65 +812,65 @@ public class NNAnalyticsRestAPI {
             String find = req.queryMap("find").value();
 
             QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
-            Collection<INode> inodes = NNAHelper.performFilters(nnLoader, set, filters, filterOps);
+            Collection<INode> inodes = NNAHelper.performFilters(loader, set, filters, filterOps);
 
             HISTOGRAM htEnum = HISTOGRAM.valueOf(histType);
             Map<String, Function<INode, Long>> transformMap =
                 Transforms.getAttributeTransforms(
-                    transformConditionsStr, transformFieldsStr, transformOutputsStr, nnLoader);
+                    transformConditionsStr, transformFieldsStr, transformOutputsStr, loader);
             Map<String, Long> histogram;
             long startTime = System.currentTimeMillis();
             String xAxis;
 
-            nnLoader.namesystemWriteLock(useLock);
+            loader.namesystemWriteLock(useLock);
             try {
               switch (htEnum) {
                 case user:
-                  histogram = nnLoader.byUserHistogram(inodes, sum, find);
+                  histogram = loader.byUserHistogram(inodes, sum, find);
                   xAxis = "User Names";
                   break;
                 case group:
-                  histogram = nnLoader.byGroupHistogram(inodes, sum, find);
+                  histogram = loader.byGroupHistogram(inodes, sum, find);
                   xAxis = "Group Names";
                   break;
                 case accessTime:
-                  histogram = nnLoader.accessTimeHistogram(inodes, sum, find, timeRange);
+                  histogram = loader.accessTimeHistogram(inodes, sum, find, timeRange);
                   xAxis = "Last Accessed Time";
                   break;
                 case modTime:
-                  histogram = nnLoader.modTimeHistogram(inodes, sum, find, timeRange);
+                  histogram = loader.modTimeHistogram(inodes, sum, find, timeRange);
                   xAxis = "Last Modified Time";
                   break;
                 case fileSize:
-                  histogram = nnLoader.fileSizeHistogram(inodes, sum, find);
+                  histogram = loader.fileSizeHistogram(inodes, sum, find);
                   xAxis = "File Sizes (No Replication Factor)";
                   break;
                 case diskspaceConsumed:
-                  histogram = nnLoader.diskspaceConsumedHistogram(inodes, sum, find, transformMap);
+                  histogram = loader.diskspaceConsumedHistogram(inodes, sum, find, transformMap);
                   xAxis = "Diskspace Consumed (File Size * Replication Factor)";
                   break;
                 case fileReplica:
-                  histogram = nnLoader.fileReplicaHistogram(inodes, sum, find, transformMap);
+                  histogram = loader.fileReplicaHistogram(inodes, sum, find, transformMap);
                   xAxis = "File Replication Factor";
                   break;
                 case storageType:
-                  histogram = nnLoader.storageTypeHistogram(inodes, sum, find);
+                  histogram = loader.storageTypeHistogram(inodes, sum, find);
                   xAxis = "Storage Type Policy";
                   break;
                 case memoryConsumed:
-                  histogram = nnLoader.memoryConsumedHistogram(inodes, sum, find);
+                  histogram = loader.memoryConsumedHistogram(inodes, sum, find);
                   xAxis = "Memory Consumed";
                   break;
                 case parentDir:
-                  histogram = nnLoader.parentDirHistogram(inodes, parentDirDepth, sum, find);
+                  histogram = loader.parentDirHistogram(inodes, parentDirDepth, sum, find);
                   xAxis = "Directory Path";
                   break;
                 case fileType:
-                  histogram = nnLoader.fileTypeHistogram(inodes, sum, find);
+                  histogram = loader.fileTypeHistogram(inodes, sum, find);
                   xAxis = "File Type";
                   break;
                 case dirQuota:
-                  histogram = nnLoader.dirQuotaHistogram(inodes, sum);
+                  histogram = loader.dirQuotaHistogram(inodes, sum);
                   xAxis = "Directory Path";
                   break;
                 default:
@@ -880,12 +880,12 @@ public class NNAnalyticsRestAPI {
                           + ".\nPlease check /histograms for available histograms.");
               }
             } finally {
-              nnLoader.namesystemWriteUnlock(useLock);
+              loader.namesystemWriteUnlock(useLock);
             }
 
             // Perform conditions filtering.
             if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
-              histogram = nnLoader.removeKeysOnConditional(histogram, histogramConditionsStr);
+              histogram = loader.removeKeysOnConditional(histogram, histogramConditionsStr);
             }
 
             // Slice top and bottom.
@@ -915,7 +915,7 @@ public class NNAnalyticsRestAPI {
                 && emailHost != null
                 && emailFrom != null) {
               String subject =
-                  nnLoader.getAuthority()
+                  loader.getAuthority()
                       + " | X: "
                       + histType
                       + " | Y: "
@@ -927,7 +927,7 @@ public class NNAnalyticsRestAPI {
               try {
                 Set<String> highlightKeys = new HashSet<>();
                 if (emailConditionsStr != null) {
-                  MailOutput.check(emailConditionsStr, histogram, highlightKeys, nnLoader);
+                  MailOutput.check(emailConditionsStr, histogram, highlightKeys, loader);
                 }
                 MailOutput.write(
                     subject, histogram, highlightKeys, emailHost, emailsTo, emailsCC, emailFrom);
@@ -969,7 +969,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
 
-          if (!nnLoader.isInit()) {
+          if (!loader.isInit()) {
             res.header("Content-Type", "application/json");
             return Histograms.toChartJsJson(new HashMap<>(), "not_loaded", "", "");
           }
@@ -1002,7 +1002,7 @@ public class NNAnalyticsRestAPI {
             for (String find : finds) {
               QueryChecker.isValidQuery(set, filters, type, null, filterOps, find);
             }
-            Collection<INode> inodes = NNAHelper.performFilters(nnLoader, set, filters, filterOps);
+            Collection<INode> inodes = NNAHelper.performFilters(loader, set, filters, filterOps);
 
             HISTOGRAM htEnum = HISTOGRAM.valueOf(histType);
             List<Map<String, Long>> histograms = new ArrayList<>(sums.length + finds.length);
@@ -1020,41 +1020,41 @@ public class NNAnalyticsRestAPI {
                 j++;
               }
 
-              nnLoader.namesystemWriteLock(useLock);
+              loader.namesystemWriteLock(useLock);
               try {
                 switch (htEnum) {
                   case user:
-                    histogram = nnLoader.byUserHistogram(inodes, sum, find);
+                    histogram = loader.byUserHistogram(inodes, sum, find);
                     break;
                   case group:
-                    histogram = nnLoader.byGroupHistogram(inodes, sum, find);
+                    histogram = loader.byGroupHistogram(inodes, sum, find);
                     break;
                   case accessTime:
-                    histogram = nnLoader.accessTimeHistogram(inodes, sum, find, timeRange);
+                    histogram = loader.accessTimeHistogram(inodes, sum, find, timeRange);
                     break;
                   case modTime:
-                    histogram = nnLoader.modTimeHistogram(inodes, sum, find, timeRange);
+                    histogram = loader.modTimeHistogram(inodes, sum, find, timeRange);
                     break;
                   case fileSize:
-                    histogram = nnLoader.fileSizeHistogram(inodes, sum, find);
+                    histogram = loader.fileSizeHistogram(inodes, sum, find);
                     break;
                   case diskspaceConsumed:
-                    histogram = nnLoader.diskspaceConsumedHistogram(inodes, sum, find, null);
+                    histogram = loader.diskspaceConsumedHistogram(inodes, sum, find, null);
                     break;
                   case fileReplica:
-                    histogram = nnLoader.fileReplicaHistogram(inodes, sum, find, null);
+                    histogram = loader.fileReplicaHistogram(inodes, sum, find, null);
                     break;
                   case storageType:
-                    histogram = nnLoader.storageTypeHistogram(inodes, sum, find);
+                    histogram = loader.storageTypeHistogram(inodes, sum, find);
                     break;
                   case memoryConsumed:
-                    histogram = nnLoader.memoryConsumedHistogram(inodes, sum, find);
+                    histogram = loader.memoryConsumedHistogram(inodes, sum, find);
                     break;
                   case parentDir:
-                    histogram = nnLoader.parentDirHistogram(inodes, parentDirDepth, sum, find);
+                    histogram = loader.parentDirHistogram(inodes, parentDirDepth, sum, find);
                     break;
                   case fileType:
-                    histogram = nnLoader.fileTypeHistogram(inodes, sum, find);
+                    histogram = loader.fileTypeHistogram(inodes, sum, find);
                     break;
                   default:
                     throw new IllegalArgumentException(
@@ -1063,7 +1063,7 @@ public class NNAnalyticsRestAPI {
                             + ".\nPlease check /histograms for available histograms.");
                 }
               } finally {
-                nnLoader.namesystemWriteUnlock(useLock);
+                loader.namesystemWriteUnlock(useLock);
               }
               histograms.add(histogram);
             }
@@ -1086,7 +1086,7 @@ public class NNAnalyticsRestAPI {
             // Perform conditions filtering.
             if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
               mergedHistogram =
-                  nnLoader.removeKeysOnConditional2(mergedHistogram, histogramConditionsStr);
+                  loader.removeKeysOnConditional2(mergedHistogram, histogramConditionsStr);
             }
 
             // Sort results.
@@ -1131,7 +1131,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!loader.isInit()) {
             return "";
           }
 
@@ -1157,14 +1157,14 @@ public class NNAnalyticsRestAPI {
             QueryChecker.isValidQuery(set, filters, null, null, filterOps, find);
 
             Collection<INode> inodes =
-                NNAHelper.performFilters(nnLoader, set, filters, filterOps, find);
+                NNAHelper.performFilters(loader, set, filters, filterOps, find);
             if (inodes.size() == 0) {
               LOG.info("Skipping operation request because it resulted in empty INode set.");
               throw new IOException(
                   "Skipping operation request because it resulted in empty INode set.");
             }
 
-            FileSystem fs = nnLoader.getFileSystem();
+            FileSystem fs = loader.getFileSystem();
             String[] operationSplits = operation.split(":");
             BaseOperation operationObj;
             switch (operationSplits[0]) {
@@ -1233,7 +1233,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!loader.isInit()) {
             return "";
           }
 
@@ -1324,7 +1324,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!loader.isInit()) {
             return "";
           }
 
@@ -1386,14 +1386,14 @@ public class NNAnalyticsRestAPI {
           }
         });
 
-    /* SUGGESTIONS endpoint is an admin-level endpoint meant to dump the cached analysis by NNA. */
+    /* Status endpoint is an admin-level endpoint meant to dump the cached analysis by NNA. */
     get(
-        "/suggestions",
+        "/status",
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
           String username = req.queryMap("username").value();
-          return nnLoader.getSuggestionsEngine().getSuggestionsAsJson(username);
+          return loader.getStatusEngine().getStatusAsJson(username);
         });
 
     /* DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by NNA. */
@@ -1407,7 +1407,7 @@ public class NNAnalyticsRestAPI {
           if (sum == null || sum.isEmpty()) {
             sum = "count";
           }
-          return nnLoader.getSuggestionsEngine().getDirectoriesAsJson(directory, sum);
+          return loader.getStatusEngine().getDirectoriesAsJson(directory, sum);
         });
 
     /* DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by NNA. */
@@ -1420,7 +1420,7 @@ public class NNAnalyticsRestAPI {
           if (sum == null || sum.isEmpty()) {
             sum = "count";
           }
-          return nnLoader.getSuggestionsEngine().getFileAgeAsJson(sum);
+          return loader.getStatusEngine().getFileAgeAsJson(sum);
         });
 
     /* ADDDIRECTORY endpoint is an admin-level endpoint meant to add a directory for cached analysis by NNA. */
@@ -1429,7 +1429,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           String directory = req.queryMap("dir").value();
-          nnLoader.getSuggestionsEngine().addDirectoryToAnalysis(directory);
+          loader.getStatusEngine().addDirectoryToAnalysis(directory);
           res.status(HttpStatus.SC_OK);
           res.body(directory + " added for analysis.");
           return res;
@@ -1441,7 +1441,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           String directory = req.queryMap("dir").value();
-          nnLoader.getSuggestionsEngine().removeDirectoryFromAnalysis(directory);
+          loader.getStatusEngine().removeDirectoryFromAnalysis(directory);
           res.status(HttpStatus.SC_OK);
           res.body(directory + " removed from analysis.");
           return res;
@@ -1455,7 +1455,7 @@ public class NNAnalyticsRestAPI {
           res.header("Content-Type", "application/json");
           String user = req.queryMap("user").value();
           String sum = req.queryMap("sum").value();
-          return nnLoader.getSuggestionsEngine().getQuotaAsJson(user, sum);
+          return loader.getStatusEngine().getQuotaAsJson(user, sum);
         });
 
     /* USERS endpoint is an admin-level endpoint meant to dump the cached set of detected users by NNA. */
@@ -1464,8 +1464,8 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
-          String suggestion = req.queryMap("suggestion").value();
-          return nnLoader.getSuggestionsEngine().getUsersAsJson(suggestion);
+          String status = req.queryMap("status").value();
+          return loader.getStatusEngine().getUsersAsJson(status);
         });
 
     /* TOP endpoint is an admin-level endpoint meant to dump the cached set of top issues by NNA. */
@@ -1478,7 +1478,7 @@ public class NNAnalyticsRestAPI {
           if (limit == null) {
             limit = 10;
           }
-          return nnLoader.getSuggestionsEngine().getIssuesAsJson(limit, false);
+          return loader.getStatusEngine().getIssuesAsJson(limit, false);
         });
 
     /* BOTTOM endpoint is an admin-level endpoint meant to dump the cached set of bottom issues by NNA.
@@ -1492,10 +1492,10 @@ public class NNAnalyticsRestAPI {
           if (limit == null) {
             limit = 10;
           }
-          return nnLoader.getSuggestionsEngine().getIssuesAsJson(limit, true);
+          return loader.getStatusEngine().getIssuesAsJson(limit, true);
         });
 
-    /* HISTORY endpoint returns a set of data points from DB-stored suggestion snapshots. */
+    /* HISTORY endpoint returns a set of data points from DB-stored status snapshots. */
     get(
         "/history",
         (req, res) -> {
@@ -1514,7 +1514,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
-          return nnLoader.getSuggestionsEngine().getTokens();
+          return loader.getStatusEngine().getTokens();
         });
 
     /* SAVENAMESPACE endpoint is an admin-level endpoint meant to dump the in-memory INode set
@@ -1536,9 +1536,9 @@ public class NNAnalyticsRestAPI {
             writer.write("Saving namespace.<br />");
             writer.flush();
             if (legacy != null && legacy) {
-              nnLoader.saveLegacyNamespace(dir);
+              loader.saveLegacyNamespace(dir);
             } else {
-              nnLoader.saveNamespace();
+              loader.saveNamespace();
             }
             writer.write("Done.");
             writer.flush();
@@ -1586,8 +1586,8 @@ public class NNAnalyticsRestAPI {
           res.header("Content-Type", "text/plain");
           lock.writeLock().lock();
           try {
-            nnLoader.clear();
-            nnLoader.load(null, null, conf);
+            loader.clear();
+            loader.load(null, null, conf);
             res.body("Reload complete.");
           } catch (Throwable e) {
             res.body("Reload failed: " + e);
@@ -1604,7 +1604,7 @@ public class NNAnalyticsRestAPI {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           Integer charsLimit = req.queryMap("limit").integerValue();
-          nnLoader.dumpLog(charsLimit, res.raw());
+          loader.dumpLog(charsLimit, res.raw());
           return res;
         });
 
@@ -1687,9 +1687,9 @@ public class NNAnalyticsRestAPI {
 
     Spark.awaitInitialization();
 
-    nnLoader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
-    nnLoader.load(gSet, preloadedHadoopConf, conf);
-    nnLoader.initReloadThreads(internalService, conf);
+    loader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
+    loader.load(gSet, preloadedHadoopConf, conf);
+    loader.initReloadThreads(internalService, conf);
   }
 
   @VisibleForTesting
@@ -1699,7 +1699,7 @@ public class NNAnalyticsRestAPI {
     } catch (Exception e) {
       LOG.error("Error during shutdown: ", e);
     }
-    nnLoader.clear();
+    loader.clear();
     runningOperations.clear();
     runningOperations.clear();
     runningQueries.clear();

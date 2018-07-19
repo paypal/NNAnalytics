@@ -28,12 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.slf4j.Logger;
 
 public class Transforms {
 
-  public static final Logger LOG = NNLoader.LOG;
+  public static final Logger LOG = NameNodeLoader.LOG;
 
   private static class Transform {
 
@@ -50,7 +50,7 @@ public class Transforms {
       String transformConditionArray,
       String transformFields,
       String transformOutputs,
-      NNLoader loader) {
+      NameNodeLoader loader) {
     if (transformConditionArray == null
         || transformFields == null
         || transformOutputs == null
@@ -90,7 +90,10 @@ public class Transforms {
   }
 
   private static Map<String, List<Transform>> transformINodeToLongFunction(
-      String transformConditions, String transformField, String transformOutput, NNLoader loader) {
+      String transformConditions,
+      String transformField,
+      String transformOutput,
+      NameNodeLoader loader) {
     Map<String, List<Transform>> transformMap = new HashMap<>(2);
     String[] conditionTriplets = transformConditions.split(",");
     String[][] conditions = new String[conditionTriplets.length][3];
@@ -190,7 +193,7 @@ public class Transforms {
   }
 
   private static Map<String, Function<INode, Long>> compoundMethods(
-      Map<String, List<Transform>> transformMap, NNLoader loader) {
+      Map<String, List<Transform>> transformMap, NameNodeLoader loader) {
     if (transformMap.isEmpty()) {
       return Collections.emptyMap();
     }

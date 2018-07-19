@@ -43,7 +43,7 @@ public class SecurityContext {
 
   public static final Logger LOG = LoggerFactory.getLogger(SecurityContext.class.getName());
 
-  private SecurityConfiguration securityConfiguration;
+  private ApplicationConfiguration applicationConfiguration;
   private JwtAuthenticator jwtAuthenticator;
   private JwtGenerator<CommonProfile> jwtGenerator;
   private LdapAuthenticator ldapAuthenticator;
@@ -69,35 +69,35 @@ public class SecurityContext {
   public SecurityContext() {}
 
   public void init(
-      SecurityConfiguration secConf,
+      ApplicationConfiguration appConf,
       JwtAuthenticator jwtAuth,
       JwtGenerator<CommonProfile> jwtGen,
       LdapAuthenticator ldapAuthenticator) {
-    this.securityConfiguration = secConf;
+    this.applicationConfiguration = appConf;
     this.jwtAuthenticator = jwtAuth;
     this.jwtGenerator = jwtGen;
     this.ldapAuthenticator = ldapAuthenticator;
 
-    this.adminUsers = new UserSet(secConf.getAdminUsers());
-    this.writeUsers = new UserSet(secConf.getWriteUsers());
-    this.readOnlyUsers = new UserSet(secConf.getReadOnlyUsers());
-    this.cacheReaderUsers = new UserSet(secConf.getCacheReaderUsers());
-    this.localOnlyUsers = new UserPasswordSet(secConf.getLocalOnlyUsers());
+    this.adminUsers = new UserSet(appConf.getAdminUsers());
+    this.writeUsers = new UserSet(appConf.getWriteUsers());
+    this.readOnlyUsers = new UserSet(appConf.getReadOnlyUsers());
+    this.cacheReaderUsers = new UserSet(appConf.getCacheReaderUsers());
+    this.localOnlyUsers = new UserPasswordSet(appConf.getLocalOnlyUsers());
 
     this.init = true;
   }
 
-  public synchronized void refresh(SecurityConfiguration secConf) {
-    this.adminUsers = new UserSet(secConf.getAdminUsers());
-    this.writeUsers = new UserSet(secConf.getWriteUsers());
-    this.readOnlyUsers = new UserSet(secConf.getReadOnlyUsers());
-    this.cacheReaderUsers = new UserSet(secConf.getCacheReaderUsers());
-    this.localOnlyUsers = new UserPasswordSet(secConf.getLocalOnlyUsers());
+  public synchronized void refresh(ApplicationConfiguration appConf) {
+    this.adminUsers = new UserSet(appConf.getAdminUsers());
+    this.writeUsers = new UserSet(appConf.getWriteUsers());
+    this.readOnlyUsers = new UserSet(appConf.getReadOnlyUsers());
+    this.cacheReaderUsers = new UserSet(appConf.getCacheReaderUsers());
+    this.localOnlyUsers = new UserPasswordSet(appConf.getLocalOnlyUsers());
   }
 
   public void handleAuthentication(Request req, Response res)
       throws AuthenticationException, HttpAction {
-    boolean authenticationEnabled = securityConfiguration.getLdapEnabled();
+    boolean authenticationEnabled = applicationConfiguration.getLdapEnabled();
     if (!authenticationEnabled) {
       String reqUsername = req.queryParams("proxy");
       if (reqUsername != null && !reqUsername.isEmpty()) {
@@ -140,7 +140,7 @@ public class SecurityContext {
         throw new AuthenticationException(
             "Bad username / password provided. Should be username:password.");
       }
-      Set<String> ldapBaseDns = securityConfiguration.getLdapBaseDn();
+      Set<String> ldapBaseDns = applicationConfiguration.getLdapBaseDn();
 
       UsernamePasswordCredentials credentials = null;
       RuntimeException authFailedEx = null;
@@ -196,7 +196,7 @@ public class SecurityContext {
 
   public synchronized void handleAuthorization(Request req, Response res)
       throws AuthenticationException, HttpAction, AuthorizationException {
-    boolean authorizationEnabled = securityConfiguration.getAuthorizationEnabled();
+    boolean authorizationEnabled = applicationConfiguration.getAuthorizationEnabled();
     if (!authorizationEnabled) {
       return;
     }

@@ -34,7 +34,7 @@ ${JAVA_HOME}/bin/java -server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+UseC
 -Dcom.sun.management.jmxremote.authenticate=false \
 -Dnamenode.metrics.logger=INFO,NNMETRICSRFA -Dorg.mortbay.jetty.Request.maxFormContentSize=-1 \
 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
--cp "${JAVA_CLASSPATH}" com.paypal.namenode.NNAnalyticsRestAPI \
+-cp "${JAVA_CLASSPATH}" com.paypal.namenode.WebServerMain \
 &> /var/log/nn-analytics/nn-analytics.out &
 
 echo $!

@@ -33,16 +33,17 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 
 class MailOutput {
 
   private static final String MAIL_CONTENT_TEXT_HTML = "text/html";
   private static final String MAIL_SMTP_HOST = "mail.smtp.host";
 
-  static void check(String emailConditionsStr, long value, NNLoader nnLoader) throws IOException {
-    List<Function<Long, Boolean>> comparisons = nnLoader.createComparisons(emailConditionsStr);
-    boolean shouldEmail = nnLoader.check(comparisons, value);
+  static void check(String emailConditionsStr, long value, NameNodeLoader loader)
+      throws IOException {
+    List<Function<Long, Boolean>> comparisons = loader.createComparisons(emailConditionsStr);
+    boolean shouldEmail = loader.check(comparisons, value);
     if (!shouldEmail) {
       throw new IOException("Failed to meet requirements for email.");
     }
@@ -52,12 +53,12 @@ class MailOutput {
       String emailConditionsStr,
       Map<String, Long> histogram,
       Set<String> highlightKeys,
-      NNLoader nnLoader)
+      NameNodeLoader loader)
       throws IOException {
-    List<Function<Long, Boolean>> comparisons = nnLoader.createComparisons(emailConditionsStr);
+    List<Function<Long, Boolean>> comparisons = loader.createComparisons(emailConditionsStr);
     boolean shouldEmail = false;
     for (Map.Entry<String, Long> entry : histogram.entrySet()) {
-      boolean columnCheck = nnLoader.check(comparisons, entry.getValue());
+      boolean columnCheck = loader.check(comparisons, entry.getValue());
       if (columnCheck) {
         shouldEmail = true;
         highlightKeys.add(entry.getKey());

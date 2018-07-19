@@ -31,12 +31,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.slf4j.Logger;
 
 public class Histograms {
 
-  public static final Logger LOG = NNLoader.LOG;
+  public static final Logger LOG = NameNodeLoader.LOG;
 
   /**
    * converts given histogram along with title, x and y lables to json string for Chart.js
