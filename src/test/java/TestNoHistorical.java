@@ -23,9 +23,7 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
 import com.paypal.security.SecurityConfiguration;
-import java.io.File;
 import java.io.IOException;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
@@ -58,10 +56,7 @@ public class TestNoHistorical {
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
     conf.set("nna.historical", "false");
-    // Create temporary DB directory.
-    String baseDir = MiniDFSCluster.getBaseDirectory();
-    FileUtils.forceMkdir(new File(baseDir + "/db"));
-    conf.set("nna.base.dir", baseDir);
+    conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
     nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);
   }

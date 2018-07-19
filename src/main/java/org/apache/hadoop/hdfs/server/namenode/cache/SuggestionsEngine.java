@@ -674,7 +674,7 @@ public class SuggestionsEngine {
     cacheManager.stop();
   }
 
-  public void start(SecurityConfiguration conf) {
+  public void start(SecurityConfiguration conf) throws IOException {
     cacheManager.start(conf);
     this.cachedDirs = Collections.synchronizedSet(cacheManager.getCachedSet("cachedDirs"));
     this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));

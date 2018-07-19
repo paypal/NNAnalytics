@@ -1804,7 +1804,7 @@ public class NNLoader {
       GSet<INode, INodeWithAdditionalFields> preloadedInodes,
       Configuration preloadedHadoopConf,
       SecurityConfiguration nnaConf)
-      throws InterruptedException, NoSuchFieldException, IllegalAccessException {
+      throws IOException, NoSuchFieldException, IllegalAccessException {
     /*
      * Configuration standard is: /etc/hadoop/conf.
      * Goal is to let configuration tell us where the FsImage and EditLogs are for loading.
