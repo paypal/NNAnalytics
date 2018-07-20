@@ -54,10 +54,10 @@
 
     <!-- Main component for a primary marketing message or call to action -->
     <div class="jumbotron">
-        <h1>NNAnalytics Suggestions</h1>
+        <h1>NNAnalytics Status</h1>
         <div id="connection"></div>
         <p id="welcome">
-            Get useful suggestions on your Hadoop clusters' data distribution.
+            Get the status of your Hadoop clusters' data distribution.
         </p>
         <p>
             Click on the below buttons for more suggestions and useful URLs.
@@ -854,7 +854,7 @@
 <script>
     $.ajax({
             type: 'GET',
-            url: "./suggestions" + window.location.search,
+            url: "./status" + window.location.search,
             dataType: 'json',
             success: function(data) {
                 console.log("success");

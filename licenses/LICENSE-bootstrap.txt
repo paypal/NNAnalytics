@@ -145,7 +145,7 @@
           aria-label="Search this repository"
           data-unscoped-placeholder="Search or jump to…"
           data-scoped-placeholder="Search or jump to…"
-          data-jump-to-suggestions-path="/_graphql/GetSuggestedNavigationDestinations#csrf-token=prfvTpHCd6KRAPr1SmcgvMGbXslWfxLGZTMSbXIQUE/vax5H6vA0IJ7ix288dM5mdzJkUIqoMK2J4GvPPBkMZg=="
+          data-jump-to-status-path="/_graphql/GetSuggestedNavigationDestinations#csrf-token=prfvTpHCd6KRAPr1SmcgvMGbXslWfxLGZTMSbXIQUE/vax5H6vA0IJ7ix288dM5mdzJkUIqoMK2J4GvPPBkMZg=="
           spellcheck="false"
           autocomplete="off"
           autocapitalize="off"
@@ -153,13 +153,13 @@
           <input type="hidden" class="js-site-search-type-field" name="type" >
             <img src="https://assets-cdn.github.com/images/search-shortcut-hint.svg" alt="" class="mr-2 header-search-key-slash">
 
-            <div class="Box position-absolute overflow-hidden d-none jump-to-suggestions js-jump-to-suggestions-container">
-              <ul class="d-none js-jump-to-suggestions-template-container">
+            <div class="Box position-absolute overflow-hidden d-none jump-to-status js-jump-to-status-container">
+              <ul class="d-none js-jump-to-status-template-container">
                 <li class="d-flex flex-justify-start flex-items-center p-0 f5 navigation-item js-navigation-item">
-                  <a class="no-underline d-flex flex-auto flex-items-center p-2 jump-to-suggestions-path js-jump-to-suggestion-path js-navigation-open" aria-label="Jump to..." href="">
+                  <a class="no-underline d-flex flex-auto flex-items-center p-2 jump-to-status-path js-jump-to-status-path js-navigation-open" aria-label="Jump to..." href="">
                     <div class="jump-to-octicon js-jump-to-octicon mr-2 text-center d-none"></div>
-                    <img class="avatar mr-2 flex-shrink-0 js-jump-to-suggestion-avatar" alt="" src="" width="28" height="28">
-                    <div class="jump-to-suggestion-name js-jump-to-suggestion-name flex-auto overflow-hidden no-wrap css-truncate css-truncate-target">
+                    <img class="avatar mr-2 flex-shrink-0 js-jump-to-status-avatar" alt="" src="" width="28" height="28">
+                    <div class="jump-to-status-name js-jump-to-status-name flex-auto overflow-hidden no-wrap css-truncate css-truncate-target">
                     </div>
 
                     <div class="border rounded-1 flex-shrink-0 bg-gray px-1 text-gray-light ml-1 f6 d-none d-on-nav-focus js-jump-to-badge-search">
@@ -183,7 +183,7 @@
                 </li> 
               </ul>
 
-              <ul class="js-navigation-container jump-to-suggestions-results-container js-jump-to-suggestions-results-container">
+              <ul class="js-navigation-container jump-to-status-results-container js-jump-to-status-results-container">
                 <li class="d-flex flex-justify-center flex-items-center p-0 f5">
                   <img src="https://assets-cdn.github.com/images/spinners/octocat-spinner-128.gif" alt="Octocat Spinner Icon" class="m-2" width="28">
                 </li>

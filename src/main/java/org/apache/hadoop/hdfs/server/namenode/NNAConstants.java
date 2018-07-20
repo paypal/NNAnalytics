@@ -250,7 +250,7 @@ public interface NNAConstants {
     reloadNamespace,
     log,
     history,
-    suggestions,
+    status,
     users,
     top,
     bottom,
@@ -284,7 +284,7 @@ public interface NNAConstants {
 
   EnumSet<ENDPOINT> CACHE_READER_ENDPOINTS =
       EnumSet.of(
-          ENDPOINT.suggestions,
+          ENDPOINT.status,
           ENDPOINT.history,
           ENDPOINT.token,
           ENDPOINT.directories,

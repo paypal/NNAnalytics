@@ -25,7 +25,7 @@
 
 DAEMON_PATH="/usr/local/nn-analytics/bin"
 
-DAEMON=nn_loader
+DAEMON=”launch_nn_loader
 DAEMONOPTS=""
 
 NAME=nn-analytics

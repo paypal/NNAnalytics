@@ -121,20 +121,20 @@ function getBadPercentage(user) {
     $.ajax({
         type: 'GET',
         async: false,
-        url: "./suggestions?username="+user,
+        url: "./status?username="+user,
         dataType: 'json',
-        success: function(suggestions) {
-            var emptyFiles = suggestions["emptyFiles"];
-            var emptyFiles1yr = suggestions["emptyFiles1yr"];
-            var emptyDirs = suggestions["emptyDirs"];
-            var emptyDirs1yr = suggestions["emptyDirs1yr"];
-            var tinyFiles = suggestions["tinyFiles"];
-            var tinyFiles1yr = suggestions["tinyFiles1yr"];
-            var smallFiles = suggestions["smallFiles"];
-            var smallFiles1yr = suggestions["smallFiles1yr"];
-            var numFiles = suggestions["numFiles"];
-            var numDirs = suggestions["numDirs"];
-            var lastLogin = suggestions["lastLogin"];
+        success: function(status) {
+            var emptyFiles = status["emptyFiles"];
+            var emptyFiles1yr = status["emptyFiles1yr"];
+            var emptyDirs = status["emptyDirs"];
+            var emptyDirs1yr = status["emptyDirs1yr"];
+            var tinyFiles = status["tinyFiles"];
+            var tinyFiles1yr = status["tinyFiles1yr"];
+            var smallFiles = status["smallFiles"];
+            var smallFiles1yr = status["smallFiles1yr"];
+            var numFiles = status["numFiles"];
+            var numDirs = status["numDirs"];
+            var lastLogin = status["lastLogin"];
             var numBadFiles = emptyFiles + tinyFiles + smallFiles;
             var numFilesDirs = numFiles + numDirs;
             percentage["numBadFiles"] = numBadFiles;

@@ -30,11 +30,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SecurityConfiguration {
+public class ApplicationConfiguration {
 
-  public static final Logger LOG = LoggerFactory.getLogger(SecurityConfiguration.class.getName());
+  public static final Logger LOG =
+      LoggerFactory.getLogger(ApplicationConfiguration.class.getName());
 
-  private static final String SEC_PROPERTIES = "security.properties";
+  private static final String SEC_PROPERTIES = "application.properties";
   private final Properties properties = new Properties();
 
   private static final String NNA_PORT_DEFAULT = "8080";
@@ -44,10 +45,10 @@ public class SecurityConfiguration {
   private static final String LDAP_USE_STARTTLS_DEFAULT = "false";
   private static final String LDAP_CONNECT_TIMEOUT_DEFAULT = "1000";
   private static final String LDAP_RESPONSE_TIMEOUT_DEFAULT = "1000";
-  private static final String NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT = "900000";
+  private static final String NNA_STATUS_RELOAD_TIMEOUT_DEFAULT = "900000";
   private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
 
-  public SecurityConfiguration() {
+  public ApplicationConfiguration() {
     InputStream input = this.getClass().getClassLoader().getResourceAsStream(SEC_PROPERTIES);
     try {
       properties.load(input);
@@ -123,10 +124,9 @@ public class SecurityConfiguration {
     return Integer.parseInt(properties.getProperty("ldap.connection.pool.max.size"));
   }
 
-  public int getSuggestionsReloadSleepMs() {
+  public int getStatusReloadSleepMs() {
     return Integer.parseInt(
-        properties.getProperty(
-            "nna.suggestions.reload.sleep.ms", NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT));
+        properties.getProperty("nna.status.reload.sleep.ms", NNA_STATUS_RELOAD_TIMEOUT_DEFAULT));
   }
 
   public String getJwtSignatureSecret() {
