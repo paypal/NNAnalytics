@@ -21,10 +21,13 @@ package com.paypal.security;
 
 import java.nio.charset.Charset;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.Set;
+import javax.servlet.http.HttpSession;
 import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
 import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.security.authorize.AuthorizationException;
+import org.eclipse.jetty.http.HttpStatus;
 import org.ldaptive.auth.FormatDnResolver;
 import org.pac4j.core.credentials.UsernamePasswordCredentials;
 import org.pac4j.core.exception.HttpAction;
@@ -95,10 +98,32 @@ public class SecurityContext {
     this.localOnlyUsers = new UserPasswordSet(secConf.getLocalOnlyUsers());
   }
 
+  public void logout(Request req, Response res) {
+    ProfileManager<CommonProfile> manager = new ProfileManager<>(new SparkWebContext(req, res));
+    Optional<CommonProfile> profile = manager.get(false);
+    if (profile.isPresent()) {
+      manager.logout();
+      HttpSession session = req.raw().getSession();
+      if (session != null) {
+        session.invalidate();
+      }
+      res.removeCookie("nna-jwt-token");
+      res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.header("Pragma", "no-cache");
+      res.header("Expires", "0");
+      res.status(HttpStatus.UNAUTHORIZED_401);
+      res.body("You have been logged out.");
+    } else {
+      res.status(HttpStatus.BAD_REQUEST_400);
+      res.body("No login sessions.");
+    }
+  }
+
   public void handleAuthentication(Request req, Response res)
       throws AuthenticationException, HttpAction {
     boolean authenticationEnabled = securityConfiguration.getLdapEnabled();
-    if (!authenticationEnabled) {
+    boolean noLocalUsers = securityConfiguration.getLocalOnlyUsers().isEmpty();
+    if (!authenticationEnabled && noLocalUsers) {
       String reqUsername = req.queryParams("proxy");
       if (reqUsername != null && !reqUsername.isEmpty()) {
         currentUser.set(reqUsername);
@@ -123,9 +148,9 @@ public class SecurityContext {
         res.header("Set-Cookie", "nna-jwt-token=" + generate);
 
         manager.save(true, userProfile, false);
-        LOG.info("Login success via [TOKEN] for: {}", req.ip());
-
-        currentUser.set(userProfile.getId());
+        String profileId = userProfile.getId();
+        LOG.info("Login success via [TOKEN] for: {} at {}", profileId, req.ip());
+        currentUser.set(profileId);
       } catch (Exception e) {
         LOG.info("Login failed via [TOKEN] for: {}", req.ip());
         throw new AuthenticationException(e);
@@ -149,7 +174,11 @@ public class SecurityContext {
 
       if (localOnlyUsers.allows(user)) {
         if (localOnlyUsers.authenticate(user, password)) {
-          LOG.info("Login success via [LOCAL] for: {}", req.ip());
+          LOG.info("Login success via [LOCAL] for: {} at {}", user, req.ip());
+          CommonProfile profile = new CommonProfile();
+          profile.setClientName(user);
+          String generate = jwtGenerator.generate(profile);
+          res.header("Set-Cookie", "nna-jwt-token=" + generate);
           currentUser.set(user);
           return;
         } else {
@@ -185,9 +214,9 @@ public class SecurityContext {
       res.header("Set-Cookie", "nna-jwt-token=" + generate);
 
       manager.save(true, userProfile, false);
-      LOG.info("Login success via [BASIC] for: {}", req.ip());
-
-      currentUser.set(userProfile.getId());
+      String profileId = userProfile.getId();
+      LOG.info("Login success via [BASIC] for: {} at {}", profileId, req.ip());
+      currentUser.set(profileId);
     } else {
       LOG.info("Login failed via [NULL] for: {}", req.ip());
       throw new AuthenticationException("Authentication required.");

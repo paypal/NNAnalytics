@@ -254,12 +254,31 @@ public class NNAnalyticsRestAPI {
 
       secContext.init(conf, jwtAuthenticator, jwtGenerator, ldapAuth);
     } else {
-      secContext.init(conf, null, null, null);
+      // jwt:
+      SignatureConfiguration sigConf =
+          new SecretSignatureConfiguration(conf.getJwtSignatureSecret());
+      EncryptionConfiguration encConf =
+          new SecretEncryptionConfiguration(
+              conf.getJwtEncryptionSecret(), JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
+      JwtGenerator<CommonProfile> jwtGenerator = new JwtGenerator<>(sigConf, encConf);
+      JwtAuthenticator jwtAuthenticator = new JwtAuthenticator(sigConf, encConf);
+
+      secContext.init(conf, jwtAuthenticator, jwtGenerator, null);
       LOG.info("Disabled web security.");
     }
 
     /* This is the call to load everything under ./resources/public as HTML resources. */
     Spark.staticFileLocation("/public");
+
+    /* LOGOUT is used to log out of authenticated web sessions. */
+    get(
+        "/logout",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "text/plain");
+          secContext.logout(req, res);
+          return res;
+        });
 
     /* ENDPOINTS endpoint is meant to showcase all available REST API endpoints in JSON list form. */
     get(
