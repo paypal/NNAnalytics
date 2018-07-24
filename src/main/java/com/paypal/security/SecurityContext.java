@@ -121,15 +121,15 @@ public class SecurityContext {
       res.body("You have been logged out.");
     } else {
       res.status(HttpStatus.BAD_REQUEST_400);
-      res.body("No login sessions.");
+      res.body("No login session.");
     }
   }
 
   public void handleAuthentication(Request req, Response res)
       throws AuthenticationException, HttpAction {
-    boolean authenticationEnabled = securityConfiguration.getLdapEnabled();
-    boolean noLocalUsers = securityConfiguration.getLocalOnlyUsers().isEmpty();
-    if (!authenticationEnabled && noLocalUsers) {
+    boolean authenticationEnabled = ldapAuthenticator != null;
+    boolean localUsersEnabled = jwtAuthenticator != null && jwtGenerator != null;
+    if (!authenticationEnabled && !localUsersEnabled) {
       String reqUsername = req.queryParams("proxy");
       if (reqUsername != null && !reqUsername.isEmpty()) {
         currentUser.set(reqUsername);

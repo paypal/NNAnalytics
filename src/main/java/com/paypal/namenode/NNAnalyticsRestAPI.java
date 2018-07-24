@@ -202,9 +202,10 @@ public class NNAnalyticsRestAPI {
     }
 
     boolean ldapEnabled = conf.getLdapEnabled();
+    boolean localUsersEnabled = !conf.getLocalOnlyUsers().isEmpty();
     Spark.port(conf.getPort());
     if (ldapEnabled) {
-      LOG.info("Enabled web security.");
+      LOG.info("Enabling LDAP web authentication.");
       // jwt:
       SignatureConfiguration sigConf =
           new SecretSignatureConfiguration(conf.getJwtSignatureSecret());
@@ -251,9 +252,9 @@ public class NNAnalyticsRestAPI {
       // pac4j:
       LdapAuthenticator ldapAuth = new LdapAuthenticator();
       ldapAuth.setLdapAuthenticator(ldaptiveAuthenticator);
-
       secContext.init(conf, jwtAuthenticator, jwtGenerator, ldapAuth);
-    } else {
+    } else if (localUsersEnabled) {
+      LOG.info("Enabling Local-Only-User web authentication.");
       // jwt:
       SignatureConfiguration sigConf =
           new SecretSignatureConfiguration(conf.getJwtSignatureSecret());
@@ -262,9 +263,16 @@ public class NNAnalyticsRestAPI {
               conf.getJwtEncryptionSecret(), JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
       JwtGenerator<CommonProfile> jwtGenerator = new JwtGenerator<>(sigConf, encConf);
       JwtAuthenticator jwtAuthenticator = new JwtAuthenticator(sigConf, encConf);
-
       secContext.init(conf, jwtAuthenticator, jwtGenerator, null);
-      LOG.info("Disabled web security.");
+    } else {
+      LOG.info("Disabling web authentication.");
+      secContext.init(conf, null, null, null);
+    }
+
+    if (conf.getAuthorizationEnabled()) {
+      LOG.info("Enabling web authorization.");
+    } else {
+      LOG.info("Disabling web authorization.");
     }
 
     /* This is the call to load everything under ./resources/public as HTML resources. */
@@ -1719,7 +1727,6 @@ public class NNAnalyticsRestAPI {
       LOG.error("Error during shutdown: ", e);
     }
     nnLoader.clear();
-    runningOperations.clear();
     runningOperations.clear();
     runningQueries.clear();
     operationService.shutdown();
