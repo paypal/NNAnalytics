@@ -98,6 +98,12 @@ public class SecurityContext {
     this.localOnlyUsers = new UserPasswordSet(secConf.getLocalOnlyUsers());
   }
 
+  /**
+   * Perform logout of authenticated web session.
+   *
+   * @param req - The HTTP request.
+   * @param res - The HTTP response.
+   */
   public void logout(Request req, Response res) {
     ProfileManager<CommonProfile> manager = new ProfileManager<>(new SparkWebContext(req, res));
     Optional<CommonProfile> profile = manager.get(false);
