@@ -19,6 +19,8 @@
 
 package com.paypal.security;
 
+import java.nio.charset.Charset;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 import javax.servlet.http.HttpSession;
@@ -210,23 +212,41 @@ public class SecurityContext {
 
   public void handleAuthentication(Request req, Response res)
       throws AuthenticationException, HttpAction {
-    boolean authenticationEnabled = isAuthenticationEnabled();
-    boolean isLoginAttempt = req.raw().getRequestURI().startsWith("/" + ENDPOINT.login.name());
-    if (isLoginAttempt) {
-      return;
-    }
-    if (!authenticationEnabled) {
-      String reqUsername = req.queryParams("proxy");
-      if (reqUsername != null && !reqUsername.isEmpty()) {
-        currentUser.set(reqUsername);
-      }
-      return;
-    }
     if (!init) {
       LOG.info("Request occurred before initialized from: {}", req.ip());
       throw new AuthenticationException("Please wait for initialization.");
     }
 
+    boolean isLoginAttempt = req.raw().getRequestURI().startsWith("/" + ENDPOINT.login.name());
+    if (isLoginAttempt) {
+      return;
+    }
+
+    boolean authenticationEnabled = isAuthenticationEnabled();
+    if (!authenticationEnabled) {
+      String proxyUsername = req.queryParams("proxy");
+      if (proxyUsername != null && !proxyUsername.isEmpty()) {
+        currentUser.set(proxyUsername);
+      }
+      return;
+    }
+
+    // Allow basic authentication for simple applications.
+    String basic = req.headers("Authorization");
+    if (basic != null && basic.startsWith("Basic ")) {
+      String b64Credentials = basic.substring("Basic ".length()).trim();
+      String nameAndPassword =
+          new String(Base64.getDecoder().decode(b64Credentials), Charset.defaultCharset());
+      String[] split = nameAndPassword.split(":");
+      String username = split[0];
+      String password = split[1];
+      if (localOnlyUsers.authenticate(username, password)) {
+        currentUser.set(username);
+        return;
+      }
+    }
+
+    // JWT authentication for end users whom have logged in.
     String token = req.cookie("nna-jwt-token");
     ProfileManager<CommonProfile> manager = new ProfileManager<>(new SparkWebContext(req, res));
     CommonProfile userProfile;
