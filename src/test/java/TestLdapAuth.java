@@ -24,7 +24,9 @@ import static org.hamcrest.core.Is.is;
 import com.paypal.namenode.NNAnalyticsRestAPI;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
@@ -34,9 +36,13 @@ import org.apache.hadoop.util.GSet;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -107,9 +113,12 @@ public class TestLdapAuth {
     assertThat(res.getStatusLine().getStatusCode(), is(401));
 
     // Do local auth.
-    byte[] encode = Base64.getEncoder().encode("hdfs:hdfs".getBytes());
-    get.addHeader("Authorization", "Basic " + new String(encode));
-    HttpResponse res2 = client.execute(hostPort, get);
+    HttpPost post = new HttpPost("http://localhost:4567/login");
+    List<NameValuePair> postParams = new ArrayList<>();
+    postParams.add(new BasicNameValuePair("username", "hdfs"));
+    postParams.add(new BasicNameValuePair("password", "hdfs"));
+    post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
+    HttpResponse res2 = client.execute(hostPort, post);
     System.out.println(IOUtils.toString(res2.getEntity().getContent()));
     assertThat(res2.getStatusLine().getStatusCode(), is(200));
 
@@ -124,20 +133,22 @@ public class TestLdapAuth {
   @Test
   public void testLocalLogout() throws IOException {
     // Do local auth.
-    byte[] encode = Base64.getEncoder().encode("hdfs:hdfs".getBytes());
-    HttpGet get = new HttpGet("http://localhost:4567/info");
-    get.addHeader("Authorization", "Basic " + new String(encode));
-    HttpResponse res = client.execute(hostPort, get);
+    HttpPost post = new HttpPost("http://localhost:4567/login");
+    List<NameValuePair> postParams = new ArrayList<>();
+    postParams.add(new BasicNameValuePair("username", "hdfs"));
+    postParams.add(new BasicNameValuePair("password", "hdfs"));
+    post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
+    HttpResponse res = client.execute(hostPort, post);
     System.out.println(IOUtils.toString(res.getEntity().getContent()));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
 
     // Logout.
     Header tokenHeader = res.getFirstHeader("Set-Cookie");
-    HttpGet get2 = new HttpGet("http://localhost:4567/logout");
-    get2.addHeader("Cookie", tokenHeader.getValue());
-    HttpResponse res2 = client.execute(hostPort, get2);
+    HttpPost post2 = new HttpPost("http://localhost:4567/logout");
+    post2.addHeader("Cookie", tokenHeader.getValue());
+    HttpResponse res2 = client.execute(hostPort, post2);
     assertThat(IOUtils.toString(res2.getEntity().getContent()), containsString("logged out"));
-    assertThat(res2.getStatusLine().getStatusCode(), is(401));
+    assertThat(res2.getStatusLine().getStatusCode(), is(200));
 
     // Logout again; no JWT.
     HttpGet get3 = new HttpGet("http://localhost:4567/logout");
