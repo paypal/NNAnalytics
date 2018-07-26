@@ -23,6 +23,7 @@ import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.exception;
 import static spark.Spark.get;
+import static spark.Spark.post;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jose.EncryptionMethod;
@@ -202,9 +203,10 @@ public class NNAnalyticsRestAPI {
     }
 
     boolean ldapEnabled = conf.getLdapEnabled();
+    boolean localUsersEnabled = !conf.getLocalOnlyUsers().isEmpty();
     Spark.port(conf.getPort());
     if (ldapEnabled) {
-      LOG.info("Enabled web security.");
+      LOG.info("Enabling LDAP web authentication.");
       // jwt:
       SignatureConfiguration sigConf =
           new SecretSignatureConfiguration(conf.getJwtSignatureSecret());
@@ -251,15 +253,51 @@ public class NNAnalyticsRestAPI {
       // pac4j:
       LdapAuthenticator ldapAuth = new LdapAuthenticator();
       ldapAuth.setLdapAuthenticator(ldaptiveAuthenticator);
-
       secContext.init(conf, jwtAuthenticator, jwtGenerator, ldapAuth);
+    } else if (localUsersEnabled) {
+      LOG.info("Enabling Local-Only-User web authentication.");
+      // jwt:
+      SignatureConfiguration sigConf =
+          new SecretSignatureConfiguration(conf.getJwtSignatureSecret());
+      EncryptionConfiguration encConf =
+          new SecretEncryptionConfiguration(
+              conf.getJwtEncryptionSecret(), JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
+      JwtGenerator<CommonProfile> jwtGenerator = new JwtGenerator<>(sigConf, encConf);
+      JwtAuthenticator jwtAuthenticator = new JwtAuthenticator(sigConf, encConf);
+      secContext.init(conf, jwtAuthenticator, jwtGenerator, null);
     } else {
+      LOG.info("Disabling web authentication.");
       secContext.init(conf, null, null, null);
-      LOG.info("Disabled web security.");
+    }
+
+    if (conf.getAuthorizationEnabled()) {
+      LOG.info("Enabling web authorization.");
+    } else {
+      LOG.info("Disabling web authorization.");
     }
 
     /* This is the call to load everything under ./resources/public as HTML resources. */
     Spark.staticFileLocation("/public");
+
+    /* LOGOUT is used to log out of authenticated web sessions. */
+    post(
+        "/login",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "text/plain");
+          secContext.login(req, res);
+          return res;
+        });
+
+    /* LOGOUT is used to log out of authenticated web sessions. */
+    post(
+        "/logout",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "text/plain");
+          secContext.logout(req, res);
+          return res;
+        });
 
     /* ENDPOINTS endpoint is meant to showcase all available REST API endpoints in JSON list form. */
     get(
@@ -473,7 +511,9 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           secContext.handleAuthentication(req, res);
           secContext.handleAuthorization(req, res);
-          runningQueries.add(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
+          if (!"POST".equals(req.raw().getMethod())) {
+            runningQueries.add(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
+          }
         });
 
     /* HISTOGRAMS endpoint is meant to showcase the different types of histograms available in the "&type="
@@ -1645,7 +1685,6 @@ public class NNAnalyticsRestAPI {
         Exception.class,
         (ex, req, res) -> {
           if (ex instanceof AuthenticationException || ex instanceof BadCredentialsException) {
-            res.header("WWW-Authenticate", "Basic realm=\"Restricted\"");
             res.status(HttpStatus.SC_UNAUTHORIZED);
             res.body(ex.toString());
           } else if (ex instanceof AuthorizationException) {
@@ -1700,7 +1739,6 @@ public class NNAnalyticsRestAPI {
       LOG.error("Error during shutdown: ", e);
     }
     nnLoader.clear();
-    runningOperations.clear();
     runningOperations.clear();
     runningQueries.clear();
     operationService.shutdown();

@@ -225,6 +225,8 @@ public interface NNAConstants {
   }
 
   enum ENDPOINT {
+    login,
+    logout,
     endpoints,
     credentials,
     loadingStatus,
@@ -270,6 +272,8 @@ public interface NNAConstants {
 
   EnumSet<ENDPOINT> UNSECURED_ENDPOINTS =
       EnumSet.of(
+          ENDPOINT.login,
+          ENDPOINT.logout,
           ENDPOINT.endpoints,
           ENDPOINT.credentials,
           ENDPOINT.sets,

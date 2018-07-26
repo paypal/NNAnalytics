@@ -47,6 +47,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -104,6 +105,15 @@ public class TestNNAnalytics {
     assertThat(
         IOUtils.toString(res.getEntity().getContent()),
         containsString("INode GSet size: " + GSetGenerator.TOTAL_MADE.apply(null)));
+  }
+
+  @Test
+  public void testUnsecureLogout() throws IOException {
+    HttpPost post = new HttpPost("http://localhost:4567/logout");
+    HttpResponse res = client.execute(hostPort, post);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(400));
   }
 
   @Test

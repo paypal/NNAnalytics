@@ -189,14 +189,6 @@ public class SecurityConfiguration {
     return localOnlyUsers;
   }
 
-  public void overrideLdapEnabled(Boolean override) {
-    properties.setProperty("ldap.enable", override.toString());
-  }
-
-  public void overrideAuthorization(Boolean override) {
-    properties.setProperty("authorization.enable", override.toString());
-  }
-
   public String getSslKeystorePath() {
     return properties.getProperty("ssl.keystore.path");
   }
