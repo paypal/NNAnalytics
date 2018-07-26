@@ -20,6 +20,9 @@
 -->
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/html">
+<script src="./js/jquery.min.js"></script>
+<script src="./js/nna.utility.js"></script>
+<script type="text/javascript">checkIfAuthenticated();</script>
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -30,7 +33,7 @@
     <link rel="icon" href="./favicon.ico">
 
 
-    <title>NNAnalytics NameSpace</title>
+    <title>NNAnalytics Namespace</title>
 
     <!-- Bootstrap core CSS -->
     <link href="./css/bootstrap.min.css" rel="stylesheet">
@@ -147,15 +150,12 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="./js/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="./js/vendor/jquery.min.js"><\/script>')</script>
     <script src="./js/bootstrap.min.js"></script>
     <script src="./js/sweetalert.min.js"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <script src="./js/Chart.bundle.min.js"></script>
     <script src="./js/cycle.js"></script>
     <script type="text/javascript">$(document).ready(function(){ $('#navbar').load('navbar.html'); });</script>
-    <script src="./js/nna.utility.js"></script>
+    <script type="text/javascript">$(document).ready(function(){  $("head").append("header.html");});</script>
     <script type="text/javascript">checkIfAdmin();</script>
     <script>
 

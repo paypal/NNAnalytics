@@ -23,6 +23,7 @@ import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.exception;
 import static spark.Spark.get;
+import static spark.Spark.post;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jose.EncryptionMethod;
@@ -279,7 +280,17 @@ public class NNAnalyticsRestAPI {
     Spark.staticFileLocation("/public");
 
     /* LOGOUT is used to log out of authenticated web sessions. */
-    get(
+    post(
+        "/login",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "text/plain");
+          secContext.login(req, res);
+          return res;
+        });
+
+    /* LOGOUT is used to log out of authenticated web sessions. */
+    post(
         "/logout",
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
@@ -500,7 +511,9 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           secContext.handleAuthentication(req, res);
           secContext.handleAuthorization(req, res);
-          runningQueries.add(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
+          if (!"POST".equals(req.raw().getMethod())) {
+            runningQueries.add(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
+          }
         });
 
     /* HISTOGRAMS endpoint is meant to showcase the different types of histograms available in the "&type="
@@ -1672,7 +1685,6 @@ public class NNAnalyticsRestAPI {
         Exception.class,
         (ex, req, res) -> {
           if (ex instanceof AuthenticationException || ex instanceof BadCredentialsException) {
-            res.header("WWW-Authenticate", "Basic realm=\"Restricted\"");
             res.status(HttpStatus.SC_UNAUTHORIZED);
             res.body(ex.toString());
           } else if (ex instanceof AuthorizationException) {

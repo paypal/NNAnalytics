@@ -409,7 +409,27 @@ function Object_values(obj) {
     return Object.keys(obj).map(e => obj[e])
 }
 
-//shows admin menu in Navbar if user has admin credentials
+// Redirects to login.html if user is not AUTHENTICATED
+function checkIfAuthenticated() {
+    var proxy = getUrlParameter("proxy");
+    var urlPath = "./credentials";
+    if(proxy.length != 0) {
+        urlPath += "?proxy=" + proxy;
+    }
+
+    $.ajax({
+       type: 'GET',
+       async: false,
+       cache: false,
+       url: urlPath,
+       dataType: 'text',
+       statusCode: {
+          401:function() { window.location.replace("./login.html"); }
+       }
+    });
+}
+
+// Shows admin menu in navbar.html if user is ADMIN
 function checkIfAdmin() {
     var proxy = getUrlParameter("proxy");
     var urlPath = "./credentials";
