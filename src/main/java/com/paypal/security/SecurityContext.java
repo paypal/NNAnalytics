@@ -126,8 +126,7 @@ public class SecurityContext {
       throw new AuthenticationException("Bad username / password provided.");
     }
 
-    UsernamePasswordCredentials credentials = null;
-    RuntimeException authFailedEx = null;
+    UsernamePasswordCredentials credentials;
     CommonProfile profile;
 
     // Perform local authentication if found.
@@ -148,6 +147,7 @@ public class SecurityContext {
 
     // Perform LDAP authentication if found.
     if (ldapAuthenticator != null) {
+      RuntimeException authFailedEx = null;
       Set<String> ldapBaseDns = securityConfiguration.getLdapBaseDn();
       for (String ldapBaseDn : ldapBaseDns) {
         String ldapDnRegexd = ldapBaseDn.replaceAll("%u", username);
@@ -159,28 +159,25 @@ public class SecurityContext {
           authFailedEx = e;
           continue;
         }
-        authFailedEx = null;
+        LOG.info("Login success via [LDAP] for: {} at {}", username, req.ip());
+        profile = credentials.getUserProfile();
+        profile.setId(username);
+        String generate = jwtGenerator.generate(profile);
+        res.header("Set-Cookie", "nna-jwt-token=" + generate);
+        currentUser.set(username);
         break;
       }
 
       if (authFailedEx != null) {
         LOG.info("Login failed via [LDAP] for: {}", req.ip());
         throw authFailedEx;
+      } else {
+        return;
       }
-
-      assert credentials != null;
-      profile = credentials.getUserProfile();
-      profile.setId(username);
-      String generate = jwtGenerator.generate(profile);
-      res.header("Set-Cookie", "nna-jwt-token=" + generate);
-
-      String profileId = profile.getId();
-      LOG.info("Login success via [LDAP] for: {} at {}", profileId, req.ip());
-      currentUser.set(profileId);
-    } else {
-      LOG.info("Login failed for: {}", req.ip());
-      throw new AuthenticationException("Authentication required.");
     }
+
+    LOG.info("Login failed for: {}", req.ip());
+    throw new AuthenticationException("Authentication required.");
   }
 
   /**
