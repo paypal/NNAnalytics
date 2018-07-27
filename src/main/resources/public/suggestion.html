@@ -71,7 +71,7 @@
             <button type="button" id="2" class="btn btn-success btn-xs" onClick="document.getElementById('emptyDirs').scrollIntoView();" ><b>Empty Directories</b></button>
             <button type="button" id="3" class="btn btn-success btn-xs" onClick="document.getElementById('tinyFiles').scrollIntoView();"><b>Tiny Files</b></button>
             <button type="button" id="4" class="btn btn-success btn-xs" onClick="document.getElementById('smallFiles').scrollIntoView();"><b>Small Files</b></button>
-            <button type="button" id="5" class="btn btn-info btn-xs" onClick="document.getElementById('mediumFiles').scrollIntoView();" ><b>Medium Files</b></button>
+            <button type="button" id="5" class="btn btn-success btn-xs" onClick="document.getElementById('mediumFiles').scrollIntoView();" ><b>Medium Files</b></button>
             <button type="button" id="6" class="btn btn-info btn-xs" onClick="document.getElementById('largeFiles').scrollIntoView();" ><b>Large Files</b></button>
             <button type="button" id="7" class="btn btn-info btn-xs" onClick="document.getElementById('oldFiles').scrollIntoView();" ><b>Old Files</b></button>
             <button type="button" id="8" class="btn btn-success btn-xs" onClick="document.getElementById('dirQuotas').scrollIntoView();" ><b>Quotas</b></button>
@@ -909,7 +909,7 @@
                 var dsQuotaCount = data["dsQuotaCount"];
                 var nsQuotaThreshCount = data["nsQuotaThreshCount"];
                 var dsQuotaThreshCount = data["dsQuotaThreshCount"];
-                var totalBad = emptyFiles + emptyDirs + tinyFiles + smallFiles;
+                var totalBad = emptyFiles + emptyDirs + tinyFiles + smallFiles + mediumFiles;
                 var totalDF = totalFiles + totalDirs;
                 var username =  window.location.search;
 
@@ -992,6 +992,7 @@
                 $('#emptyDirs').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(emptyDirs,numDirs),"emptyDir"));
                 $('#tinyFiles').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(tinyFiles,numFiles) ,"tinyFile"));
                 $('#smallFiles').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(smallFiles,numFiles),"smallFile"));
+                $('#mediumFiles').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(mediumFiles,numFiles),"mediumFile"));
                 $('#dirQuotas').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(nsQuotaThreshCount,nsQuotaCount),"quotas"));
                 $('#dirQuotas').removeClass('list-group-item list-group-item-success').addClass(getLinkColor(getPercentage(dsQuotaThreshCount,dsQuotaCount),"quotas"));
 
@@ -999,6 +1000,7 @@
                 $('#2').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(emptyDirs,numDirs),"emptyDir"));
                 $('#3').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(tinyFiles,numFiles) ,"tinyFile"));
                 $('#4').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(smallFiles,numFiles),"smallFile"));
+                $('#5').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(mediumFiles,numFiles),"mediumFile"));
                 $('#8').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(nsQuotaThreshCount,nsQuotaCount),"quotas"));
                 $('#8').removeClass('btn btn-success btn-xs').addClass(getButtonColor(getPercentage(dsQuotaThreshCount,dsQuotaCount),"quotas"));
 

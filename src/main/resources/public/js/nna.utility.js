@@ -145,125 +145,122 @@ function getRandomColor() {
 function getLinkColor(value,name){
     switch(name){
         case "emptyFile":
+            if(value > 10.0){
+               return 'list-group-item list-group-item-danger';
+            }
             if(value > 0.0){
-                 return 'list-group-item list-group-item-danger';
-                }
-            else{
-               return 'list-group-item list-group-item-success';
-                }
-
+               return 'list-group-item list-group-item-warning';
+            }
+            return 'list-group-item list-group-item-success';
         case "emptyDir":
+            if(value > 10.0){
+               return 'list-group-item list-group-item-danger';
+            }
             if(value > 0.0){
-                 return 'list-group-item list-group-item-danger';
-              }
-            else{
-                return 'list-group-item list-group-item-success';
+               return 'list-group-item list-group-item-warning';
             }
+            return 'list-group-item list-group-item-success';
         case "tinyFile":
-            if(value > 1.0){
-                return 'list-group-item list-group-item-danger';
+            if(value > 10.0){
+               return 'list-group-item list-group-item-danger';
             }
-            else{
-                 return 'list-group-item list-group-item-success';
+            if(value > 0.0){
+               return 'list-group-item list-group-item-warning';
             }
+            return 'list-group-item list-group-item-success';
         case "smallFile":
-            if(value > 5.0){
-                  return 'list-group-item list-group-item-danger';
+            if(value > 10.0){
+               return 'list-group-item list-group-item-danger';
             }
-            else{
-                  return 'list-group-item list-group-item-success';
+            if(value > 0.0){
+               return 'list-group-item list-group-item-warning';
             }
+            return 'list-group-item list-group-item-success';
+        case "mediumFile":
+            if(value > 10.0){
+               return 'list-group-item list-group-item-danger';
+            }
+            if(value > 0.0){
+               return 'list-group-item list-group-item-warning';
+            }
+            return 'list-group-item list-group-item-success';
         case "oldFile":
-            if(value > 15.0){
-                  return 'list-group-item list-group-item-danger';
+            if(value > 10.0){
+               return 'list-group-item list-group-item-danger';
             }
-            else{
-                  return 'list-group-item list-group-item-success';
+            if(value > 0.0){
+               return 'list-group-item list-group-item-warning';
             }
+            return 'list-group-item list-group-item-success';
         case "quotas":
+            if(value > 10.0){
+               return 'list-group-item list-group-item-danger';
+            }
             if(value > 0.0){
-                  return 'list-group-item list-group-item-danger';
+               return 'list-group-item list-group-item-warning';
             }
-            else{
-                  return 'list-group-item list-group-item-success';
-            }
-    }
-}
-
-function getDivColor(value,name){
-    switch(name){
-        case "emptyFile":
-            if(value > 0.0){
-                return '#f7cac9';
-            } else {
-                return '#ddeedd';
-            }
-        case "emptyDir":
-            if(value > 0.0){
-                return '#f7cac9';
-            } else {
-                return '#ddeedd';
-            }
-        case "tinyFile":
-            if(value > 1.0){
-                return '#f7cac9';
-            } else {
-                return '#ddeedd';
-            }
-        case "smallFile":
-            if(value > 5.0){
-                return '#f7cac9';
-            } else {
-                return '#ddeedd';
-            }
-        case "oldFile":
-            if(value > 15.0){
-                return '#f7cac9';
-            } else {
-                return '#ddeedd';
-            }
+            return 'list-group-item list-group-item-success';
     }
 }
 
 function getButtonColor(value,name){
     switch(name){
         case "emptyFile":
-            if(value > 0.0){
-                return 'btn btn-danger btn-xs';
-            } else {
-                return 'btn btn-success btn-xs';
+            if(value > 10.0){
+               return 'btn btn-danger btn-xs';
             }
+            if(value > 0.0){
+               return 'btn btn-warning btn-xs';
+            }
+            return 'btn btn-success btn-xs';
         case "emptyDir":
-            if(value > 0.0){
-                return 'btn btn-danger btn-xs';
-            } else {
-                return 'btn btn-success btn-xs';
+            if(value > 10.0){
+               return 'btn btn-danger btn-xs';
             }
+            if(value > 0.0){
+               return 'btn btn-warning btn-xs';
+            }
+            return 'btn btn-success btn-xs';
         case "tinyFile":
-            if(value > 1.0){
-                return 'btn btn-danger btn-xs';
-            } else {
-                return 'btn btn-success btn-xs';
+            if(value > 10.0){
+               return 'btn btn-danger btn-xs';
             }
-        case "smallFile":
-            if(value > 5.0){
-                return 'btn btn-danger btn-xs';
-            } else {
-                return 'btn btn-success btn-xs';
-            }
-        case "oldFile":
-            if(value > 15.0){
-                return 'btn btn-danger btn-xs';
-            } else {
-                return 'btn btn-success btn-xs';
-            }
-        case "quotas":
             if(value > 0.0){
-              return 'btn btn-danger btn-xs';
+               return 'btn btn-warning btn-xs';
             }
-            else {
-              return 'btn btn-success btn-xs';
+            return 'btn btn-success btn-xs';
+        case "smallFile":
+            if(value > 10.0){
+               return 'btn btn-danger btn-xs';
             }
+            if(value > 0.0){
+               return 'btn btn-warning btn-xs';
+            }
+            return 'btn btn-success btn-xs';
+        case "mediumFile":
+            if(value > 10.0){
+               return 'btn btn-danger btn-xs';
+            }
+            if(value > 0.0){
+               return 'btn btn-warning btn-xs';
+            }
+            return 'btn btn-success btn-xs';
+        case "oldFile":
+            if(value > 10.0){
+               return 'btn btn-danger btn-xs';
+            }
+            if(value > 0.0){
+               return 'btn btn-warning btn-xs';
+            }
+            return 'btn btn-success btn-xs';
+        case "quotas":
+            if(value > 10.0){
+               return 'btn btn-danger btn-xs';
+            }
+            if(value > 0.0){
+               return 'btn btn-warning btn-xs';
+            }
+            return 'btn btn-success btn-xs';
    }
 }
 
