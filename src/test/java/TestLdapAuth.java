@@ -127,7 +127,15 @@ public class TestLdapAuth {
     HttpGet get2 = new HttpGet("http://localhost:4567/threads");
     get2.addHeader("Cookie", tokenHeader.getValue());
     HttpResponse res3 = client.execute(hostPort, get2);
+    IOUtils.readLines(res3.getEntity().getContent()).clear();
     assertThat(res3.getStatusLine().getStatusCode(), is(200));
+
+    // Check credentials exist.
+    HttpGet get3 = new HttpGet("http://localhost:4567/credentials");
+    get3.addHeader("Cookie", tokenHeader.getValue());
+    HttpResponse res4 = client.execute(hostPort, get3);
+    IOUtils.readLines(res4.getEntity().getContent()).clear();
+    assertThat(res4.getStatusLine().getStatusCode(), is(200));
   }
 
   @Test
