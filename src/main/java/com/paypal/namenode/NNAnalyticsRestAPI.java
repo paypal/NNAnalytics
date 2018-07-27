@@ -502,6 +502,11 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
+          if (secContext.isAuthenticationEnabled()) {
+            res.status(HttpStatus.SC_OK);
+          } else {
+            res.status(HttpStatus.SC_BAD_REQUEST);
+          }
           NNAHelper.toJsonList(res.raw(), secContext.getAccessLevels());
           return res;
         });

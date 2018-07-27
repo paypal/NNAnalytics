@@ -442,9 +442,19 @@ function checkIfAdmin() {
        url: urlPath,
        dataType: 'text',
 
-       success: function(json) {
-          var isAdmin = json.includes("ADMIN");
-          $("li.admin-menu").show();
+       statusCode: {
+         400: function(xhr) {
+           $("li.admin-menu").hide();
+           $("li.user-menu").hide();
+         },
+         200: function(xhr) {
+           var isAdmin = xhr.includes("ADMIN");
+           if(isAdmin) {
+             $("li.admin-menu").show();
+           } else {
+             $("li.user-menu").show();
+           }
+         }
        }
     });
 }

@@ -69,10 +69,15 @@
 <script src="./js/sweetalert.min.js"></script>
 <script src="./js/Chart.bundle.min.js"></script>
 <script src="./js/cycle.js"></script>
-<script type="text/javascript">$(document).ready(function(){ $('#navbar').load('navbar.html'); });</script>
+<script type="text/javascript">
+      $(document).ready(function() { 
+          $('#navbar').load('navbar.html', function() {
+            checkIfAdmin();
+          });
+      });
+</script>
 <script type="text/javascript">$(document).ready(function(){  $("head").append("header.html");});</script>
 <script type="text/javascript">getClusterName();</script>
-<script type="text/javascript">checkIfAdmin();</script>
 
 <script>
     var limit = getUrlParameter("limit");

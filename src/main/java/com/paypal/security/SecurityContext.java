@@ -64,7 +64,6 @@ public class SecurityContext {
       ThreadLocal.withInitial(() -> "default_unsecured_user");
 
   private enum ACCESS_LEVEL {
-    AUTH,
     ADMIN,
     WRITER,
     READER,
@@ -100,7 +99,7 @@ public class SecurityContext {
     this.localOnlyUsers = new UserPasswordSet(secConf.getLocalOnlyUsers());
   }
 
-  private boolean isAuthenticationEnabled() {
+  public boolean isAuthenticationEnabled() {
     return ldapAuthenticator != null || (jwtAuthenticator != null && jwtGenerator != null);
   }
 
