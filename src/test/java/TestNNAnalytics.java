@@ -117,6 +117,15 @@ public class TestNNAnalytics {
   }
 
   @Test
+  public void testUnsecureCredentials() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/credentials");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(400));
+  }
+
+  @Test
   public void testModDateFilterGt() throws IOException {
     HttpGet get =
         new HttpGet(
