@@ -31,6 +31,7 @@ import org.apache.hadoop.security.authorize.AuthorizationException;
 import org.eclipse.jetty.http.HttpStatus;
 import org.ldaptive.auth.FormatDnResolver;
 import org.pac4j.core.credentials.UsernamePasswordCredentials;
+import org.pac4j.core.exception.BadCredentialsException;
 import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.profile.ProfileManager;
@@ -127,33 +128,30 @@ public class SecurityContext {
       throw new AuthenticationException("Bad username / password provided.");
     }
 
-    UsernamePasswordCredentials credentials;
-    CommonProfile profile;
-
     // Perform local authentication if found.
-    if (localOnlyUsers.allows(username)) {
-      if (localOnlyUsers.authenticate(username, password)) {
-        LOG.info("Login success via [LOCAL] for: {} at {}", username, req.ip());
-        profile = new CommonProfile();
-        profile.setId(username);
-        String generate = jwtGenerator.generate(profile);
-        res.header("Set-Cookie", "nna-jwt-token=" + generate);
-        currentUser.set(username);
-        return;
-      } else {
-        LOG.info("Login failed via [LOCAL] for: {}", req.ip());
-        throw new AuthenticationException("Authentication required.");
-      }
+    if (localLogin(req, res, username, password)) {
+      return;
     }
 
     // Perform LDAP authentication if found.
+    if (ldapLogin(req, res, username, password)) {
+      return;
+    }
+
+    LOG.info("Login failed for: {}", req.ip());
+    throw new AuthenticationException("Authentication required.");
+  }
+
+  private boolean ldapLogin(Request req, Response res, String username, String password)
+      throws HttpAction {
     if (ldapAuthenticator != null) {
       RuntimeException authFailedEx = null;
       Set<String> ldapBaseDns = securityConfiguration.getLdapBaseDn();
       for (String ldapBaseDn : ldapBaseDns) {
         String ldapDnRegexd = ldapBaseDn.replaceAll("%u", username);
         ldapAuthenticator.getLdapAuthenticator().setDnResolver(new FormatDnResolver(ldapDnRegexd));
-        credentials = new UsernamePasswordCredentials(username, password, req.ip());
+        UsernamePasswordCredentials credentials =
+            new UsernamePasswordCredentials(username, password, req.ip());
         try {
           ldapAuthenticator.validate(credentials, new SparkWebContext(req, res));
         } catch (RuntimeException e) {
@@ -161,24 +159,39 @@ public class SecurityContext {
           continue;
         }
         LOG.info("Login success via [LDAP] for: {} at {}", username, req.ip());
-        profile = credentials.getUserProfile();
+        CommonProfile profile = credentials.getUserProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
         res.header("Set-Cookie", "nna-jwt-token=" + generate);
         currentUser.set(username);
-        break;
+        return true;
       }
 
       if (authFailedEx != null) {
         LOG.info("Login failed via [LDAP] for: {}", req.ip());
         throw authFailedEx;
-      } else {
-        return;
       }
     }
+    return false;
+  }
 
-    LOG.info("Login failed for: {}", req.ip());
-    throw new AuthenticationException("Authentication required.");
+  private boolean localLogin(Request req, Response res, String username, String password)
+      throws AuthenticationException {
+    if (localOnlyUsers.allows(username)) {
+      if (localOnlyUsers.authenticate(username, password)) {
+        LOG.info("Login success via [LOCAL] for: {} at {}", username, req.ip());
+        CommonProfile profile = new CommonProfile();
+        profile.setId(username);
+        String generate = jwtGenerator.generate(profile);
+        res.header("Set-Cookie", "nna-jwt-token=" + generate);
+        currentUser.set(username);
+        return true;
+      } else {
+        LOG.info("Login failed via [LOCAL] for: {}", req.ip());
+        throw new BadCredentialsException("Invalid credentials for: " + username);
+      }
+    }
+    return false;
   }
 
   /**
@@ -239,10 +252,16 @@ public class SecurityContext {
       String[] split = nameAndPassword.split(":");
       String username = split[0];
       String password = split[1];
-      if (localOnlyUsers.authenticate(username, password)) {
-        currentUser.set(username);
+      // Perform local authentication if found.
+      if (localLogin(req, res, username, password)) {
         return;
       }
+      // Perform LDAP authentication if found.
+      if (ldapLogin(req, res, username, password)) {
+        return;
+      }
+      LOG.info("Login failed via [BASIC] for: {}", req.ip());
+      throw new AuthenticationException("Authentication required.");
     }
 
     // JWT authentication for end users whom have logged in.
