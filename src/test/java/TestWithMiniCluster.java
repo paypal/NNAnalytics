@@ -144,6 +144,28 @@ public class TestWithMiniCluster {
     assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("INode GSet size: "));
   }
 
+  @Test
+  public void testSaveNamespace() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/saveNamespace");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("Done."));
+  }
+
+  @Test
+  public void testSaveLegacyNamespace() throws Exception {
+    String baseDir = MiniDFSCluster.getBaseDirectory();
+    HttpGet get = new HttpGet("http://localhost:4567/saveNamespace?legacy=true&dir=" + baseDir);
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    String body = IOUtils.toString(res.getEntity().getContent());
+    if (body.contains("failed")) {
+      assertThat(body, containsString("UnsupportedOperation"));
+    } else {
+      assertThat(body, containsString("Done."));
+    }
+  }
+
   /**
    * In 2.4.0, MiniQJMHACluster has a bug starting DNs so we will use directories to track updates
    * instead of files.

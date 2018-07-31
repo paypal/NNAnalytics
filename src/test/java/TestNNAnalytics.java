@@ -17,10 +17,12 @@
  * under the License.
  */
 
+import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.UNSECURED_ENDPOINTS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.fail;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -35,6 +37,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
@@ -42,6 +45,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.ENDPOINT;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -105,6 +109,50 @@ public class TestNNAnalytics {
     assertThat(
         IOUtils.toString(res.getEntity().getContent()),
         containsString("INode GSet size: " + GSetGenerator.TOTAL_MADE.apply(null)));
+  }
+
+  @Test
+  public void testRefresh() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/refresh");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("UserSet"));
+  }
+
+  @Test
+  public void testThreads() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/threads");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testSystem() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/system");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testEndpoints() throws IOException {
+    EnumSet<ENDPOINT> clone = UNSECURED_ENDPOINTS.clone();
+    clone.remove(ENDPOINT.login);
+    clone.remove(ENDPOINT.logout);
+    clone.remove(ENDPOINT.credentials);
+    clone.forEach(
+        x -> {
+          String url = "http://localhost:4567/" + x.name();
+          System.out.println("Calling: " + url);
+          HttpGet get = new HttpGet(url);
+          HttpResponse res = null;
+          try {
+            res = client.execute(hostPort, get);
+            IOUtils.readLines(res.getEntity().getContent()).clear();
+          } catch (IOException e) {
+            fail();
+          }
+          assertThat(res.getStatusLine().getStatusCode(), is(200));
+        });
   }
 
   @Test
