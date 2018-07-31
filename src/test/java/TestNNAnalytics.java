@@ -135,7 +135,7 @@ public class TestNNAnalytics {
 
   @Test
   public void testBottom() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/top");
+    HttpGet get = new HttpGet("http://localhost:4567/bottom");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
@@ -391,6 +391,18 @@ public class TestNNAnalytics {
 
   @Test
   public void testFindMaxFileSizeUserHistogramCSV() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=user&find=max:fileSize&histogramOutput=csv");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> text = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(text.size(), is(1));
+    assertThat(text.get(0).split(",").length, is(2));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFindAvgFileSizeUserHistogramCSV() throws IOException {
     HttpGet get =
         new HttpGet(
             "http://localhost:4567/histogram?set=files&type=user&find=max:fileSize&histogramOutput=csv");

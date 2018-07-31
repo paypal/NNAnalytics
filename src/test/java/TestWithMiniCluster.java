@@ -137,11 +137,17 @@ public class TestWithMiniCluster {
   }
 
   @Test
-  public void testInfo() throws Exception {
-    HttpGet get = new HttpGet("http://localhost:4567/info");
+  public void testLoadingStatus() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/loadingStatus");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
-    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("INode GSet size: "));
+  }
+
+  @Test
+  public void testConf() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/config");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
   @Test
