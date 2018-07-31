@@ -169,8 +169,15 @@ public class TestNNAnalytics {
   }
 
   @Test
-  public void testQuotas() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/quotas");
+  public void testDsQuotas() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/quotas?sum=dsQuotaRatioUsed");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testNsQuotas() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/quotas?sum=nsQuotaRatioUsed");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
