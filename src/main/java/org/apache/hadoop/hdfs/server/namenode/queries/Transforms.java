@@ -19,8 +19,6 @@
 
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
-// import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -133,7 +131,7 @@ public class Transforms {
         continue;
       }
 
-      throw new IllegalArgumentException("Your transform sucks.");
+      throw new IllegalArgumentException("Invalid transform filter.");
     }
 
     // And the functions.
@@ -162,11 +160,8 @@ public class Transforms {
             node -> Long.parseLong(transformOutput) * node.asFile().computeFileSize(),
             transformMap);
         return transformMap;
-        //        addFunctionToTransformMap("storagePolicy", andedComparisons, node -> (long)
-        // BlockStoragePolicySuite.createDefaultSuite().getPolicy(transformOutput).getId(),
-        // transformMap);
       default:
-        throw new IllegalArgumentException("Your transform arguments suck.");
+        throw new IllegalArgumentException("Invalid transform filter.");
     }
   }
 

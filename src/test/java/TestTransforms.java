@@ -92,4 +92,39 @@ public class TestTransforms {
     long transformedDiskspaceConsumed = files.stream().mapToLong(fileReplicaTransform::apply).sum();
     assertThat(transformedDiskspaceConsumed < diskspaceConsumed, is(true));
   }
+
+  @Test
+  public void testTransformDiskspaceConsumedByUser() {
+    Map<String, Function<INode, Long>> transformMap =
+        Transforms.getAttributeTransforms("user:eq:hdfs", "fileReplica", "1", nna.getLoader());
+    assertThat(transformMap.size(), is(not(0)));
+    Function<INode, Long> fileReplicaTransform = transformMap.get("diskspaceConsumed");
+    assertThat(fileReplicaTransform, is(notNullValue()));
+    Collection<INode> files = nna.getLoader().getINodeSet("files");
+    long diskspaceConsumed =
+        files
+            .stream()
+            .mapToLong(node -> node.asFile().getFileReplication() * node.asFile().computeFileSize())
+            .sum();
+    long transformedDiskspaceConsumed = files.stream().mapToLong(fileReplicaTransform::apply).sum();
+    assertThat(transformedDiskspaceConsumed < diskspaceConsumed, is(true));
+  }
+
+  @Test
+  public void testTransformDiskspaceConsumedByBeingWritten() {
+    Map<String, Function<INode, Long>> transformMap =
+        Transforms.getAttributeTransforms(
+            "isUnderConstruction:eq:true", "fileReplica", "1", nna.getLoader());
+    assertThat(transformMap.size(), is(not(0)));
+    Function<INode, Long> fileReplicaTransform = transformMap.get("diskspaceConsumed");
+    assertThat(fileReplicaTransform, is(notNullValue()));
+    Collection<INode> files = nna.getLoader().getINodeSet("files");
+    long diskspaceConsumed =
+        files
+            .stream()
+            .mapToLong(node -> node.asFile().getFileReplication() * node.asFile().computeFileSize())
+            .sum();
+    long transformedDiskspaceConsumed = files.stream().mapToLong(fileReplicaTransform::apply).sum();
+    assertThat(transformedDiskspaceConsumed == diskspaceConsumed, is(true));
+  }
 }

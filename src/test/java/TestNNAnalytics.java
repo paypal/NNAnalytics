@@ -127,6 +127,13 @@ public class TestNNAnalytics {
   }
 
   @Test
+  public void testDump() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/dump?path=/");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testTop() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/top");
     HttpResponse res = client.execute(hostPort, get);
