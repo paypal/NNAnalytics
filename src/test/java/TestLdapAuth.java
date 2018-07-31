@@ -104,7 +104,6 @@ public class TestLdapAuth {
     System.out.println(IOUtils.toString(res4.getEntity().getContent()));
   }
 
-  @Ignore("Test ignored -- for self test only.")
   @Test
   public void testLocalBasicAuthentication() throws IOException {
     // Do local basic auth.
