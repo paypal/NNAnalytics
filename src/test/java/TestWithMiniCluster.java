@@ -145,6 +145,13 @@ public class TestWithMiniCluster {
   }
 
   @Test
+  public void testHistory() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/history");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testSaveNamespace() throws Exception {
     HttpGet get = new HttpGet("http://localhost:4567/saveNamespace");
     HttpResponse res = client.execute(hostPort, get);

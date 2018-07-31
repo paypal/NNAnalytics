@@ -120,6 +120,62 @@ public class TestNNAnalytics {
   }
 
   @Test
+  public void testTokens() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/token");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testTop() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/top");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testBottom() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/top");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testSuggestions() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/suggestions");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testDirectories() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/directories");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFileAge() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileAge");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testUsers() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/users");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testQuotas() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/quotas");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testThreads() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/threads");
     HttpResponse res = client.execute(hostPort, get);
