@@ -104,6 +104,18 @@ public class TestLdapAuth {
     System.out.println(IOUtils.toString(res4.getEntity().getContent()));
   }
 
+  @Ignore("Test ignored -- for self test only.")
+  @Test
+  public void testLocalBasicAuthentication() throws IOException {
+    // Do local basic auth.
+    byte[] encode = Base64.getEncoder().encode("hdfs:hdfs".getBytes());
+    HttpGet get = new HttpGet("http://localhost:4567/info");
+    get.addHeader("Authorization", "Basic " + new String(encode));
+    HttpResponse res2 = client.execute(hostPort, get);
+    System.out.println(IOUtils.toString(res2.getEntity().getContent()));
+    assertThat(res2.getStatusLine().getStatusCode(), is(200));
+  }
+
   @Test
   public void testLocalAuthentication() throws IOException {
     // Test authentication required.
