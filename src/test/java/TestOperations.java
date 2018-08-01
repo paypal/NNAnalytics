@@ -49,14 +49,6 @@ public class TestOperations {
   private static HttpClient client;
   private static NNAnalyticsRestAPI nna;
 
-  /** Long running execution that will launch an NNA instance with a non-updating namespace. */
-  public static void main(String[] args) throws Exception {
-    beforeClass();
-    while (true) {
-      // Let the server run.
-    }
-  }
-
   @BeforeClass
   public static void beforeClass() throws Exception {
     GSetGenerator gSetGenerator = new GSetGenerator();

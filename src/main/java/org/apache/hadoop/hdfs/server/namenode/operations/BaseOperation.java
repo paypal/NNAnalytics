@@ -45,7 +45,11 @@ public abstract class BaseOperation implements Operation {
   final Iterator<INode> iterator;
   INode nextToOperate;
 
-  BaseOperation(Collection<INode> toPerform, String owner, String query, FileSystem fs) {
+  BaseOperation(Collection<INode> toPerform,
+                String owner,
+                String query,
+                String logbaseDir, 
+                FileSystem fs) {
     this.pathsOperated = new ArrayList<>();
     this.iterator = toPerform.iterator();
     this.nextToOperate = iterator.hasNext() ? iterator.next() : null;
@@ -55,7 +59,7 @@ public abstract class BaseOperation implements Operation {
     this.totalToOperate = toPerform.size();
     this.query = query;
     final boolean gzipLog = toPerform.size() >= (100 * 1000);
-    this.log = new OperationLog(identity, query, owner, gzipLog);
+    this.log = new OperationLog(identity, logbaseDir, query, owner, gzipLog);
     this.fs = fs;
   }
 

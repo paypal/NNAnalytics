@@ -32,9 +32,10 @@ public class SetStoragePolicy extends BaseOperation {
       Collection<INode> toSetRep,
       String query,
       String owner,
+      String logBaseDir,
       FileSystem fs,
       String newStoragePolicy) {
-    super(toSetRep, owner, query, fs);
+    super(toSetRep, owner, query, logBaseDir, fs);
     this.newStoragePolicy = newStoragePolicy;
   }
 

@@ -46,14 +46,14 @@ class OperationLog {
   private OutputStream fileStream;
   private boolean isClosed = false;
 
-  OperationLog(String identity, String query, String owner, boolean gzipLog) {
+  OperationLog(String identity, String logBaseDir, String query, String owner, boolean gzipLog) {
     this.identity = identity;
     this.owner = owner;
     this.query = query;
     this.gzipLog = gzipLog;
 
     final String logPath =
-        "/var/log/nn-analytics/" + identity + ".opLog" + ((gzipLog) ? ".gz" : "");
+        logBaseDir + "/" + identity + ".opLog" + ((gzipLog) ? ".gz" : "");
     this.log = new File(logPath);
   }
 

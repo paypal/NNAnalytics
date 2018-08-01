@@ -1211,16 +1211,28 @@ public class NNAnalyticsRestAPI {
 
             FileSystem fs = nnLoader.getFileSystem();
             String[] operationSplits = operation.split(":");
+            String logBaseDir = conf.getBaseDir();
             BaseOperation operationObj;
             switch (operationSplits[0]) {
               case "delete":
-                operationObj = new Delete(inodes, req.queryString(), secContext.getUserName(), fs);
+                operationObj =
+                    new Delete(
+                        inodes,
+                        req.queryString(),
+                        secContext.getUserName(),
+                        logBaseDir,
+                        fs);
                 break;
               case "setReplication":
                 short newReplFactor = Short.parseShort(operationSplits[1]);
                 operationObj =
                     new SetReplication(
-                        inodes, req.queryString(), secContext.getUserName(), fs, newReplFactor);
+                        inodes,
+                        req.queryString(),
+                        secContext.getUserName(),
+                        logBaseDir,
+                        fs, 
+                        newReplFactor);
                 break;
               case "setStoragePolicy":
                 operationObj =
@@ -1228,6 +1240,7 @@ public class NNAnalyticsRestAPI {
                         inodes,
                         req.queryString(),
                         secContext.getUserName(),
+                        logBaseDir,
                         fs,
                         operationSplits[1]);
                 break;
