@@ -25,6 +25,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.paypal.namenode.NNAnalyticsRestAPI;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -214,6 +215,12 @@ public class TestWithMiniCluster {
     } else {
       assertThat(body, containsString("Done."));
     }
+  }
+
+  @Test
+  public void testTokenExtractor() throws IOException {
+    Map<String, Long> tokenLastLogins = nna.getLoader().getTokenExtractor().getTokenLastLogins();
+    assertThat(tokenLastLogins.size(), is(0));
   }
 
   /**
