@@ -97,6 +97,52 @@ public class TestOperations {
     assertThat(statusCode, is(400));
   }
 
+  @Test(timeout = 10000)
+  public void testSetReplication() throws IOException, InterruptedException {
+    HttpGet post =
+        new HttpGet(
+            "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=setReplication:1");
+    HttpResponse res = client.execute(hostPort, post);
+    String setRepID = IOUtils.readLines(res.getEntity().getContent()).get(0);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    int statusCode;
+    while (true) {
+      client = new DefaultHttpClient();
+      HttpGet get = new HttpGet("http://localhost:4567/listOperations?identity=" + setRepID);
+      res = client.execute(hostPort, get);
+      statusCode = res.getStatusLine().getStatusCode();
+      if (statusCode != 400) {
+        assertThat(statusCode, is(200));
+      } else {
+        break;
+      }
+    }
+    assertThat(statusCode, is(400));
+  }
+
+  @Test(timeout = 10000)
+  public void testSetStoragePolicy() throws IOException, InterruptedException {
+    HttpGet post =
+        new HttpGet(
+            "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=setStoragePolicy:COLD");
+    HttpResponse res = client.execute(hostPort, post);
+    String setPolicyID = IOUtils.readLines(res.getEntity().getContent()).get(0);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    int statusCode;
+    while (true) {
+      client = new DefaultHttpClient();
+      HttpGet get = new HttpGet("http://localhost:4567/listOperations?identity=" + setPolicyID);
+      res = client.execute(hostPort, get);
+      statusCode = res.getStatusLine().getStatusCode();
+      if (statusCode != 400) {
+        assertThat(statusCode, is(200));
+      } else {
+        break;
+      }
+    }
+    assertThat(statusCode, is(400));
+  }
+
   @Test
   public void testGetNonExistantDelete() throws IOException, InterruptedException {
     HttpGet get = new HttpGet("http://localhost:4567/abortOperation?identity=FAKEID");
