@@ -158,6 +158,34 @@ public class TestWithMiniCluster {
   }
 
   @Test
+  public void testDrop1() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/drop?table=LOGIN");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testDrop2() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/drop?table=HISTORY");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testTruncate1() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/truncate?table=HISTORY&limit=1");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testTruncate2() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/truncate?table=LOGIN&limit=1");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testTokens() throws Exception {
     HttpGet get = new HttpGet("http://localhost:4567/token");
     HttpResponse res = client.execute(hostPort, get);

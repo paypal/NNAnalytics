@@ -56,7 +56,6 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -244,6 +243,19 @@ public class TestNNAnalytics {
   }
 
   @Test
+  public void testAddRemoveDirectoryToCache() throws IOException {
+    HttpGet addDir = new HttpGet("http://localhost:4567/addDirectory?dir=/test");
+    HttpResponse res = client.execute(hostPort, addDir);
+    IOUtils.readLines(res.getEntity().getContent()).clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+
+    HttpGet rmDir = new HttpGet("http://localhost:4567/removeDirectory?dir=/test");
+    res = client.execute(hostPort, rmDir);
+    IOUtils.readLines(res.getEntity().getContent()).clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testModDateFilterGt() throws IOException {
     HttpGet get =
         new HttpGet(
@@ -298,84 +310,6 @@ public class TestNNAnalytics {
     int count = Integer.parseInt(text.get(0));
     assertThat(count, is(not(0)));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
-  }
-
-  @Ignore("Operations are not ready yet")
-  @Test(timeout = 10000)
-  public void testDelete() throws IOException, InterruptedException {
-    HttpGet post =
-        new HttpGet(
-            "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=delete");
-    HttpResponse res = client.execute(hostPort, post);
-    String deleteID = IOUtils.readLines(res.getEntity().getContent()).get(0);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-    int statusCode;
-    while (true) {
-      client = new DefaultHttpClient();
-      HttpGet get = new HttpGet("http://localhost:4567/listOperations?identity=" + deleteID);
-      res = client.execute(hostPort, get);
-      statusCode = res.getStatusLine().getStatusCode();
-      if (statusCode != 400) {
-        assertThat(statusCode, is(200));
-      } else {
-        break;
-      }
-    }
-    assertThat(statusCode, is(400));
-  }
-
-  @Ignore("Operations are not ready yet")
-  @Test
-  public void testGetNonExistantDelete() throws IOException, InterruptedException {
-    HttpGet get = new HttpGet("http://localhost:4567/abortOperation?identity=FAKEID");
-    HttpResponse res = client.execute(hostPort, get);
-    assertThat(res.getStatusLine().getStatusCode(), is(400));
-  }
-
-  @Ignore("Operations are not ready yet")
-  @Test
-  public void testAbortNonExistantDelete() throws IOException, InterruptedException {
-    HttpGet delete = new HttpGet("http://localhost:4567/listOperations?identity=FAKEID");
-    HttpResponse res = client.execute(hostPort, delete);
-    assertThat(res.getStatusLine().getStatusCode(), is(400));
-  }
-
-  @Ignore("Operations are not ready yet")
-  @Test(timeout = 10000)
-  public void testAbortDeletes() throws IOException, InterruptedException {
-    HttpGet post =
-        new HttpGet(
-            "http://localhost:4567/submitOperation?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&sleep=1000&operation=delete");
-    HttpResponse res = client.execute(hostPort, post);
-    String deleteID1 = IOUtils.readLines(res.getEntity().getContent()).get(0);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-    client = new DefaultHttpClient();
-    post =
-        new HttpGet(
-            "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0&sleep=1000&operation=delete");
-    res = client.execute(hostPort, post);
-    String deleteID2 = IOUtils.readLines(res.getEntity().getContent()).get(0);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-
-    client = new DefaultHttpClient();
-    HttpGet delete = new HttpGet("http://localhost:4567/abortOperation?identity=" + deleteID1);
-    res = client.execute(hostPort, delete);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-    client = new DefaultHttpClient();
-    delete = new HttpGet("http://localhost:4567/abortOperation?identity=" + deleteID2);
-    res = client.execute(hostPort, delete);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-
-    while (true) {
-      client = new DefaultHttpClient();
-      HttpGet get = new HttpGet("http://localhost:4567/listOperations");
-      res = client.execute(hostPort, get);
-      assertThat(res.getStatusLine().getStatusCode(), is(200));
-      List<String> text = IOUtils.readLines(res.getEntity().getContent());
-      if (text.size() == 1) {
-        break;
-      }
-    }
   }
 
   @Test
