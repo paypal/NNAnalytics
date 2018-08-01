@@ -1216,16 +1216,17 @@ public class NNLoader {
             .parallel()
             .forEach(
                 idx -> {
-                  int id = (int) data[idx];
+                  long datum = data[idx];
                   int chosenBin = binsArray.length;
-                  if (id < chosenBin && id != -1) {
-                    // Lock in the bin.
-                    chosenBin = id;
+                  for (int i = 0; i < binsArray.length; i++) {
+                    if (datum <= binsArray[i] && chosenBin == binsArray.length) {
+                      chosenBin = i;
+                    }
                   }
                   synchronized (bigHistogram) {
                     BigInteger currentVal = bigHistogram[chosenBin];
                     long sum = sums[idx];
-                    if (currentVal.equals(BigInteger.valueOf(-1))) {
+                    if (currentVal == null) {
                       bigHistogram[chosenBin] = BigInteger.valueOf(sum);
                     } else {
                       bigHistogram[chosenBin] =
@@ -1239,7 +1240,8 @@ public class NNLoader {
             bigHistogram[i] = bigHistogram[i].divide(BigInteger.valueOf(counts[i]));
           }
         }
-        histogram = Arrays.stream(bigHistogram).mapToLong(BigInteger::longValue).toArray();
+        histogram =
+            Arrays.stream(bigHistogram).mapToLong(x -> x == null ? 0L : x.longValue()).toArray();
         LOG.info("Histogram returned an array of size: {}", histogram.length);
       } else {
         histogram = new long[binsArray.length + 1];

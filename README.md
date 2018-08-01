@@ -1,6 +1,7 @@
 [![License](http://img.shields.io/:license-Apache%202-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 [![Build Status](https://travis-ci.com/paypal/NNAnalytics.svg?branch=master)](https://travis-ci.com/paypal/NNAnalytics)
 [![Documentation Status](https://readthedocs.org/projects/nnanalytics/badge/?version=latest)](https://nnanalytics.readthedocs.io/en/latest/)
+[![codecov](https://codecov.io/gh/paypal/NNAnalytics/branch/master/graph/badge.svg)](https://codecov.io/gh/paypal/NNAnalytics)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/acc8afc858ff485ea67653b23c8ea82b)](https://github.com/paypal/NNAnalytics/pulls) 
 [![Join the chat at https://gitter.im/NNAnalytics/Lobby](https://badges.gitter.im/NNAnalytics/Lobby.svg)](https://gitter.im/NNAnalytics/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 

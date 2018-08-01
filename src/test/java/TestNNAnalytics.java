@@ -17,10 +17,12 @@
  * under the License.
  */
 
+import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.UNSECURED_ENDPOINTS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.fail;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -35,6 +37,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
@@ -42,6 +45,8 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
+import org.apache.hadoop.hdfs.server.namenode.NNAConstants.ENDPOINT;
+import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -52,7 +57,6 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -108,6 +112,143 @@ public class TestNNAnalytics {
   }
 
   @Test
+  public void testRefresh() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/refresh");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("UserSet"));
+  }
+
+  @Test
+  public void testTokens() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/token");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testDump() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/dump?path=/");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testTop() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/top");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testBottom() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/bottom");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testSuggestions() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/suggestions");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testSuggestionsUser() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/suggestions?user=hdfs");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testDirectories() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/directories");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFileAgeCount() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileAge?sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFileAgeDs() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileAge?sum=diskspaceConsumed");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testUsers() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/users");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testUsersSuggestions() throws IOException {
+    NNLoader loader = nna.getLoader();
+    loader.getSuggestionsEngine().reloadSuggestions(loader);
+    HttpGet get = new HttpGet("http://localhost:4567/users?suggestion=emptyFilesUsers");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testDsQuotas() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/quotas?sum=dsQuotaRatioUsed");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testNsQuotas() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/quotas?sum=nsQuotaRatioUsed");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testThreads() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/threads");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testSystem() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/system");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testEndpoints() throws IOException {
+    EnumSet<ENDPOINT> clone = UNSECURED_ENDPOINTS.clone();
+    clone.remove(ENDPOINT.login);
+    clone.remove(ENDPOINT.logout);
+    clone.remove(ENDPOINT.credentials);
+    clone.forEach(
+        x -> {
+          String url = "http://localhost:4567/" + x.name();
+          System.out.println("Calling: " + url);
+          HttpGet get = new HttpGet(url);
+          HttpResponse res = null;
+          try {
+            res = client.execute(hostPort, get);
+            IOUtils.readLines(res.getEntity().getContent()).clear();
+          } catch (IOException e) {
+            fail();
+          }
+          assertThat(res.getStatusLine().getStatusCode(), is(200));
+        });
+  }
+
+  @Test
   public void testUnsecureLogout() throws IOException {
     HttpPost post = new HttpPost("http://localhost:4567/logout");
     HttpResponse res = client.execute(hostPort, post);
@@ -123,6 +264,19 @@ public class TestNNAnalytics {
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
     assertThat(res.getStatusLine().getStatusCode(), is(400));
+  }
+
+  @Test
+  public void testAddRemoveDirectoryToCache() throws IOException {
+    HttpGet addDir = new HttpGet("http://localhost:4567/addDirectory?dir=/test");
+    HttpResponse res = client.execute(hostPort, addDir);
+    IOUtils.readLines(res.getEntity().getContent()).clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+
+    HttpGet rmDir = new HttpGet("http://localhost:4567/removeDirectory?dir=/test");
+    res = client.execute(hostPort, rmDir);
+    IOUtils.readLines(res.getEntity().getContent()).clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
   @Test
@@ -182,84 +336,6 @@ public class TestNNAnalytics {
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
-  @Ignore("Operations are not ready yet")
-  @Test(timeout = 10000)
-  public void testDelete() throws IOException, InterruptedException {
-    HttpGet post =
-        new HttpGet(
-            "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=delete");
-    HttpResponse res = client.execute(hostPort, post);
-    String deleteID = IOUtils.readLines(res.getEntity().getContent()).get(0);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-    int statusCode;
-    while (true) {
-      client = new DefaultHttpClient();
-      HttpGet get = new HttpGet("http://localhost:4567/listOperations?identity=" + deleteID);
-      res = client.execute(hostPort, get);
-      statusCode = res.getStatusLine().getStatusCode();
-      if (statusCode != 400) {
-        assertThat(statusCode, is(200));
-      } else {
-        break;
-      }
-    }
-    assertThat(statusCode, is(400));
-  }
-
-  @Ignore("Operations are not ready yet")
-  @Test
-  public void testGetNonExistantDelete() throws IOException, InterruptedException {
-    HttpGet get = new HttpGet("http://localhost:4567/abortOperation?identity=FAKEID");
-    HttpResponse res = client.execute(hostPort, get);
-    assertThat(res.getStatusLine().getStatusCode(), is(400));
-  }
-
-  @Ignore("Operations are not ready yet")
-  @Test
-  public void testAbortNonExistantDelete() throws IOException, InterruptedException {
-    HttpGet delete = new HttpGet("http://localhost:4567/listOperations?identity=FAKEID");
-    HttpResponse res = client.execute(hostPort, delete);
-    assertThat(res.getStatusLine().getStatusCode(), is(400));
-  }
-
-  @Ignore("Operations are not ready yet")
-  @Test(timeout = 10000)
-  public void testAbortDeletes() throws IOException, InterruptedException {
-    HttpGet post =
-        new HttpGet(
-            "http://localhost:4567/submitOperation?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&sleep=1000&operation=delete");
-    HttpResponse res = client.execute(hostPort, post);
-    String deleteID1 = IOUtils.readLines(res.getEntity().getContent()).get(0);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-    client = new DefaultHttpClient();
-    post =
-        new HttpGet(
-            "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0&sleep=1000&operation=delete");
-    res = client.execute(hostPort, post);
-    String deleteID2 = IOUtils.readLines(res.getEntity().getContent()).get(0);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-
-    client = new DefaultHttpClient();
-    HttpGet delete = new HttpGet("http://localhost:4567/abortOperation?identity=" + deleteID1);
-    res = client.execute(hostPort, delete);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-    client = new DefaultHttpClient();
-    delete = new HttpGet("http://localhost:4567/abortOperation?identity=" + deleteID2);
-    res = client.execute(hostPort, delete);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-
-    while (true) {
-      client = new DefaultHttpClient();
-      HttpGet get = new HttpGet("http://localhost:4567/listOperations");
-      res = client.execute(hostPort, get);
-      assertThat(res.getStatusLine().getStatusCode(), is(200));
-      List<String> text = IOUtils.readLines(res.getEntity().getContent());
-      if (text.size() == 1) {
-        break;
-      }
-    }
-  }
-
   @Test
   public void testFindMinFileSize() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/filter?set=files&find=min:fileSize");
@@ -280,6 +356,18 @@ public class TestNNAnalytics {
 
   @Test
   public void testFindMaxFileSizeUserHistogramCSV() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=user&find=max:fileSize&histogramOutput=csv");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> text = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(text.size(), is(1));
+    assertThat(text.get(0).split(",").length, is(2));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFindAvgFileSizeUserHistogramCSV() throws IOException {
     HttpGet get =
         new HttpGet(
             "http://localhost:4567/histogram?set=files&type=user&find=max:fileSize&histogramOutput=csv");
@@ -392,6 +480,39 @@ public class TestNNAnalytics {
                 JsonObject.class);
     JsonArray histogramValuesArray = getJsonDataArray(object);
     assertThat(histogramValuesArray.size(), is(10));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testAccessTimeHistogram2WithCountAndDs() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram2?set=files&type=accessTime&sum=count,diskspaceConsumed");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testModTimeHistogram2WithCountAndDsAsCSV() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram2?set=files&type=modTime&sum=count,diskspaceConsumed&histogramOutput=csv");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testUserHistogram2WithCountAndDsAsJson() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram2?set=files&type=user&sum=count,diskspaceConsumed&histogramOutput=json");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 

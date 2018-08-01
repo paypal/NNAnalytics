@@ -29,8 +29,13 @@ public class SetReplication extends BaseOperation {
   private final short newRepFactor;
 
   public SetReplication(
-      Collection<INode> toSetRep, String query, String owner, FileSystem fs, short newRepFactor) {
-    super(toSetRep, owner, query, fs);
+      Collection<INode> toSetRep,
+      String query,
+      String owner,
+      String logBaseDir,
+      FileSystem fs,
+      short newRepFactor) {
+    super(toSetRep, owner, query, logBaseDir, fs);
     this.newRepFactor = newRepFactor;
   }
 

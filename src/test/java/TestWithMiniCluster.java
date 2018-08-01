@@ -24,8 +24,11 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
 import com.paypal.security.SecurityConfiguration;
+import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -47,6 +50,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -137,11 +141,92 @@ public class TestWithMiniCluster {
   }
 
   @Test
-  public void testInfo() throws Exception {
-    HttpGet get = new HttpGet("http://localhost:4567/info");
+  public void testLoadingStatus() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/loadingStatus");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
-    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("INode GSet size: "));
+  }
+
+  @Test
+  public void testConf() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/config");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testHistory() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/history");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testDrop1() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/drop?table=LOGIN");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testDrop2() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/drop?table=HISTORY");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testTruncate1() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/truncate?table=HISTORY&limit=1");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Ignore("Seems to break")
+  @Test
+  public void testTruncate2() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/truncate?table=LOGIN&limit=1");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testTokens() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/token");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testSaveNamespace() throws Exception {
+    String namespaceDir = MiniDFSCluster.getBaseDirectory() + "/dfs/name/current/";
+    FileUtils.forceMkdir(new File(namespaceDir));
+    HttpGet get = new HttpGet("http://localhost:4567/saveNamespace");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("Done."));
+  }
+
+  @Test
+  public void testSaveLegacyNamespace() throws Exception {
+    String legacyBaseDir = MiniDFSCluster.getBaseDirectory() + "/dfs/name/legacy/";
+    FileUtils.forceMkdir(new File(legacyBaseDir));
+    HttpGet get =
+        new HttpGet("http://localhost:4567/saveNamespace?legacy=true&dir=" + legacyBaseDir);
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    String body = IOUtils.toString(res.getEntity().getContent());
+    if (body.contains("failed")) {
+      assertThat(body, containsString("UnsupportedOperation"));
+    } else {
+      assertThat(body, containsString("Done."));
+    }
+  }
+
+  @Test
+  public void testTokenExtractor() throws IOException {
+    Map<String, Long> tokenLastLogins = nna.getLoader().getTokenExtractor().getTokenLastLogins();
+    assertThat(tokenLastLogins.size(), is(0));
   }
 
   /**

@@ -245,24 +245,6 @@ public class HSQLDriver {
     return new Gson().toJson(list);
   }
 
-  /*
-   * Unused now. Storing in H2 was too slow. Using MapDB for cached values instead.
-   */
-  @Deprecated()
-  private Map<String, Long> fetchLogins() throws SQLException {
-    Map<String, Long> fetched = new HashMap<>();
-    try (PreparedStatement selectStatement = con.prepareStatement("SELECT * FROM LOGIN")) {
-      try (ResultSet resultSet = selectStatement.executeQuery()) {
-        while (resultSet.next()) {
-          String user = resultSet.getString("USER");
-          Timestamp login = resultSet.getTimestamp("LOGIN");
-          fetched.put(user, login.getTime());
-        }
-      }
-    }
-    return fetched;
-  }
-
   public void rebuildTable(String table) throws SQLException {
     switch (table) {
       case "LOGIN":
