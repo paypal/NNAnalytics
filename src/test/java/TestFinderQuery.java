@@ -138,6 +138,7 @@ public class TestFinderQuery {
     ArrayList<NNAConstants.FIND_FIELD> fileFind = new ArrayList<>();
     fileFind.addAll(NNAConstants.FIND_FILE);
     findFile.put(NNAConstants.FIND.max, fileFind);
+    findFile.put(NNAConstants.FIND.avg, fileFind);
     findFile.put(NNAConstants.FIND.min, fileFind);
     for (NNAConstants.HISTOGRAM typeFile : NNAConstants.TYPE_FILE) {
       fileFindField.put(typeFile, findFile);
@@ -151,6 +152,7 @@ public class TestFinderQuery {
     ArrayList<NNAConstants.FIND_FIELD> dirFind = new ArrayList<>();
     dirFind.addAll(NNAConstants.FIND_DIR);
     findDir.put(NNAConstants.FIND.max, dirFind);
+    findDir.put(NNAConstants.FIND.avg, fileFind);
     findDir.put(NNAConstants.FIND.min, dirFind);
     for (NNAConstants.HISTOGRAM typeDir : NNAConstants.TYPE_DIR) {
       dirFindField.put(typeDir, findDir);
@@ -164,6 +166,7 @@ public class TestFinderQuery {
     ArrayList<NNAConstants.FIND_FIELD> allFind = new ArrayList<>();
     allFind.addAll(NNAConstants.FIND_ALL);
     findAll.put(NNAConstants.FIND.max, allFind);
+    findDir.put(NNAConstants.FIND.avg, allFind);
     findAll.put(NNAConstants.FIND.min, allFind);
     for (NNAConstants.HISTOGRAM typeAll : NNAConstants.TYPE_ALL) {
       allFindField.put(typeAll, findAll);
