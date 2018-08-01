@@ -52,8 +52,7 @@ class OperationLog {
     this.query = query;
     this.gzipLog = gzipLog;
 
-    final String logPath =
-        logBaseDir + "/" + identity + ".opLog" + ((gzipLog) ? ".gz" : "");
+    final String logPath = logBaseDir + "/" + identity + ".opLog" + ((gzipLog) ? ".gz" : "");
     this.log = new File(logPath);
   }
 

@@ -45,11 +45,8 @@ public abstract class BaseOperation implements Operation {
   final Iterator<INode> iterator;
   INode nextToOperate;
 
-  BaseOperation(Collection<INode> toPerform,
-                String owner,
-                String query,
-                String logbaseDir, 
-                FileSystem fs) {
+  BaseOperation(
+      Collection<INode> toPerform, String owner, String query, String logbaseDir, FileSystem fs) {
     this.pathsOperated = new ArrayList<>();
     this.iterator = toPerform.iterator();
     this.nextToOperate = iterator.hasNext() ? iterator.next() : null;

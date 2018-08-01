@@ -1216,12 +1216,7 @@ public class NNAnalyticsRestAPI {
             switch (operationSplits[0]) {
               case "delete":
                 operationObj =
-                    new Delete(
-                        inodes,
-                        req.queryString(),
-                        secContext.getUserName(),
-                        logBaseDir,
-                        fs);
+                    new Delete(inodes, req.queryString(), secContext.getUserName(), logBaseDir, fs);
                 break;
               case "setReplication":
                 short newReplFactor = Short.parseShort(operationSplits[1]);
@@ -1231,7 +1226,7 @@ public class NNAnalyticsRestAPI {
                         req.queryString(),
                         secContext.getUserName(),
                         logBaseDir,
-                        fs, 
+                        fs,
                         newReplFactor);
                 break;
               case "setStoragePolicy":
