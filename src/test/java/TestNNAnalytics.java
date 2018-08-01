@@ -460,6 +460,39 @@ public class TestNNAnalytics {
   }
 
   @Test
+  public void testAccessTimeHistogram2WithCountAndDs() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram2?set=files&type=accessTime&sum=count,diskspaceConsumed");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testModTimeHistogram2WithCountAndDsAsCSV() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram2?set=files&type=modTime&sum=count,diskspaceConsumed&histogramOutput=csv");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testUserHistogram2WithCountAndDsAsJson() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram2?set=files&type=user&sum=count,diskspaceConsumed&histogramOutput=json");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testFileSizeHistogram() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/histogram?set=files&type=fileSize");
     HttpResponse res = client.execute(hostPort, get);
