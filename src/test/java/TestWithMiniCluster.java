@@ -24,9 +24,11 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.NNAnalyticsRestAPI;
 import com.paypal.security.SecurityConfiguration;
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -197,6 +199,8 @@ public class TestWithMiniCluster {
 
   @Test
   public void testSaveNamespace() throws Exception {
+    String namespaceDir = MiniDFSCluster.getBaseDirectory() + "/dfs/name/current/";
+    FileUtils.forceMkdir(new File(namespaceDir));
     HttpGet get = new HttpGet("http://localhost:4567/saveNamespace");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
@@ -205,8 +209,10 @@ public class TestWithMiniCluster {
 
   @Test
   public void testSaveLegacyNamespace() throws Exception {
-    String baseDir = MiniDFSCluster.getBaseDirectory();
-    HttpGet get = new HttpGet("http://localhost:4567/saveNamespace?legacy=true&dir=" + baseDir);
+    String legacyBaseDir = MiniDFSCluster.getBaseDirectory() + "/dfs/name/legacy/";
+    FileUtils.forceMkdir(new File(legacyBaseDir));
+    HttpGet get =
+        new HttpGet("http://localhost:4567/saveNamespace?legacy=true&dir=" + legacyBaseDir);
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
     String body = IOUtils.toString(res.getEntity().getContent());
