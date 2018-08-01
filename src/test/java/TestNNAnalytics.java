@@ -46,6 +46,7 @@ import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NNAConstants.ENDPOINT;
+import org.apache.hadoop.hdfs.server.namenode.NNLoader;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -154,6 +155,13 @@ public class TestNNAnalytics {
   }
 
   @Test
+  public void testSuggestionsUser() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/suggestions?user=hdfs");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testDirectories() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/directories");
     HttpResponse res = client.execute(hostPort, get);
@@ -161,8 +169,15 @@ public class TestNNAnalytics {
   }
 
   @Test
-  public void testFileAge() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/fileAge");
+  public void testFileAgeCount() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileAge?sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFileAgeDs() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileAge?sum=diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
@@ -170,6 +185,15 @@ public class TestNNAnalytics {
   @Test
   public void testUsers() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/users");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testUsersSuggestions() throws IOException {
+    NNLoader loader = nna.getLoader();
+    loader.getSuggestionsEngine().reloadSuggestions(loader);
+    HttpGet get = new HttpGet("http://localhost:4567/users?suggestion=emptyFilesUsers");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
