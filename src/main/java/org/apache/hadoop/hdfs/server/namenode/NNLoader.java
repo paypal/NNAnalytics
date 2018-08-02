@@ -1608,7 +1608,7 @@ public class NNLoader {
     int dirDepth =
         (parentDirDepth == null || parentDirDepth <= 0) ? Integer.MAX_VALUE : parentDirDepth;
     List<String> distinctDirectories =
-        StreamSupport.stream(inodes.spliterator(), true)
+        inodes.parallelStream()
             .map(
                 node -> {
                   try {
@@ -1629,12 +1629,12 @@ public class NNLoader {
             .collect(Collectors.toList());
 
     final AtomicLong id = new AtomicLong(0L);
-    Map<String, Long> dirToIdMap =
+    final Map<String, Long> dirToIdMap =
         distinctDirectories
             .parallelStream()
-            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
+            .collect(Collectors.toConcurrentMap(dir -> dir, dir -> id.getAndIncrement()));
     if (!dirToIdMap.containsKey("NO_MAPPING")) {
-      dirToIdMap.put("NO_MAPPING", 0L);
+      dirToIdMap.put("NO_MAPPING", id.getAndIncrement());
     }
 
     Map<String, Long> result =
@@ -1666,7 +1666,7 @@ public class NNLoader {
       Collection<INode> inodes, Integer parentDirDepth, String find) {
     int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
     List<String> distinctDirectories =
-        StreamSupport.stream(inodes.spliterator(), true)
+        inodes.parallelStream()
             .map(
                 node -> {
                   try {
