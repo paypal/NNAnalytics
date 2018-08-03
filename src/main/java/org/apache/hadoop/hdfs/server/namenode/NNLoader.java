@@ -989,16 +989,17 @@ public class NNLoader {
     long[][] datas = fetchDataViaCpu(inodes, sum, sumFunc, nodeToLong);
     long[] data = datas[0];
     long[] sums = datas[1];
+    int length = Math.min(data.length, sums.length);
 
     long start1 = System.currentTimeMillis();
     long[] histogram;
     try {
-      if (data.length == 0) {
+      if (data.length == 0 || sums.length == 0) {
         histogram = data;
         LOG.info("Empty data set; skipping.");
       } else {
         histogram = new long[binKeyMap.size() + 1];
-        IntStream.range(0, data.length)
+        IntStream.range(0, length)
             .parallel()
             .forEach(
                 idx -> {
@@ -1041,18 +1042,19 @@ public class NNLoader {
     long[][] datas = fetchDataViaCpu(inodes, findFunc, findToLong, nodeToLong);
     long[] data = datas[0];
     long[] sums = datas[1];
+    int length = Math.min(data.length, sums.length);
 
     long start1 = System.currentTimeMillis();
     long[] histogram;
     try {
-      if (data.length == 0) {
+      if (data.length == 0 || sums.length == 0) {
         histogram = data;
         LOG.info("Empty data set; skipping.");
       } else if (findFunc.equals("avg")) {
         BigInteger[] bigHistogram = new BigInteger[binKeyMap.size() + 1];
         long[] counts = new long[binKeyMap.size() + 1];
         Arrays.fill(bigHistogram, BigInteger.valueOf(-1));
-        IntStream.range(0, data.length)
+        IntStream.range(0, length)
             .parallel()
             .forEach(
                 idx -> {
@@ -1087,7 +1089,7 @@ public class NNLoader {
       } else {
         histogram = new long[binKeyMap.size() + 1];
         Arrays.fill(histogram, -1L);
-        IntStream.range(0, data.length)
+        IntStream.range(0, length)
             .parallel()
             .forEach(
                 idx -> {
