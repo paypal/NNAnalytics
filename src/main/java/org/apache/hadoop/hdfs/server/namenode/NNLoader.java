@@ -1632,10 +1632,11 @@ public class NNLoader {
     final Map<String, Long> dirToIdMap =
         distinctDirectories
             .parallelStream()
-            .collect(Collectors.toConcurrentMap(dir -> dir, dir -> id.getAndIncrement()));
+            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
     if (!dirToIdMap.containsKey("NO_MAPPING")) {
       dirToIdMap.put("NO_MAPPING", id.getAndIncrement());
     }
+    final long noMappingId = dirToIdMap.get("NO_MAPPING");
 
     Map<String, Long> result =
         binMappingHistogram(
@@ -1647,14 +1648,15 @@ public class NNLoader {
                 INodeDirectory parent = node.getParent();
                 int topParentDepth = new Path(parent.getFullPathName()).depth();
                 if (topParentDepth < dirDepth) {
-                  return dirToIdMap.get("NO_MAPPING");
+                  return noMappingId;
                 }
                 for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
                   parent = parent.getParent();
                 }
-                return dirToIdMap.get(parent.getFullPathName());
-              } catch (Exception e) {
-                return dirToIdMap.get("NO_MAPPING");
+                Long index = dirToIdMap.get(parent.getFullPathName());
+                return index != null ? index : noMappingId;
+              } catch (Throwable e) {
+                return noMappingId;
               }
             },
             dirToIdMap);
@@ -1691,6 +1693,10 @@ public class NNLoader {
         distinctDirectories
             .parallelStream()
             .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
+    if (!dirToIdMap.containsKey("NO_MAPPING")) {
+      dirToIdMap.put("NO_MAPPING", id.getAndIncrement());
+    }
+    final long noMappingId = dirToIdMap.get("NO_MAPPING");
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
@@ -1705,14 +1711,15 @@ public class NNLoader {
                 INodeDirectory parent = node.getParent();
                 int topParentDepth = new Path(parent.getFullPathName()).depth();
                 if (topParentDepth < dirDepth) {
-                  return dirToIdMap.get("NO_MAPPING");
+                  return noMappingId;
                 }
                 for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
                   parent = parent.getParent();
                 }
-                return dirToIdMap.get(parent.getFullPathName());
-              } catch (Exception e) {
-                return dirToIdMap.get("NO_MAPPING");
+                Long index = dirToIdMap.get(parent.getFullPathName());
+                return index != null ? index : noMappingId;
+              } catch (Throwable e) {
+                return noMappingId;
               }
             },
             dirToIdMap);
