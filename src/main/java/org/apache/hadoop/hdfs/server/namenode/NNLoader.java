@@ -1610,7 +1610,8 @@ public class NNLoader {
     int dirDepth =
         (parentDirDepth == null || parentDirDepth <= 0) ? Integer.MAX_VALUE : parentDirDepth;
     List<String> distinctDirectories =
-        inodes.parallelStream()
+        inodes
+            .parallelStream()
             .map(
                 node -> {
                   try {
@@ -1670,7 +1671,8 @@ public class NNLoader {
       Collection<INode> inodes, Integer parentDirDepth, String find) {
     int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
     List<String> distinctDirectories =
-        inodes.parallelStream()
+        inodes
+            .parallelStream()
             .map(
                 node -> {
                   try {

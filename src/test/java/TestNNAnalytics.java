@@ -536,7 +536,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testParentDirHistogram1() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/histogram?set=files&type=parentDir&parentDirDepth=1&histogramOutput=csv");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=parentDir&parentDirDepth=1&histogramOutput=csv");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     System.out.println(strings);
@@ -546,7 +548,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testParentDirHistogram2() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/histogram?set=files&type=parentDir&parentDirDepth=2&histogramOutput=csv");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=parentDir&parentDirDepth=2&histogramOutput=csv");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     System.out.println(strings);
@@ -556,7 +560,9 @@ public class TestNNAnalytics {
 
   @Test
   public void testParentDirHistogram3() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/histogram?set=files&type=parentDir&parentDirDepth=3&histogramOutput=csv");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=parentDir&parentDirDepth=3&histogramOutput=csv");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     System.out.println(strings);
