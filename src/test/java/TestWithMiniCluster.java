@@ -197,30 +197,40 @@ public class TestWithMiniCluster {
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
-  @Test
+  @Test(timeout = 60000L)
   public void testSaveNamespace() throws Exception {
     String namespaceDir = MiniDFSCluster.getBaseDirectory() + "/dfs/name/current/";
     FileUtils.forceMkdir(new File(namespaceDir));
     HttpGet get = new HttpGet("http://localhost:4567/saveNamespace");
-    HttpResponse res = client.execute(hostPort, get);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("Done."));
+    executeSaveNamespace(get);
   }
 
-  @Test
+  @Test(timeout = 60000L)
   public void testSaveLegacyNamespace() throws Exception {
     String legacyBaseDir = MiniDFSCluster.getBaseDirectory() + "/dfs/name/legacy/";
     FileUtils.forceMkdir(new File(legacyBaseDir));
     HttpGet get =
         new HttpGet("http://localhost:4567/saveNamespace?legacy=true&dir=" + legacyBaseDir);
-    HttpResponse res = client.execute(hostPort, get);
-    assertThat(res.getStatusLine().getStatusCode(), is(200));
-    String body = IOUtils.toString(res.getEntity().getContent());
-    if (body.contains("failed")) {
-      assertThat(body, containsString("UnsupportedOperation"));
-    } else {
-      assertThat(body, containsString("Done."));
-    }
+    executeSaveNamespace(get);
+  }
+
+  private void executeSaveNamespace(HttpGet get) throws IOException {
+    boolean testingDone = false;
+    do {
+      HttpResponse res = client.execute(hostPort, get);
+      assertThat(res.getStatusLine().getStatusCode(), is(200));
+      String body = IOUtils.toString(res.getEntity().getContent());
+      if (body.contains("Already")) {
+        continue;
+      }
+      if (body.contains("failed")) {
+        assertThat(body, containsString("UnsupportedOperation"));
+        testingDone = true;
+      } else {
+        assertThat(body, containsString("Done."));
+        testingDone = true;
+      }
+    } while (!testingDone);
   }
 
   @Test
