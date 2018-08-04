@@ -107,6 +107,7 @@ jacocoTestReport {
 test {
     testLogging {
         events "passed", "skipped", "failed"
+        exceptionFormat "full"
     }
     finalizedBy jacocoTestReport 
 }
