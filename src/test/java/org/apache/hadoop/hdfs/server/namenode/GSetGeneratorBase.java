@@ -19,7 +19,6 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.CHARSET;
 import static org.apache.hadoop.util.Time.now;
 
 import java.io.IOException;
@@ -41,9 +40,9 @@ public abstract class GSetGeneratorBase {
   protected static final long now = now();
   protected static final SRandom rand = new SRandom();
 
-  protected static final INodeDirectory root =
-      new INodeDirectory(0, "/root".getBytes(CHARSET), status, now);
-  protected static GSet<INode, INodeWithAdditionalFields> gset;
+  protected final INodeDirectory root =
+      new INodeDirectory(0, INodeDirectory.ROOT_NAME, status, now);
+  protected GSet<INode, INodeWithAdditionalFields> gset;
 
   protected static final int DEFAULT_BLOCK_SIZE = (int) DFSConfigKeys.DFS_BLOCK_SIZE_DEFAULT;
   protected static final int DEFAULT_NUM_FILES = 100;

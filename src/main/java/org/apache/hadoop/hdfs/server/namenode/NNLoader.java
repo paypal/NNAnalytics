@@ -989,16 +989,17 @@ public class NNLoader {
     long[][] datas = fetchDataViaCpu(inodes, sum, sumFunc, nodeToLong);
     long[] data = datas[0];
     long[] sums = datas[1];
+    int length = Math.min(data.length, sums.length);
 
     long start1 = System.currentTimeMillis();
     long[] histogram;
     try {
-      if (data.length == 0) {
+      if (data.length == 0 || sums.length == 0) {
         histogram = data;
         LOG.info("Empty data set; skipping.");
       } else {
         histogram = new long[binKeyMap.size() + 1];
-        IntStream.range(0, data.length)
+        IntStream.range(0, length)
             .parallel()
             .forEach(
                 idx -> {
@@ -1041,18 +1042,19 @@ public class NNLoader {
     long[][] datas = fetchDataViaCpu(inodes, findFunc, findToLong, nodeToLong);
     long[] data = datas[0];
     long[] sums = datas[1];
+    int length = Math.min(data.length, sums.length);
 
     long start1 = System.currentTimeMillis();
     long[] histogram;
     try {
-      if (data.length == 0) {
+      if (data.length == 0 || sums.length == 0) {
         histogram = data;
         LOG.info("Empty data set; skipping.");
       } else if (findFunc.equals("avg")) {
         BigInteger[] bigHistogram = new BigInteger[binKeyMap.size() + 1];
         long[] counts = new long[binKeyMap.size() + 1];
         Arrays.fill(bigHistogram, BigInteger.valueOf(-1));
-        IntStream.range(0, data.length)
+        IntStream.range(0, length)
             .parallel()
             .forEach(
                 idx -> {
@@ -1087,7 +1089,7 @@ public class NNLoader {
       } else {
         histogram = new long[binKeyMap.size() + 1];
         Arrays.fill(histogram, -1L);
-        IntStream.range(0, data.length)
+        IntStream.range(0, length)
             .parallel()
             .forEach(
                 idx -> {
@@ -1608,7 +1610,69 @@ public class NNLoader {
     int dirDepth =
         (parentDirDepth == null || parentDirDepth <= 0) ? Integer.MAX_VALUE : parentDirDepth;
     List<String> distinctDirectories =
-        StreamSupport.stream(inodes.spliterator(), true)
+        inodes
+            .parallelStream()
+            .map(
+                node -> {
+                  try {
+                    INodeDirectory parent = node.getParent();
+                    int topParentDepth = new Path(parent.getFullPathName()).depth();
+                    if (topParentDepth < dirDepth) {
+                      return "NO_MAPPING";
+                    }
+                    for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
+                      parent = parent.getParent();
+                    }
+                    return parent.getFullPathName();
+                  } catch (Exception e) {
+                    return "NO_MAPPING";
+                  }
+                })
+            .distinct()
+            .collect(Collectors.toList());
+
+    final AtomicLong id = new AtomicLong(0L);
+    final Map<String, Long> dirToIdMap =
+        distinctDirectories
+            .parallelStream()
+            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
+    if (!dirToIdMap.containsKey("NO_MAPPING")) {
+      dirToIdMap.put("NO_MAPPING", id.getAndIncrement());
+    }
+    final long noMappingId = dirToIdMap.get("NO_MAPPING");
+
+    Map<String, Long> result =
+        binMappingHistogram(
+            inodes,
+            sum,
+            getSumFunctionForINode(sum),
+            node -> {
+              try {
+                INodeDirectory parent = node.getParent();
+                int topParentDepth = new Path(parent.getFullPathName()).depth();
+                if (topParentDepth < dirDepth) {
+                  return noMappingId;
+                }
+                for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
+                  parent = parent.getParent();
+                }
+                Long index = dirToIdMap.get(parent.getFullPathName());
+                return index != null ? index : noMappingId;
+              } catch (Throwable e) {
+                return noMappingId;
+              }
+            },
+            dirToIdMap);
+    result.remove("NO_MAPPING");
+    return result;
+  }
+
+  private Map<String, Long> parentDirHistogramCpuWithFind(
+      Collection<INode> inodes, Integer parentDirDepth, String find) {
+    int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
+    List<String> distinctDirectories =
+        inodes
+            .parallelStream()
             .map(
                 node -> {
                   try {
@@ -1634,63 +1698,9 @@ public class NNLoader {
             .parallelStream()
             .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
     if (!dirToIdMap.containsKey("NO_MAPPING")) {
-      dirToIdMap.put("NO_MAPPING", 0L);
+      dirToIdMap.put("NO_MAPPING", id.getAndIncrement());
     }
-
-    Map<String, Long> result =
-        binMappingHistogram(
-            inodes,
-            sum,
-            getSumFunctionForINode(sum),
-            node -> {
-              try {
-                INodeDirectory parent = node.getParent();
-                int topParentDepth = new Path(parent.getFullPathName()).depth();
-                if (topParentDepth < dirDepth) {
-                  return dirToIdMap.get("NO_MAPPING");
-                }
-                for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-                  parent = parent.getParent();
-                }
-                return dirToIdMap.get(parent.getFullPathName());
-              } catch (Exception e) {
-                return dirToIdMap.get("NO_MAPPING");
-              }
-            },
-            dirToIdMap);
-    result.remove("NO_MAPPING");
-    return result;
-  }
-
-  private Map<String, Long> parentDirHistogramCpuWithFind(
-      Collection<INode> inodes, Integer parentDirDepth, String find) {
-    int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
-    List<String> distinctDirectories =
-        StreamSupport.stream(inodes.spliterator(), true)
-            .map(
-                node -> {
-                  try {
-                    INodeDirectory parent = node.getParent();
-                    int topParentDepth = new Path(parent.getFullPathName()).depth();
-                    if (topParentDepth < dirDepth) {
-                      return "NO_MAPPING";
-                    }
-                    for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-                      parent = parent.getParent();
-                    }
-                    return parent.getFullPathName();
-                  } catch (Exception e) {
-                    return "NO_MAPPING";
-                  }
-                })
-            .distinct()
-            .collect(Collectors.toList());
-
-    final AtomicLong id = new AtomicLong(0L);
-    Map<String, Long> dirToIdMap =
-        distinctDirectories
-            .parallelStream()
-            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
+    final long noMappingId = dirToIdMap.get("NO_MAPPING");
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
@@ -1705,14 +1715,15 @@ public class NNLoader {
                 INodeDirectory parent = node.getParent();
                 int topParentDepth = new Path(parent.getFullPathName()).depth();
                 if (topParentDepth < dirDepth) {
-                  return dirToIdMap.get("NO_MAPPING");
+                  return noMappingId;
                 }
                 for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
                   parent = parent.getParent();
                 }
-                return dirToIdMap.get(parent.getFullPathName());
-              } catch (Exception e) {
-                return dirToIdMap.get("NO_MAPPING");
+                Long index = dirToIdMap.get(parent.getFullPathName());
+                return index != null ? index : noMappingId;
+              } catch (Throwable e) {
+                return noMappingId;
               }
             },
             dirToIdMap);
