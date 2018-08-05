@@ -433,7 +433,7 @@ public class TestNNAnalytics {
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());
     assertThat(result.size(), is(1));
-    assertThat(result.get(0), is(String.valueOf(GSetGenerator.TOTAL_MADE.apply(null) - 1)));
+    assertThat(result.get(0), is(String.valueOf(GSetGenerator.TOTAL_MADE.apply(null) - 11)));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
@@ -543,7 +543,7 @@ public class TestNNAnalytics {
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     System.out.println(strings);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
-    assertThat(strings.size(), is(1));
+    assertThat(strings.size(), is(10));
   }
 
   @Test
@@ -555,7 +555,7 @@ public class TestNNAnalytics {
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     System.out.println(strings);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
-    assertThat(strings.size(), is(10));
+    assertThat(strings.size(), is(100));
   }
 
   @Test
@@ -567,7 +567,7 @@ public class TestNNAnalytics {
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     System.out.println(strings);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
-    assertThat(strings.size(), is(100));
+    assertThat(strings.size(), is(1000));
   }
 
   @Test
