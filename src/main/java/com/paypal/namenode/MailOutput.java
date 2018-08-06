@@ -42,9 +42,9 @@ class MailOutput {
   private static final String MAIL_SMTP_HOST = "mail.smtp.host";
 
   static void check(String emailConditionsStr, long value, NNLoader nnLoader) throws IOException {
-    QueryEngine qEngine = nnLoader.getQueryEngine();
-    List<Function<Long, Boolean>> comparisons = qEngine.createComparisons(emailConditionsStr);
-    boolean shouldEmail = qEngine.check(comparisons, value);
+    QueryEngine queryEngine = nnLoader.getQueryEngine();
+    List<Function<Long, Boolean>> comparisons = queryEngine.createComparisons(emailConditionsStr);
+    boolean shouldEmail = queryEngine.check(comparisons, value);
     if (!shouldEmail) {
       throw new IOException("Failed to meet requirements for email.");
     }
@@ -56,11 +56,11 @@ class MailOutput {
       Set<String> highlightKeys,
       NNLoader nnLoader)
       throws IOException {
-    QueryEngine qEngine = nnLoader.getQueryEngine();
-    List<Function<Long, Boolean>> comparisons = qEngine.createComparisons(emailConditionsStr);
+    QueryEngine queryEngine = nnLoader.getQueryEngine();
+    List<Function<Long, Boolean>> comparisons = queryEngine.createComparisons(emailConditionsStr);
     boolean shouldEmail = false;
     for (Map.Entry<String, Long> entry : histogram.entrySet()) {
-      boolean columnCheck = qEngine.check(comparisons, entry.getValue());
+      boolean columnCheck = queryEngine.check(comparisons, entry.getValue());
       if (columnCheck) {
         shouldEmail = true;
         highlightKeys.add(entry.getKey());

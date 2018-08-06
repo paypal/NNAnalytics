@@ -36,10 +36,10 @@ public interface VersionInterface {
   Function<INode, Boolean> getFilterFunctionToBooleanForINode(String filter);
 
   Map<String, Long> storageTypeHistogramCpu(
-      Collection<INode> inodes, String sum, QueryEngine qEngine);
+      Collection<INode> inodes, String sum, QueryEngine queryEngine);
 
   Map<String, Long> storageTypeHistogramCpuWithFind(
-      Collection<INode> inodes, String find, QueryEngine qEngine);
+      Collection<INode> inodes, String find, QueryEngine queryEngine);
 
   void saveNamespace() throws IOException;
 

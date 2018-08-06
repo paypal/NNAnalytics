@@ -60,8 +60,6 @@ public class QueryEngine {
 
   private VersionInterface versionLoader;
 
-  public QueryEngine() {}
-
   public void setVersionLoader(VersionInterface versionLoader) {
     this.versionLoader = versionLoader;
   }
@@ -1618,6 +1616,12 @@ public class QueryEngine {
     return histogram;
   }
 
+  /**
+   * Splits a conditional String and ANDs them together.
+   *
+   * @param conditionsStr conditional string seperated by semicolons; conditions by colons
+   * @return a list of functions that represent the conditional
+   */
   public List<Function<Long, Boolean>> createComparisons(String conditionsStr) {
     String[] conditionsArray = conditionsStr.split(";");
     String[][] conditionTuplets = new String[conditionsArray.length][2];

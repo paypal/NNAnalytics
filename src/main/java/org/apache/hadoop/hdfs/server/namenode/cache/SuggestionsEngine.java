@@ -106,121 +106,130 @@ public class SuggestionsEngine {
       e.printStackTrace();
     }
 
-    QueryEngine qEngine = nnLoader.getQueryEngine();
-    Map<String, Long> modTimeCount = qEngine.modTimeHistogram(files, "count", null, "monthly");
-    Map<String, Long> modTimeDiskspace =
-        qEngine.modTimeHistogram(files, "diskspaceConsumed", null, "monthly");
+    QueryEngine queryEngine = nnLoader.getQueryEngine();
+    final Map<String, Long> modTimeCount =
+        queryEngine.modTimeHistogram(files, "count", null, "monthly");
+    final Map<String, Long> modTimeDiskspace =
+        queryEngine.modTimeHistogram(files, "diskspaceConsumed", null, "monthly");
 
-    Set<String> fileUsers =
+    final Set<String> fileUsers =
         files.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toSet());
-    Set<String> dirUsers =
+    final Set<String> dirUsers =
         dirs.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toSet());
-    Set<String> users = Sets.union(fileUsers, dirUsers);
+    final Set<String> users = Sets.union(fileUsers, dirUsers);
 
-    long diskspace = qEngine.sum(files, "diskspaceConsumed");
-    Collection<INode> files24h =
-        qEngine.combinedFilter(files, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
-    long numFiles24h = files24h.size();
-    long diskspace24h = qEngine.sum(files24h, "diskspaceConsumed");
-    Map<String, Long> numFiles24hUsers = qEngine.byUserHistogramCpu(files24h, "count");
-    Map<String, Long> diskspace24hUsers = qEngine.byUserHistogramCpu(files24h, "diskspaceConsumed");
-    Map<String, Long> diskspaceUsers = qEngine.byUserHistogramCpu(files, "diskspaceConsumed");
+    final long diskspace = queryEngine.sum(files, "diskspaceConsumed");
+    final Collection<INode> files24h =
+        queryEngine.combinedFilter(files, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
+    final long numFiles24h = files24h.size();
+    final long diskspace24h = queryEngine.sum(files24h, "diskspaceConsumed");
+    final Map<String, Long> numFiles24hUsers = queryEngine.byUserHistogramCpu(files24h, "count");
+    final Map<String, Long> diskspace24hUsers =
+        queryEngine.byUserHistogramCpu(files24h, "diskspaceConsumed");
+    final Map<String, Long> diskspaceUsers =
+        queryEngine.byUserHistogramCpu(files, "diskspaceConsumed");
 
-    Collection<INode> oldFiles1yr =
-        qEngine.combinedFilter(
+    final Collection<INode> oldFiles1yr =
+        queryEngine.combinedFilter(
             files, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
-    Map<String, Long> oldFiles1yrCountUsers = qEngine.byUserHistogramCpu(oldFiles1yr, "count");
-    Map<String, Long> oldFiles1yrDsUsers =
-        qEngine.byUserHistogramCpu(oldFiles1yr, "diskspaceConsumed");
-    Collection<INode> oldFiles2yr =
-        qEngine.combinedFilter(
+    final Map<String, Long> oldFiles1yrCountUsers =
+        queryEngine.byUserHistogramCpu(oldFiles1yr, "count");
+    final Map<String, Long> oldFiles1yrDsUsers =
+        queryEngine.byUserHistogramCpu(oldFiles1yr, "diskspaceConsumed");
+    final Collection<INode> oldFiles2yr =
+        queryEngine.combinedFilter(
             files, new String[] {"accessTime"}, new String[] {"olderThanYears:2"});
-    Map<String, Long> oldFiles2yrCountUsers = qEngine.byUserHistogramCpu(oldFiles2yr, "count");
-    Map<String, Long> oldFiles2yrDsUsers =
-        qEngine.byUserHistogramCpu(oldFiles2yr, "diskspaceConsumed");
+    final Map<String, Long> oldFiles2yrCountUsers =
+        queryEngine.byUserHistogramCpu(oldFiles2yr, "count");
+    final Map<String, Long> oldFiles2yrDsUsers =
+        queryEngine.byUserHistogramCpu(oldFiles2yr, "diskspaceConsumed");
 
-    Collection<INode> emptyFiles =
-        qEngine.combinedFilter(files, new String[] {"fileSize"}, new String[] {"eq:0"});
-    Collection<INode> emptyDirs =
-        qEngine.combinedFilter(dirs, new String[] {"dirNumChildren"}, new String[] {"eq:0"});
-    Collection<INode> tinyFiles =
-        qEngine.combinedFilter(
+    final Collection<INode> emptyFiles =
+        queryEngine.combinedFilter(files, new String[] {"fileSize"}, new String[] {"eq:0"});
+    final Collection<INode> emptyDirs =
+        queryEngine.combinedFilter(dirs, new String[] {"dirNumChildren"}, new String[] {"eq:0"});
+    final Collection<INode> tinyFiles =
+        queryEngine.combinedFilter(
             files, new String[] {"fileSize", "fileSize"}, new String[] {"lte:1024", "gt:0"});
-    Collection<INode> smallFiles =
-        qEngine.combinedFilter(
+    final Collection<INode> smallFiles =
+        queryEngine.combinedFilter(
             files, new String[] {"fileSize", "fileSize"}, new String[] {"lte:1048576", "gt:1024"});
-    Collection<INode> mediumFiles =
-        qEngine.combinedFilter(
+    final Collection<INode> mediumFiles =
+        queryEngine.combinedFilter(
             files,
             new String[] {"fileSize", "fileSize"},
             new String[] {"lte:134217728", "gt:1048576"});
 
-    Collection<INode> emptyFiles24h =
-        qEngine.combinedFilter(emptyFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
-    Collection<INode> emptyDirs24h =
-        qEngine.combinedFilter(emptyDirs, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
-    Collection<INode> tinyFiles24h =
-        qEngine.combinedFilter(tinyFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
-    Collection<INode> smallFiles24h =
-        qEngine.combinedFilter(smallFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
+    final Collection<INode> emptyFiles24h =
+        queryEngine.combinedFilter(
+            emptyFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
+    final Collection<INode> emptyDirs24h =
+        queryEngine.combinedFilter(
+            emptyDirs, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
+    final Collection<INode> tinyFiles24h =
+        queryEngine.combinedFilter(
+            tinyFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
+    final Collection<INode> smallFiles24h =
+        queryEngine.combinedFilter(
+            smallFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
 
-    Collection<INode> emptyFiles1yr =
-        qEngine.combinedFilter(
+    final Collection<INode> emptyFiles1yr =
+        queryEngine.combinedFilter(
             emptyFiles, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
-    Collection<INode> emptyDirs1yr =
-        qEngine.combinedFilter(
+    final Collection<INode> emptyDirs1yr =
+        queryEngine.combinedFilter(
             emptyDirs, new String[] {"modTime"}, new String[] {"olderThanYears:1"});
-    Collection<INode> tinyFiles1yr =
-        qEngine.combinedFilter(
+    final Collection<INode> tinyFiles1yr =
+        queryEngine.combinedFilter(
             tinyFiles, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
-    Collection<INode> smallFiles1yr =
-        qEngine.combinedFilter(
+    final Collection<INode> smallFiles1yr =
+        queryEngine.combinedFilter(
             smallFiles, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
 
-    long emptyFilesCount = emptyFiles.size();
-    long emptyDirsCount = emptyDirs.size();
-    long emptyFilesMem = qEngine.sum(emptyFiles, "memoryConsumed");
-    long emptyDirsMem = qEngine.sum(emptyDirs, "memoryConsumed");
-    long tinyFilesCount = tinyFiles.size();
-    long smallFilesCount = smallFiles.size();
-    long mediumFilesCount = mediumFiles.size();
-    long largeFilesCount =
+    final long emptyFilesCount = emptyFiles.size();
+    final long emptyDirsCount = emptyDirs.size();
+    final long emptyFilesMem = queryEngine.sum(emptyFiles, "memoryConsumed");
+    final long emptyDirsMem = queryEngine.sum(emptyDirs, "memoryConsumed");
+    final long tinyFilesCount = tinyFiles.size();
+    final long smallFilesCount = smallFiles.size();
+    final long mediumFilesCount = mediumFiles.size();
+    final long largeFilesCount =
         numFiles - emptyFilesCount - tinyFilesCount - smallFilesCount - mediumFilesCount;
-    long tinyFilesMem = qEngine.sum(tinyFiles, "memoryConsumed");
-    long smallFilesMem = qEngine.sum(smallFiles, "memoryConsumed");
-    long tinyFilesDs = qEngine.sum(tinyFiles, "diskspaceConsumed");
-    long smallFilesDs = qEngine.sum(smallFiles, "diskspaceConsumed");
+    final long tinyFilesMem = queryEngine.sum(tinyFiles, "memoryConsumed");
+    final long smallFilesMem = queryEngine.sum(smallFiles, "memoryConsumed");
+    final long tinyFilesDs = queryEngine.sum(tinyFiles, "diskspaceConsumed");
+    final long smallFilesDs = queryEngine.sum(smallFiles, "diskspaceConsumed");
 
-    long emptyFiles24hCount = emptyFiles24h.size();
-    long emptyDirs24hCount = emptyDirs24h.size();
-    long emptyFiles24hMem = qEngine.sum(emptyFiles24h, "memoryConsumed");
-    long emptyDirs24hMem = qEngine.sum(emptyDirs24h, "memoryConsumed");
-    long tinyFiles24hCount = tinyFiles24h.size();
-    long smallFiles24hCount = smallFiles24h.size();
-    long tinyFiles24hMem = qEngine.sum(tinyFiles24h, "memoryConsumed");
-    long smallFiles24hMem = qEngine.sum(smallFiles24h, "memoryConsumed");
-    long tinyFiles24hDs = qEngine.sum(tinyFiles24h, "diskspaceConsumed");
-    long smallFiles24hDs = qEngine.sum(smallFiles24h, "diskspaceConsumed");
+    final long emptyFiles24hCount = emptyFiles24h.size();
+    final long emptyDirs24hCount = emptyDirs24h.size();
+    final long emptyFiles24hMem = queryEngine.sum(emptyFiles24h, "memoryConsumed");
+    final long emptyDirs24hMem = queryEngine.sum(emptyDirs24h, "memoryConsumed");
+    final long tinyFiles24hCount = tinyFiles24h.size();
+    final long smallFiles24hCount = smallFiles24h.size();
+    final long tinyFiles24hMem = queryEngine.sum(tinyFiles24h, "memoryConsumed");
+    final long smallFiles24hMem = queryEngine.sum(smallFiles24h, "memoryConsumed");
+    final long tinyFiles24hDs = queryEngine.sum(tinyFiles24h, "diskspaceConsumed");
+    final long smallFiles24hDs = queryEngine.sum(smallFiles24h, "diskspaceConsumed");
 
-    long emptyFiles1yrCount = emptyFiles1yr.size();
-    long emptyDirs1yrCount = emptyDirs1yr.size();
-    long tinyFiles1yrCount = tinyFiles1yr.size();
-    long smallFiles1yrCount = smallFiles1yr.size();
+    final long emptyFiles1yrCount = emptyFiles1yr.size();
+    final long emptyDirs1yrCount = emptyDirs1yr.size();
+    final long tinyFiles1yrCount = tinyFiles1yr.size();
+    final long smallFiles1yrCount = smallFiles1yr.size();
 
-    long oldFiles1yrCount = oldFiles1yr.size();
-    long oldFiles2yrCount = oldFiles2yr.size();
-    long oldFiles1yrDs = qEngine.sum(oldFiles1yr, "diskspaceConsumed");
-    long oldFiles2yrDs = qEngine.sum(oldFiles2yr, "diskspaceConsumed");
+    final long oldFiles1yrCount = oldFiles1yr.size();
+    final long oldFiles2yrCount = oldFiles2yr.size();
+    final long oldFiles1yrDs = queryEngine.sum(oldFiles1yr, "diskspaceConsumed");
+    final long oldFiles2yrDs = queryEngine.sum(oldFiles2yr, "diskspaceConsumed");
 
-    Map<String, Long> filesUsers = qEngine.byUserHistogram(files, "count", null);
-    Map<String, Long> dirsUsers = qEngine.byUserHistogramCpu(dirs, "count");
+    final Map<String, Long> filesUsers = queryEngine.byUserHistogram(files, "count", null);
+    final Map<String, Long> dirsUsers = queryEngine.byUserHistogramCpu(dirs, "count");
 
-    Map<String, Long> emptyFilesUsers = qEngine.byUserHistogramCpu(emptyFiles, "count");
-    Map<String, Long> emptyDirsUsers = qEngine.byUserHistogramCpu(emptyDirs, "count");
-    Map<String, Long> tinyFilesUsers = qEngine.byUserHistogramCpu(tinyFiles, "count");
-    Map<String, Long> smallFilesUsers = qEngine.byUserHistogramCpu(smallFiles, "count");
-    Map<String, Long> mediumFilesUsers = qEngine.byUserHistogramCpu(mediumFiles, "count");
-    Map<String, Long> largeFilesUsers = new HashMap<>(users.size());
+    final Map<String, Long> emptyFilesUsers = queryEngine.byUserHistogramCpu(emptyFiles, "count");
+    final Map<String, Long> emptyDirsUsers = queryEngine.byUserHistogramCpu(emptyDirs, "count");
+    final Map<String, Long> tinyFilesUsers = queryEngine.byUserHistogramCpu(tinyFiles, "count");
+    final Map<String, Long> smallFilesUsers = queryEngine.byUserHistogramCpu(smallFiles, "count");
+    final Map<String, Long> mediumFilesUsers = queryEngine.byUserHistogramCpu(mediumFiles, "count");
+    final Map<String, Long> largeFilesUsers = new HashMap<>(users.size());
     users.forEach(
         u -> {
           long largeFiles =
@@ -232,36 +241,49 @@ public class SuggestionsEngine {
           largeFilesUsers.put(u, largeFiles);
         });
 
-    Map<String, Long> emptyFiles24hUsers = qEngine.byUserHistogramCpu(emptyFiles24h, "count");
-    Map<String, Long> emptyDirs24hUsers = qEngine.byUserHistogramCpu(emptyDirs24h, "count");
-    Map<String, Long> tinyFiles24hUsers = qEngine.byUserHistogramCpu(tinyFiles24h, "count");
-    Map<String, Long> smallFiles24hUsers = qEngine.byUserHistogramCpu(smallFiles24h, "count");
-    Map<String, Long> emptyFiles1yrUsers = qEngine.byUserHistogramCpu(emptyFiles1yr, "count");
-    Map<String, Long> emptyDirs1yrUsers = qEngine.byUserHistogramCpu(emptyDirs1yr, "count");
-    Map<String, Long> tinyFiles1yrUsers = qEngine.byUserHistogramCpu(tinyFiles1yr, "count");
-    Map<String, Long> smallFiles1yrUsers = qEngine.byUserHistogramCpu(smallFiles1yr, "count");
-    Map<String, Long> emptyFilesMemUsers = qEngine.byUserHistogramCpu(emptyFiles, "memoryConsumed");
-    Map<String, Long> emptyDirsMemUsers = qEngine.byUserHistogramCpu(emptyDirs, "memoryConsumed");
-    Map<String, Long> tinyFilesMemUsers = qEngine.byUserHistogramCpu(tinyFiles, "memoryConsumed");
-    Map<String, Long> smallFilesMemUsers = qEngine.byUserHistogramCpu(smallFiles, "memoryConsumed");
-    Map<String, Long> tinyFilesDsUsers = qEngine.byUserHistogramCpu(tinyFiles, "diskspaceConsumed");
-    Map<String, Long> smallFilesDsUsers =
-        qEngine.byUserHistogramCpu(smallFiles, "diskspaceConsumed");
-    Map<String, Long> emptyFiles24hMemUsers =
-        qEngine.byUserHistogramCpu(emptyFiles24h, "memoryConsumed");
-    Map<String, Long> emptyDirs24hMemUsers =
-        qEngine.byUserHistogramCpu(emptyDirs24h, "memoryConsumed");
-    Map<String, Long> tinyFiles24hMemUsers =
-        qEngine.byUserHistogramCpu(tinyFiles24h, "memoryConsumed");
-    Map<String, Long> smallFiles24hMemUsers =
-        qEngine.byUserHistogramCpu(smallFiles24h, "memoryConsumed");
-    Map<String, Long> tinyFiles24hDsUsers =
-        qEngine.byUserHistogramCpu(tinyFiles24h, "diskspaceConsumed");
-    Map<String, Long> smallFiles24hDsUsers =
-        qEngine.byUserHistogramCpu(smallFiles24h, "diskspaceConsumed");
+    final Map<String, Long> emptyFiles24hUsers =
+        queryEngine.byUserHistogramCpu(emptyFiles24h, "count");
+    final Map<String, Long> emptyDirs24hUsers =
+        queryEngine.byUserHistogramCpu(emptyDirs24h, "count");
+    final Map<String, Long> tinyFiles24hUsers =
+        queryEngine.byUserHistogramCpu(tinyFiles24h, "count");
+    final Map<String, Long> smallFiles24hUsers =
+        queryEngine.byUserHistogramCpu(smallFiles24h, "count");
+    final Map<String, Long> emptyFiles1yrUsers =
+        queryEngine.byUserHistogramCpu(emptyFiles1yr, "count");
+    final Map<String, Long> emptyDirs1yrUsers =
+        queryEngine.byUserHistogramCpu(emptyDirs1yr, "count");
+    final Map<String, Long> tinyFiles1yrUsers =
+        queryEngine.byUserHistogramCpu(tinyFiles1yr, "count");
+    final Map<String, Long> smallFiles1yrUsers =
+        queryEngine.byUserHistogramCpu(smallFiles1yr, "count");
+    final Map<String, Long> emptyFilesMemUsers =
+        queryEngine.byUserHistogramCpu(emptyFiles, "memoryConsumed");
+    final Map<String, Long> emptyDirsMemUsers =
+        queryEngine.byUserHistogramCpu(emptyDirs, "memoryConsumed");
+    final Map<String, Long> tinyFilesMemUsers =
+        queryEngine.byUserHistogramCpu(tinyFiles, "memoryConsumed");
+    final Map<String, Long> smallFilesMemUsers =
+        queryEngine.byUserHistogramCpu(smallFiles, "memoryConsumed");
+    final Map<String, Long> tinyFilesDsUsers =
+        queryEngine.byUserHistogramCpu(tinyFiles, "diskspaceConsumed");
+    final Map<String, Long> smallFilesDsUsers =
+        queryEngine.byUserHistogramCpu(smallFiles, "diskspaceConsumed");
+    final Map<String, Long> emptyFiles24hMemUsers =
+        queryEngine.byUserHistogramCpu(emptyFiles24h, "memoryConsumed");
+    final Map<String, Long> emptyDirs24hMemUsers =
+        queryEngine.byUserHistogramCpu(emptyDirs24h, "memoryConsumed");
+    final Map<String, Long> tinyFiles24hMemUsers =
+        queryEngine.byUserHistogramCpu(tinyFiles24h, "memoryConsumed");
+    final Map<String, Long> smallFiles24hMemUsers =
+        queryEngine.byUserHistogramCpu(smallFiles24h, "memoryConsumed");
+    final Map<String, Long> tinyFiles24hDsUsers =
+        queryEngine.byUserHistogramCpu(tinyFiles24h, "diskspaceConsumed");
+    final Map<String, Long> smallFiles24hDsUsers =
+        queryEngine.byUserHistogramCpu(smallFiles24h, "diskspaceConsumed");
 
-    Map<String, Long> dirCount = qEngine.parentDirHistogramCpu(files, 3, "count");
-    Map<String, Long> dirDs = qEngine.parentDirHistogramCpu(files, 3, "diskspaceConsumed");
+    Map<String, Long> dirCount = queryEngine.parentDirHistogramCpu(files, 3, "count");
+    Map<String, Long> dirDs = queryEngine.parentDirHistogramCpu(files, 3, "diskspaceConsumed");
     dirCount = Histograms.sliceToTop(dirCount, 1000);
     dirDs = Histograms.sliceToTop(dirDs, 1000);
 
@@ -271,7 +293,7 @@ public class SuggestionsEngine {
 
     for (String commonRoot : commonRoots) {
       Collection<INode> commonINodes =
-          qEngine.combinedFilter(
+          queryEngine.combinedFilter(
               files, new String[] {"path"}, new String[] {"startsWith:" + commonRoot});
 
       for (String cachedDir : cachedDirs) {
@@ -283,26 +305,27 @@ public class SuggestionsEngine {
           inodes = commonINodes;
         } else {
           inodes =
-              qEngine.combinedFilter(
+              queryEngine.combinedFilter(
                   commonINodes, new String[] {"path"}, new String[] {"startsWith:" + cachedDir});
         }
         long count = inodes.size();
-        long diskspaceConsumed = qEngine.sum(inodes, "diskspaceConsumed");
+        long diskspaceConsumed = queryEngine.sum(inodes, "diskspaceConsumed");
         dirCount.put(cachedDir, count);
         dirDs.put(cachedDir, diskspaceConsumed);
       }
     }
 
-    Map<String, Long> dirCount24h = qEngine.parentDirHistogramCpu(files24h, 3, "count");
+    Map<String, Long> dirCount24h = queryEngine.parentDirHistogramCpu(files24h, 3, "count");
     dirCount24h = Histograms.sliceToTop(dirCount24h, 1000);
-    Map<String, Long> dirDs24h = qEngine.parentDirHistogramCpu(files24h, 3, "diskspaceConsumed");
+    Map<String, Long> dirDs24h =
+        queryEngine.parentDirHistogramCpu(files24h, 3, "diskspaceConsumed");
     dirDs24h = Histograms.sliceToTop(dirDs24h, 1000);
     for (String dir : cachedDirs) {
       Collection<INode> inodes =
-          qEngine.combinedFilter(
+          queryEngine.combinedFilter(
               files24h, new String[] {"path"}, new String[] {"startsWith:" + dir});
       long count = inodes.size();
-      long diskspaceConsumed = qEngine.sum(inodes, "diskspaceConsumed");
+      long diskspaceConsumed = queryEngine.sum(inodes, "diskspaceConsumed");
       dirCount24h.put(dir, count);
       dirDs24h.put(dir, diskspaceConsumed);
     }
@@ -311,16 +334,18 @@ public class SuggestionsEngine {
     long dsQuotaCount = 0;
     long nsQuotaThreshCount = 0;
     long dsQuotaThreshCount = 0;
-    Map<String, Long> nsQuotaThreshCountsUsers = new HashMap<>();
-    Map<String, Long> dsQuotaThreshCountsUsers = new HashMap<>();
-    Map<String, Long> nsQuotaCountsUsers = new HashMap<>();
-    Map<String, Long> dsQuotaCountsUsers = new HashMap<>();
+    final Map<String, Long> nsQuotaThreshCountsUsers = new HashMap<>();
+    final Map<String, Long> dsQuotaThreshCountsUsers = new HashMap<>();
+    final Map<String, Long> nsQuotaCountsUsers = new HashMap<>();
+    final Map<String, Long> dsQuotaCountsUsers = new HashMap<>();
     for (String user : users) {
       Collection<INode> quotaDirs =
-          qEngine.combinedFilter(
+          queryEngine.combinedFilter(
               dirs, new String[] {"user", "hasQuota"}, new String[] {"eq:" + user, "eq:true"});
-      Map<String, Long> nsQuotaRatio = qEngine.dirQuotaHistogramCpu(quotaDirs, "nsQuotaRatioUsed");
-      Map<String, Long> dsQuotaRatio = qEngine.dirQuotaHistogramCpu(quotaDirs, "dsQuotaRatioUsed");
+      Map<String, Long> nsQuotaRatio =
+          queryEngine.dirQuotaHistogramCpu(quotaDirs, "nsQuotaRatioUsed");
+      Map<String, Long> dsQuotaRatio =
+          queryEngine.dirQuotaHistogramCpu(quotaDirs, "dsQuotaRatioUsed");
       long nsThreshExceeded = nsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
       long dsThreshExceeded = dsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
       cachedUserNsQuotas.put(user, nsQuotaRatio);

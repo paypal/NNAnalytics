@@ -867,7 +867,6 @@ public class NNAnalyticsRestAPI {
             Map<String, Long> histogram;
             long startTime = System.currentTimeMillis();
             String xAxis;
-            boolean isInit = nnLoader.isInit();
 
             nnLoader.namesystemWriteLock(useLock);
             try {
