@@ -17,6 +17,8 @@
  * under the License.
  */
 
+package com.paypal.nnanalytics;
+
 import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.UNSECURED_ENDPOINTS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;

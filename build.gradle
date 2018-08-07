@@ -59,7 +59,7 @@ checkstyle {
 spotless {
     java {
         googleJavaFormat()
-        licenseHeaderFile file('license.header.spotless'), '(package|import)'
+        licenseHeaderFile file('license.header.spotless')
     }
 }
 
