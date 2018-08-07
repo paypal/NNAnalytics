@@ -82,7 +82,7 @@ class NNAHelper {
   static Collection<INode> performFilters(
       NNLoader nnLoader, String set, String[] filters, String[] filterOps, String find) {
     Collection<INode> interim = performFilters(nnLoader, set, filters, filterOps);
-    return nnLoader.findFilter(interim, find);
+    return nnLoader.getQueryEngine().findFilter(interim, find);
   }
 
   static Collection<INode> performFilters(
@@ -93,9 +93,7 @@ class NNAHelper {
       return inodes;
     }
 
-    inodes = nnLoader.combinedFilter(inodes, filters, filterOps);
-
-    return inodes;
+    return nnLoader.getQueryEngine().combinedFilter(inodes, filters, filterOps);
   }
 
   static void toJsonList(HttpServletResponse resp, Enum[]... values) throws IOException {

@@ -147,6 +147,7 @@ public class NNAnalyticsRestAPI {
   private final ExecutorService internalService = Executors.newFixedThreadPool(2);
   private final Map<String, BaseOperation> runningOperations =
       Collections.synchronizedMap(new HashMap<>());
+
   private final AtomicBoolean savingNamespace = new AtomicBoolean(false);
 
   /**
@@ -687,8 +688,8 @@ public class NNAnalyticsRestAPI {
                 NNAHelper.performFilters(nnLoader, set2, filters2, filterOps2);
 
             if (!sum1.isEmpty() && !sum2.isEmpty()) {
-              long sumValue1 = nnLoader.sum(inodes1, sum1);
-              long sumValue2 = nnLoader.sum(inodes2, sum2);
+              long sumValue1 = nnLoader.getQueryEngine().sum(inodes1, sum1);
+              long sumValue2 = nnLoader.getQueryEngine().sum(inodes2, sum2);
               float division = (float) sumValue1 / (float) sumValue2;
 
               LOG.info("The result of {} dividied by {} is: {}", sumValue1, sumValue2, division);
@@ -765,7 +766,7 @@ public class NNAnalyticsRestAPI {
 
             if (sums.length == 1 && sumStr != null) {
               String sum = sums[0];
-              long sumValue = nnLoader.sum(inodes, sum);
+              long sumValue = nnLoader.getQueryEngine().sum(inodes, sum);
               String message = String.valueOf(sumValue);
               if (emailsTo != null
                   && emailsTo.length != 0
@@ -793,12 +794,12 @@ public class NNAnalyticsRestAPI {
             } else if (sums.length > 1 && sumStr != null) {
               StringBuilder message = new StringBuilder();
               for (String sum : sums) {
-                long sumValue = nnLoader.sum(inodes, sum);
+                long sumValue = nnLoader.getQueryEngine().sum(inodes, sum);
                 message.append(sumValue).append("\n");
               }
               res.body(message.toString());
             } else {
-              nnLoader.dumpINodePaths(inodes, limit, res.raw());
+              nnLoader.getQueryEngine().dumpINodePaths(inodes, limit, res.raw());
             }
 
             return res;
@@ -871,51 +872,62 @@ public class NNAnalyticsRestAPI {
             try {
               switch (htEnum) {
                 case user:
-                  histogram = nnLoader.byUserHistogram(inodes, sum, find);
+                  histogram = nnLoader.getQueryEngine().byUserHistogram(inodes, sum, find);
                   xAxis = "User Names";
                   break;
                 case group:
-                  histogram = nnLoader.byGroupHistogram(inodes, sum, find);
+                  histogram = nnLoader.getQueryEngine().byGroupHistogram(inodes, sum, find);
                   xAxis = "Group Names";
                   break;
                 case accessTime:
-                  histogram = nnLoader.accessTimeHistogram(inodes, sum, find, timeRange);
+                  histogram =
+                      nnLoader.getQueryEngine().accessTimeHistogram(inodes, sum, find, timeRange);
                   xAxis = "Last Accessed Time";
                   break;
                 case modTime:
-                  histogram = nnLoader.modTimeHistogram(inodes, sum, find, timeRange);
+                  histogram =
+                      nnLoader.getQueryEngine().modTimeHistogram(inodes, sum, find, timeRange);
                   xAxis = "Last Modified Time";
                   break;
                 case fileSize:
-                  histogram = nnLoader.fileSizeHistogram(inodes, sum, find);
+                  histogram = nnLoader.getQueryEngine().fileSizeHistogram(inodes, sum, find);
                   xAxis = "File Sizes (No Replication Factor)";
                   break;
                 case diskspaceConsumed:
-                  histogram = nnLoader.diskspaceConsumedHistogram(inodes, sum, find, transformMap);
+                  histogram =
+                      nnLoader
+                          .getQueryEngine()
+                          .diskspaceConsumedHistogram(inodes, sum, find, transformMap);
                   xAxis = "Diskspace Consumed (File Size * Replication Factor)";
                   break;
                 case fileReplica:
-                  histogram = nnLoader.fileReplicaHistogram(inodes, sum, find, transformMap);
+                  histogram =
+                      nnLoader
+                          .getQueryEngine()
+                          .fileReplicaHistogram(inodes, sum, find, transformMap);
                   xAxis = "File Replication Factor";
                   break;
                 case storageType:
-                  histogram = nnLoader.storageTypeHistogram(inodes, sum, find);
+                  histogram = nnLoader.getQueryEngine().storageTypeHistogram(inodes, sum, find);
                   xAxis = "Storage Type Policy";
                   break;
                 case memoryConsumed:
-                  histogram = nnLoader.memoryConsumedHistogram(inodes, sum, find);
+                  histogram = nnLoader.getQueryEngine().memoryConsumedHistogram(inodes, sum, find);
                   xAxis = "Memory Consumed";
                   break;
                 case parentDir:
-                  histogram = nnLoader.parentDirHistogram(inodes, parentDirDepth, sum, find);
+                  histogram =
+                      nnLoader
+                          .getQueryEngine()
+                          .parentDirHistogram(inodes, parentDirDepth, sum, find);
                   xAxis = "Directory Path";
                   break;
                 case fileType:
-                  histogram = nnLoader.fileTypeHistogram(inodes, sum, find);
+                  histogram = nnLoader.getQueryEngine().fileTypeHistogram(inodes, sum, find);
                   xAxis = "File Type";
                   break;
                 case dirQuota:
-                  histogram = nnLoader.dirQuotaHistogram(inodes, sum);
+                  histogram = nnLoader.getQueryEngine().dirQuotaHistogram(inodes, sum);
                   xAxis = "Directory Path";
                   break;
                 default:
@@ -930,7 +942,10 @@ public class NNAnalyticsRestAPI {
 
             // Perform conditions filtering.
             if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
-              histogram = nnLoader.removeKeysOnConditional(histogram, histogramConditionsStr);
+              histogram =
+                  nnLoader
+                      .getQueryEngine()
+                      .removeKeysOnConditional(histogram, histogramConditionsStr);
             }
 
             // Slice top and bottom.
@@ -1069,37 +1084,47 @@ public class NNAnalyticsRestAPI {
               try {
                 switch (htEnum) {
                   case user:
-                    histogram = nnLoader.byUserHistogram(inodes, sum, find);
+                    histogram = nnLoader.getQueryEngine().byUserHistogram(inodes, sum, find);
                     break;
                   case group:
-                    histogram = nnLoader.byGroupHistogram(inodes, sum, find);
+                    histogram = nnLoader.getQueryEngine().byGroupHistogram(inodes, sum, find);
                     break;
                   case accessTime:
-                    histogram = nnLoader.accessTimeHistogram(inodes, sum, find, timeRange);
+                    histogram =
+                        nnLoader.getQueryEngine().accessTimeHistogram(inodes, sum, find, timeRange);
                     break;
                   case modTime:
-                    histogram = nnLoader.modTimeHistogram(inodes, sum, find, timeRange);
+                    histogram =
+                        nnLoader.getQueryEngine().modTimeHistogram(inodes, sum, find, timeRange);
                     break;
                   case fileSize:
-                    histogram = nnLoader.fileSizeHistogram(inodes, sum, find);
+                    histogram = nnLoader.getQueryEngine().fileSizeHistogram(inodes, sum, find);
                     break;
                   case diskspaceConsumed:
-                    histogram = nnLoader.diskspaceConsumedHistogram(inodes, sum, find, null);
+                    histogram =
+                        nnLoader
+                            .getQueryEngine()
+                            .diskspaceConsumedHistogram(inodes, sum, find, null);
                     break;
                   case fileReplica:
-                    histogram = nnLoader.fileReplicaHistogram(inodes, sum, find, null);
+                    histogram =
+                        nnLoader.getQueryEngine().fileReplicaHistogram(inodes, sum, find, null);
                     break;
                   case storageType:
-                    histogram = nnLoader.storageTypeHistogram(inodes, sum, find);
+                    histogram = nnLoader.getQueryEngine().storageTypeHistogram(inodes, sum, find);
                     break;
                   case memoryConsumed:
-                    histogram = nnLoader.memoryConsumedHistogram(inodes, sum, find);
+                    histogram =
+                        nnLoader.getQueryEngine().memoryConsumedHistogram(inodes, sum, find);
                     break;
                   case parentDir:
-                    histogram = nnLoader.parentDirHistogram(inodes, parentDirDepth, sum, find);
+                    histogram =
+                        nnLoader
+                            .getQueryEngine()
+                            .parentDirHistogram(inodes, parentDirDepth, sum, find);
                     break;
                   case fileType:
-                    histogram = nnLoader.fileTypeHistogram(inodes, sum, find);
+                    histogram = nnLoader.getQueryEngine().fileTypeHistogram(inodes, sum, find);
                     break;
                   default:
                     throw new IllegalArgumentException(
@@ -1131,7 +1156,9 @@ public class NNAnalyticsRestAPI {
             // Perform conditions filtering.
             if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
               mergedHistogram =
-                  nnLoader.removeKeysOnConditional2(mergedHistogram, histogramConditionsStr);
+                  nnLoader
+                      .getQueryEngine()
+                      .removeKeysOnConditional2(mergedHistogram, histogramConditionsStr);
             }
 
             // Sort results.

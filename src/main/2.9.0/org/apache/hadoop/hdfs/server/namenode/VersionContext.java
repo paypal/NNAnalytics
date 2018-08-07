@@ -188,7 +188,7 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpu(
-      Collection<INode> inodes, String sum, NNLoader nnLoader) {
+      Collection<INode> inodes, String sum, QueryEngine queryEngine) {
     List<Long> distinctStorageIds = StorageTypeHistogram.bins;
     List<String> distinctStorageKeys = StorageTypeHistogram.keys;
     Map<String, Long> storageIdToIndexToKeyMap =
@@ -198,17 +198,17 @@ public class VersionContext implements VersionInterface {
             .boxed()
             .collect(Collectors.toMap(distinctStorageKeys::get, k -> (long) k));
 
-    return nnLoader.binMappingHistogram(
+    return queryEngine.binMappingHistogram(
         inodes,
         sum,
-        nnLoader.getSumFunctionForINode(sum),
+        queryEngine.getSumFunctionForINode(sum),
         node -> (long) distinctStorageIds.indexOf((long) node.getStoragePolicyID()),
         storageIdToIndexToKeyMap);
   }
 
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpuWithFind(
-      Collection<INode> inodes, String find, NNLoader nnLoader) {
+      Collection<INode> inodes, String find, QueryEngine queryEngine) {
     List<Long> distinctStorageIds = StorageTypeHistogram.bins;
     List<String> distinctStorageKeys = StorageTypeHistogram.keys;
     Map<String, Long> storageIdToIndexToKeyMap =
@@ -221,10 +221,10 @@ public class VersionContext implements VersionInterface {
     String findOp = finds[0];
     String findField = finds[1];
 
-    return nnLoader.binMappingHistogramWithFind(
+    return queryEngine.binMappingHistogramWithFind(
         inodes,
         findOp,
-        nnLoader.getFilterFunctionToLongForINode(findField),
+        queryEngine.getFilterFunctionToLongForINode(findField),
         node -> (long) distinctStorageIds.indexOf((long) node.getStoragePolicyID()),
         storageIdToIndexToKeyMap);
   }

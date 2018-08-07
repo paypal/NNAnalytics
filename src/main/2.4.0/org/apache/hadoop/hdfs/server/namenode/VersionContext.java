@@ -134,13 +134,13 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpu(
-      Collection<INode> inodes, String sum, NNLoader nnLoader) {
+      Collection<INode> inodes, String sum, QueryEngine queryEngine) {
     throw new UnsupportedOperationException("Storage Types not supported in 2.4.0.");
   }
 
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpuWithFind(
-      Collection<INode> inodes, String find, NNLoader nnLoader) {
+      Collection<INode> inodes, String find, QueryEngine queryEngine) {
     throw new UnsupportedOperationException("Storage Types not supported in 2.4.0.");
   }
 

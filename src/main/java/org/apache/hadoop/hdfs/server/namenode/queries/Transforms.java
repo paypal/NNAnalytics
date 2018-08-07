@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.function.Function;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.slf4j.Logger;
 
 public class Transforms {
@@ -98,23 +99,27 @@ public class Transforms {
       conditions[i] = triplet.split(":");
     }
 
+    QueryEngine queryEngine = loader.getQueryEngine();
+
     // Create comparisons.
     for (String[] condition : conditions) {
       // Long value filters
-      Function<INode, Long> longFunction = loader.getFilterFunctionToLongForINode(condition[0]);
+      Function<INode, Long> longFunction =
+          queryEngine.getFilterFunctionToLongForINode(condition[0]);
       if (longFunction != null) {
         Function<Long, Boolean> longCompFunction =
-            loader.getFilterFunctionForLong(Long.parseLong(condition[2]), condition[1]);
+            queryEngine.getFilterFunctionForLong(Long.parseLong(condition[2]), condition[1]);
         Function<INode, Boolean> comparisonFunction = longCompFunction.compose(longFunction);
         comparisons.add(comparisonFunction);
         continue;
       }
 
       // String value filters
-      Function<INode, String> strFunction = loader.getFilterFunctionToStringForINode(condition[0]);
+      Function<INode, String> strFunction =
+          queryEngine.getFilterFunctionToStringForINode(condition[0]);
       if (strFunction != null) {
         Function<String, Boolean> strCompFunction =
-            loader.getFilterFunctionForString(condition[2], condition[1]);
+            queryEngine.getFilterFunctionForString(condition[2], condition[1]);
         Function<INode, Boolean> comparisonFunction = strCompFunction.compose(strFunction);
         comparisons.add(comparisonFunction);
         continue;
@@ -122,10 +127,11 @@ public class Transforms {
 
       // Boolean value filters
       Function<INode, Boolean> boolFunction =
-          loader.getFilterFunctionToBooleanForINode(condition[0]);
+          queryEngine.getFilterFunctionToBooleanForINode(condition[0]);
       if (boolFunction != null) {
         Function<Boolean, Boolean> boolCompFunction =
-            loader.getFilterFunctionForBoolean(Boolean.parseBoolean(condition[2]), condition[1]);
+            queryEngine.getFilterFunctionForBoolean(
+                Boolean.parseBoolean(condition[2]), condition[1]);
         Function<INode, Boolean> comparisonFunction = boolCompFunction.compose(boolFunction);
         comparisons.add(comparisonFunction);
         continue;
@@ -190,6 +196,8 @@ public class Transforms {
       return Collections.emptyMap();
     }
 
+    QueryEngine queryEngine = loader.getQueryEngine();
+
     Map<String, Function<INode, Long>> compoundedTransforms = new HashMap<>(transformMap.size());
     for (Map.Entry<String, List<Transform>> entry : transformMap.entrySet()) {
       List<Transform> transforms = entry.getValue();
@@ -200,7 +208,7 @@ public class Transforms {
                 return transform.toLongFunc.apply(node);
               }
             }
-            return loader.getFilterFunctionToLongForINode(entry.getKey()).apply(node);
+            return queryEngine.getFilterFunctionToLongForINode(entry.getKey()).apply(node);
           };
       compoundedTransforms.put(entry.getKey(), compoundedFunction);
     }
