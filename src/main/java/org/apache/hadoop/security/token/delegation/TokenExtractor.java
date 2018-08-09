@@ -41,11 +41,22 @@ public class TokenExtractor {
   private final DelegationTokenSecretManager dtsm;
   private final FSNamesystem fsn;
 
+  /**
+   * Constructor.
+   *
+   * @param dtsm tokensecretmanager from FSNamesystem
+   * @param fsn the FSNamesystem
+   */
   public TokenExtractor(DelegationTokenSecretManager dtsm, FSNamesystem fsn) {
     this.dtsm = dtsm;
     this.fsn = fsn;
   }
 
+  /**
+   * Extract the last seen DelegationTokens from FSNamesystem.
+   *
+   * @return map of user names to last timestamp of token seen
+   */
   public Map<String, Long> getTokenLastLogins() {
     if (fsn == null || dtsm == null) {
       return new HashMap<String, Long>() {

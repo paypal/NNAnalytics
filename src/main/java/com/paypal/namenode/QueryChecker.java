@@ -26,7 +26,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.math3.util.Pair;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Filter;
+import org.apache.hadoop.hdfs.server.namenode.Constants.FilterOp;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Find;
+import org.apache.hadoop.hdfs.server.namenode.Constants.FindField;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
+import org.apache.hadoop.hdfs.server.namenode.Constants.INodeSet;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Operand;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
 
 class QueryChecker {
 
@@ -38,21 +46,21 @@ class QueryChecker {
 
   static {
     {
-      filterMap.put(NNAConstants.SET.files.toString(), NNAConstants.FILTER_FILE);
-      filterMap.put(NNAConstants.SET.dirs.toString(), NNAConstants.FILTER_DIR);
-      filterMap.put(NNAConstants.SET.all.toString(), NNAConstants.FILTER_ALL);
+      filterMap.put(INodeSet.files.toString(), Constants.FILTER_FILE);
+      filterMap.put(INodeSet.dirs.toString(), Constants.FILTER_DIR);
+      filterMap.put(INodeSet.all.toString(), Constants.FILTER_ALL);
 
-      sumMap.put(NNAConstants.SET.files.toString(), NNAConstants.SUM_FILE);
-      sumMap.put(NNAConstants.SET.dirs.toString(), NNAConstants.SUM_DIR);
-      sumMap.put(NNAConstants.SET.all.toString(), NNAConstants.SUM_ALL);
+      sumMap.put(INodeSet.files.toString(), Constants.SUM_FILE);
+      sumMap.put(INodeSet.dirs.toString(), Constants.SUM_DIR);
+      sumMap.put(INodeSet.all.toString(), Constants.SUM_ALL);
 
-      typeMap.put(NNAConstants.SET.files.toString(), NNAConstants.TYPE_FILE);
-      typeMap.put(NNAConstants.SET.dirs.toString(), NNAConstants.TYPE_DIR);
-      typeMap.put(NNAConstants.SET.all.toString(), NNAConstants.TYPE_ALL);
+      typeMap.put(INodeSet.files.toString(), Constants.TYPE_FILE);
+      typeMap.put(INodeSet.dirs.toString(), Constants.TYPE_DIR);
+      typeMap.put(INodeSet.all.toString(), Constants.TYPE_ALL);
 
-      findMap.put(NNAConstants.SET.files.toString(), NNAConstants.FIND_FILE);
-      findMap.put(NNAConstants.SET.dirs.toString(), NNAConstants.FIND_DIR);
-      findMap.put(NNAConstants.SET.all.toString(), NNAConstants.FIND_ALL);
+      findMap.put(INodeSet.files.toString(), Constants.FIND_FILE);
+      findMap.put(INodeSet.dirs.toString(), Constants.FIND_DIR);
+      findMap.put(INodeSet.all.toString(), Constants.FIND_ALL);
     }
   }
 
@@ -61,13 +69,13 @@ class QueryChecker {
       throws MalformedURLException {
     errorMessages.clear();
 
-    EnumSet validSumOperands = sumMap.get(setType);
-    EnumSet validFilterOperands = filterMap.get(setType);
-    EnumSet validTypeOperands = typeMap.get(setType);
-    EnumSet validFindOperands = findMap.get(setType);
+    final EnumSet validSumOperands = sumMap.get(setType);
+    final EnumSet validFilterOperands = filterMap.get(setType);
+    final EnumSet validTypeOperands = typeMap.get(setType);
+    final EnumSet validFindOperands = findMap.get(setType);
 
     Pair<Boolean, Pair<String, String>> typeCheck =
-        isValidOperand(type, null, validTypeOperands, NNAConstants.OPERAND.type.toString());
+        isValidOperand(type, null, validTypeOperands, Operand.type.toString());
     if (!typeCheck.getFirst()) {
       errorMessages.add(
           "Please check /types. Your histogram type: "
@@ -78,7 +86,7 @@ class QueryChecker {
     }
 
     Pair<Boolean, Pair<String, String>> sumCheck =
-        isValidOperand(sum, null, validSumOperands, NNAConstants.OPERAND.sum.toString());
+        isValidOperand(sum, null, validSumOperands, Operand.sum.toString());
     if (!sumCheck.getFirst()) {
       errorMessages.add(
           "Please check /sums. Your sum type: "
@@ -89,8 +97,7 @@ class QueryChecker {
     }
 
     Pair<Boolean, Pair<String, String>> filterCheck =
-        isValidOperand(
-            filters, filterOps, validFilterOperands, NNAConstants.OPERAND.filter.toString());
+        isValidOperand(filters, filterOps, validFilterOperands, Operand.filter.toString());
     if (!filterCheck.getFirst()) {
       Pair<String, String> result = filterCheck.getSecond();
       if (result.getFirst().length() > 0) {
@@ -107,7 +114,7 @@ class QueryChecker {
     }
 
     Pair<Boolean, Pair<String, String>> findCheck =
-        isValidOperand(find, null, validFindOperands, NNAConstants.OPERAND.find.toString());
+        isValidOperand(find, null, validFindOperands, Operand.find.toString());
     if (!findCheck.getFirst()) {
       errorMessages.add(
           "Please check /finds. Your find type: "
@@ -142,25 +149,25 @@ class QueryChecker {
       for (String op : operands) {
         switch (operandType) {
           case "filter":
-            opEnum = NNAConstants.FILTER.valueOf(NNAConstants.FILTER.class, op);
+            opEnum = Filter.valueOf(Filter.class, op);
             isFilter = true;
             break;
           case "type":
-            opEnum = NNAConstants.HISTOGRAM.valueOf(NNAConstants.HISTOGRAM.class, op);
+            opEnum = Histogram.valueOf(Histogram.class, op);
             break;
           case "sum":
-            opEnum = NNAConstants.SUM.valueOf(NNAConstants.SUM.class, op);
+            opEnum = Sum.valueOf(Sum.class, op);
             break;
           case "find":
             find = op.split(":");
-            opEnum = NNAConstants.FIND.valueOf(NNAConstants.FIND.class, find[0]);
+            opEnum = Find.valueOf(Find.class, find[0]);
             break;
           default:
             throw new IllegalArgumentException("Operand is not valid: " + op);
         }
         boolean isValid;
         if (find != null && find.length == 2) {
-          Enum opOperand = NNAConstants.FIND_FIELD.valueOf(NNAConstants.FIND_FIELD.class, find[1]);
+          Enum opOperand = FindField.valueOf(FindField.class, find[1]);
           isValid = validOperands.contains(opOperand);
         } else {
           isValid = validOperands.contains(opEnum);
@@ -202,16 +209,16 @@ class QueryChecker {
     String[] values = op.split(":");
     String operand = values[0];
     String valueToCompare = values[1];
-    Enum operandEnum = NNAConstants.FILTER_OP.valueOf(NNAConstants.FILTER_OP.class, operand);
-    if (NNAConstants.FILTER_BOOLEAN.contains(opEnum)) {
-      if ((NNAConstants.FILTER_BOOLEAN_OPS.contains(operandEnum))
+    Enum operandEnum = FilterOp.valueOf(FilterOp.class, operand);
+    if (Constants.FILTER_BOOLEAN.contains(opEnum)) {
+      if ((Constants.FILTER_BOOLEAN_OPS.contains(operandEnum))
           && (Objects.equals(valueToCompare, "true") || Objects.equals(valueToCompare, "false"))) {
         return new Pair<>(true, null);
       } else {
         return new Pair<>(false, opEnum.toString() + " requires a Boolean value.");
       }
-    } else if (NNAConstants.FILTER_LONG.contains(opEnum)) {
-      if (NNAConstants.FILTER_LONG_OPS.contains(operandEnum)) {
+    } else if (Constants.FILTER_LONG.contains(opEnum)) {
+      if (Constants.FILTER_LONG_OPS.contains(operandEnum)) {
         try {
           Long.parseLong(valueToCompare);
         } catch (NumberFormatException e) {
@@ -219,8 +226,8 @@ class QueryChecker {
         }
         return new Pair<>(true, null);
       }
-    } else if (NNAConstants.FILTER_STRING.contains(opEnum)) {
-      if (NNAConstants.FILTER_STRING_OPS.contains(operandEnum)) {
+    } else if (Constants.FILTER_STRING.contains(opEnum)) {
+      if (Constants.FILTER_STRING_OPS.contains(operandEnum)) {
         return new Pair<>(true, null);
       } else {
         return new Pair<>(false, opEnum.toString() + " requires a String value.");

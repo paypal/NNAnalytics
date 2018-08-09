@@ -21,8 +21,8 @@ package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.Collection;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
 
 public class Delete extends BaseOperation {
 
@@ -75,6 +75,6 @@ public class Delete extends BaseOperation {
 
   @Override
   public String type() {
-    return NNAConstants.OPERATION.delete.name();
+    return Constants.Operation.delete.name();
   }
 }

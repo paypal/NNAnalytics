@@ -54,12 +54,15 @@ ext {
 checkstyle {
     toolVersion "7.8.2"
     configFile file("config/checkstyle/checkstyle.xml")
+    sourceSets = [project.sourceSets.main]
 }
 
 spotless {
     java {
-        googleJavaFormat()
+        googleJavaFormat('1.3')
         licenseHeaderFile file('license.header.spotless')
+        removeUnusedImports()
+        trimTrailingWhitespace()
     }
 }
 

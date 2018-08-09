@@ -43,13 +43,13 @@ public interface VersionInterface {
 
   void saveNamespace() throws IOException;
 
-  void saveLegacyOIVImage(String dir) throws IOException;
+  void saveLegacyOivImage(String dir) throws IOException;
 
-  Long getNSQuota(INode node);
+  Long getNsQuota(INode node);
 
-  Long getNSQuotaUsed(INode node);
+  Long getNsQuotaUsed(INode node);
 
-  Long getDSQuota(INode node);
+  Long getDsQuota(INode node);
 
-  Long getDSQuotaUsed(INode node);
+  Long getDsQuotaUsed(INode node);
 }

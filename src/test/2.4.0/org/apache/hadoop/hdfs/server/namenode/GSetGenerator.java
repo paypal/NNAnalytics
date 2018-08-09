@@ -19,7 +19,7 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.CHARSET;
+import static org.apache.hadoop.hdfs.server.namenode.Constants.CHARSET;
 import static org.apache.hadoop.util.Time.now;
 
 import java.io.IOException;

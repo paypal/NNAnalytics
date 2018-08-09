@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 public class FileTypeHistogram {
 
-  private enum TYPES {
+  private enum Types {
     UNKNOWN,
     PART_R,
     PART_M,
@@ -92,37 +92,43 @@ public class FileTypeHistogram {
   private static final Map<String, Function<String, Boolean>> patternMap =
       new TreeMap<String, Function<String, Boolean>>() {
         {
-          put(TYPES.PART_R.name(), part_r_pattern);
-          put(TYPES.PART_M.name(), part_m_pattern);
-          put(TYPES._SUCCESS.name(), success_pattern);
-          put(TYPES.TXT.name(), txt_pattern);
-          put(TYPES.LOG.name(), log_pattern);
-          put(TYPES.AVRO.name(), avro_pattern);
-          put(TYPES.SNAPPY.name(), snappy_pattern);
-          put(TYPES.PARQUET.name(), parquet_pattern);
-          put(TYPES.GZ.name(), gz_pattern);
-          put(TYPES.JSON.name(), json_pattern);
-          put(TYPES.XML.name(), xml_pattern);
-          put(TYPES.DAT.name(), dat_pattern);
-          put(TYPES.INDEX.name(), index_pattern);
-          put(TYPES.ORC.name(), orc_pattern);
-          put(TYPES.JAR.name(), jar_pattern);
-          put(TYPES.ZIP.name(), zip_pattern);
-          put(TYPES.DTDONE.name(), dtdone_pattern);
-          put(TYPES.JHIST.name(), jhist_pattern);
+          put(Types.PART_R.name(), part_r_pattern);
+          put(Types.PART_M.name(), part_m_pattern);
+          put(Types._SUCCESS.name(), success_pattern);
+          put(Types.TXT.name(), txt_pattern);
+          put(Types.LOG.name(), log_pattern);
+          put(Types.AVRO.name(), avro_pattern);
+          put(Types.SNAPPY.name(), snappy_pattern);
+          put(Types.PARQUET.name(), parquet_pattern);
+          put(Types.GZ.name(), gz_pattern);
+          put(Types.JSON.name(), json_pattern);
+          put(Types.XML.name(), xml_pattern);
+          put(Types.DAT.name(), dat_pattern);
+          put(Types.INDEX.name(), index_pattern);
+          put(Types.ORC.name(), orc_pattern);
+          put(Types.JAR.name(), jar_pattern);
+          put(Types.ZIP.name(), zip_pattern);
+          put(Types.DTDONE.name(), dtdone_pattern);
+          put(Types.JHIST.name(), jhist_pattern);
         }
       };
 
   public static final List<String> keys =
       Collections.unmodifiableList(
-          Arrays.stream(TYPES.values()).map(Enum::name).collect(Collectors.toList()));
+          Arrays.stream(Types.values()).map(Enum::name).collect(Collectors.toList()));
 
+  /**
+   * Method for determining the file type based on the file name.
+   *
+   * @param name the name of the file
+   * @return the type of the file
+   */
   public static String determineType(String name) {
     for (Map.Entry<String, Function<String, Boolean>> patternEntry : patternMap.entrySet()) {
       if (patternEntry.getValue().apply(name)) {
         return patternEntry.getKey();
       }
     }
-    return TYPES.UNKNOWN.name();
+    return Types.UNKNOWN.name();
   }
 }

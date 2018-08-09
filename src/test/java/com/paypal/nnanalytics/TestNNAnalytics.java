@@ -19,7 +19,7 @@
 
 package com.paypal.nnanalytics;
 
-import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.UNSECURED_ENDPOINTS;
+import static org.apache.hadoop.hdfs.server.namenode.Constants.UNSECURED_ENDPOINTS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
@@ -44,11 +44,11 @@ import java.util.Iterator;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.ENDPOINT;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -193,7 +193,7 @@ public class TestNNAnalytics {
 
   @Test
   public void testUsersSuggestions() throws IOException {
-    NNLoader loader = nna.getLoader();
+    NameNodeLoader loader = nna.getLoader();
     loader.getSuggestionsEngine().reloadSuggestions(loader);
     HttpGet get = new HttpGet("http://localhost:4567/users?suggestion=emptyFilesUsers");
     HttpResponse res = client.execute(hostPort, get);
@@ -230,10 +230,10 @@ public class TestNNAnalytics {
 
   @Test
   public void testEndpoints() throws IOException {
-    EnumSet<ENDPOINT> clone = UNSECURED_ENDPOINTS.clone();
-    clone.remove(ENDPOINT.login);
-    clone.remove(ENDPOINT.logout);
-    clone.remove(ENDPOINT.credentials);
+    EnumSet<Endpoint> clone = UNSECURED_ENDPOINTS.clone();
+    clone.remove(Endpoint.login);
+    clone.remove(Endpoint.logout);
+    clone.remove(Endpoint.credentials);
     clone.forEach(
         x -> {
           String url = "http://localhost:4567/" + x.name();

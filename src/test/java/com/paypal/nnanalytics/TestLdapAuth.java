@@ -136,7 +136,7 @@ public class TestLdapAuth {
     assertThat(res2.getStatusLine().getStatusCode(), is(200));
 
     // Use JWT to auth again.
-    Header tokenHeader = res2.getFirstHeader("Set-Cookie");
+    Header tokenHeader = res2.getFirstHeader("INodeSet-Cookie");
     HttpGet get2 = new HttpGet("http://localhost:4567/threads");
     get2.addHeader("Cookie", tokenHeader.getValue());
     HttpResponse res3 = client.execute(hostPort, get2);
@@ -164,7 +164,7 @@ public class TestLdapAuth {
     assertThat(res.getStatusLine().getStatusCode(), is(200));
 
     // Logout.
-    Header tokenHeader = res.getFirstHeader("Set-Cookie");
+    Header tokenHeader = res.getFirstHeader("INodeSet-Cookie");
     HttpPost post2 = new HttpPost("http://localhost:4567/logout");
     post2.addHeader("Cookie", tokenHeader.getValue());
     HttpResponse res2 = client.execute(hostPort, post2);

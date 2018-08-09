@@ -27,30 +27,32 @@ import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 
 public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFields> {
 
-  private final GSet<INode, INodeWithAdditionalFields> gSet;
+  private final GSet<INode, INodeWithAdditionalFields> inodes;
   private final Map<INode, INode> fileSet;
   private final Map<INode, INode> dirSet;
 
   public GSetSeperatorWrapper(
-      GSet<INode, INodeWithAdditionalFields> g, Map<INode, INode> files, Map<INode, INode> dirs) {
-    this.gSet = g;
+      GSet<INode, INodeWithAdditionalFields> inodes,
+      Map<INode, INode> files,
+      Map<INode, INode> dirs) {
+    this.inodes = inodes;
     this.fileSet = files;
     this.dirSet = dirs;
   }
 
   @Override
   public int size() {
-    return gSet.size();
+    return inodes.size();
   }
 
   @Override
   public boolean contains(INode key) {
-    return gSet.contains(key);
+    return inodes.contains(key);
   }
 
   @Override
   public INodeWithAdditionalFields get(INode key) {
-    return gSet.get(key);
+    return inodes.get(key);
   }
 
   @Override
@@ -60,7 +62,7 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
     } else if (element.isDirectory()) {
       dirSet.put(element, element);
     }
-    return gSet.put(element);
+    return inodes.put(element);
   }
 
   @Override
@@ -70,24 +72,24 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
     } else if (key.isDirectory()) {
       dirSet.remove(key);
     }
-    return gSet.remove(key);
+    return inodes.remove(key);
   }
 
   @Override
   public void clear() {
-    gSet.clear();
+    inodes.clear();
     fileSet.clear();
     dirSet.clear();
   }
 
   @Override
   public Collection<INodeWithAdditionalFields> values() {
-    return gSet.values();
+    return inodes.values();
   }
 
   @Override
   public Iterator<INodeWithAdditionalFields> iterator() {
-    Iterator<INodeWithAdditionalFields> iterator = gSet.iterator();
+    Iterator<INodeWithAdditionalFields> iterator = inodes.iterator();
     if (iterator instanceof LightWeightGSet.SetIterator) {
       ((LightWeightGSet.SetIterator) iterator).setTrackModification(false);
     }

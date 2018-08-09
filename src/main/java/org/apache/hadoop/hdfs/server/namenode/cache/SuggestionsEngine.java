@@ -20,7 +20,7 @@
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import com.google.common.collect.Sets;
-import com.paypal.namenode.HSQLDriver;
+import com.paypal.namenode.HsqlDriver;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -36,7 +36,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.util.VirtualINodeTree;
@@ -83,30 +83,30 @@ public class SuggestionsEngine {
   }
 
   /**
-   * This method should only be called after NNLoader has finished loading the FSImage.
+   * This method should only be called after NameNodeLoader has finished loading the FSImage.
    *
    * <p>Calling this method will issue many queries in the background and update the various MapDB
    * cached objects.
    *
-   * @param nnLoader The main NNLoader and in-memory metadata set.
+   * @param nameNodeLoader The main NameNodeLoader and in-memory metadata set.
    */
-  public void reloadSuggestions(NNLoader nnLoader) {
-    long s1 = System.currentTimeMillis();
-    Collection<INode> files = nnLoader.getINodeSet("files");
-    Collection<INode> dirs = nnLoader.getINodeSet("dirs");
+  public void reloadSuggestions(NameNodeLoader nameNodeLoader) {
+    final long s1 = System.currentTimeMillis();
+    Collection<INode> files = nameNodeLoader.getINodeSet("files");
+    Collection<INode> dirs = nameNodeLoader.getINodeSet("dirs");
 
-    long numFiles = files.size();
-    long numDirs = dirs.size();
+    final long numFiles = files.size();
+    final long numDirs = dirs.size();
     long capacity = 0L;
 
     try {
-      FileSystem fs = nnLoader.getFileSystem();
+      FileSystem fs = nameNodeLoader.getFileSystem();
       capacity = fs.getStatus().getCapacity();
     } catch (IOException e) {
       e.printStackTrace();
     }
 
-    QueryEngine queryEngine = nnLoader.getQueryEngine();
+    QueryEngine queryEngine = nameNodeLoader.getQueryEngine();
     final Map<String, Long> modTimeCount =
         queryEngine.modTimeHistogram(files, "count", null, "monthly");
     final Map<String, Long> modTimeDiskspace =
@@ -123,26 +123,26 @@ public class SuggestionsEngine {
         queryEngine.combinedFilter(files, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
     final long numFiles24h = files24h.size();
     final long diskspace24h = queryEngine.sum(files24h, "diskspaceConsumed");
-    final Map<String, Long> numFiles24hUsers = queryEngine.byUserHistogramCpu(files24h, "count");
+    final Map<String, Long> numFiles24hUsers = queryEngine.byUserHistogram(files24h, "count", null);
     final Map<String, Long> diskspace24hUsers =
-        queryEngine.byUserHistogramCpu(files24h, "diskspaceConsumed");
+        queryEngine.byUserHistogram(files24h, "diskspaceConsumed", null);
     final Map<String, Long> diskspaceUsers =
-        queryEngine.byUserHistogramCpu(files, "diskspaceConsumed");
+        queryEngine.byUserHistogram(files, "diskspaceConsumed", null);
 
     final Collection<INode> oldFiles1yr =
         queryEngine.combinedFilter(
             files, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
     final Map<String, Long> oldFiles1yrCountUsers =
-        queryEngine.byUserHistogramCpu(oldFiles1yr, "count");
+        queryEngine.byUserHistogram(oldFiles1yr, "count", null);
     final Map<String, Long> oldFiles1yrDsUsers =
-        queryEngine.byUserHistogramCpu(oldFiles1yr, "diskspaceConsumed");
+        queryEngine.byUserHistogram(oldFiles1yr, "diskspaceConsumed", null);
     final Collection<INode> oldFiles2yr =
         queryEngine.combinedFilter(
             files, new String[] {"accessTime"}, new String[] {"olderThanYears:2"});
     final Map<String, Long> oldFiles2yrCountUsers =
-        queryEngine.byUserHistogramCpu(oldFiles2yr, "count");
+        queryEngine.byUserHistogram(oldFiles2yr, "count", null);
     final Map<String, Long> oldFiles2yrDsUsers =
-        queryEngine.byUserHistogramCpu(oldFiles2yr, "diskspaceConsumed");
+        queryEngine.byUserHistogram(oldFiles2yr, "diskspaceConsumed", null);
 
     final Collection<INode> emptyFiles =
         queryEngine.combinedFilter(files, new String[] {"fileSize"}, new String[] {"eq:0"});
@@ -222,13 +222,16 @@ public class SuggestionsEngine {
     final long oldFiles2yrDs = queryEngine.sum(oldFiles2yr, "diskspaceConsumed");
 
     final Map<String, Long> filesUsers = queryEngine.byUserHistogram(files, "count", null);
-    final Map<String, Long> dirsUsers = queryEngine.byUserHistogramCpu(dirs, "count");
+    final Map<String, Long> dirsUsers = queryEngine.byUserHistogram(dirs, "count", null);
 
-    final Map<String, Long> emptyFilesUsers = queryEngine.byUserHistogramCpu(emptyFiles, "count");
-    final Map<String, Long> emptyDirsUsers = queryEngine.byUserHistogramCpu(emptyDirs, "count");
-    final Map<String, Long> tinyFilesUsers = queryEngine.byUserHistogramCpu(tinyFiles, "count");
-    final Map<String, Long> smallFilesUsers = queryEngine.byUserHistogramCpu(smallFiles, "count");
-    final Map<String, Long> mediumFilesUsers = queryEngine.byUserHistogramCpu(mediumFiles, "count");
+    final Map<String, Long> emptyFilesUsers =
+        queryEngine.byUserHistogram(emptyFiles, "count", null);
+    final Map<String, Long> emptyDirsUsers = queryEngine.byUserHistogram(emptyDirs, "count", null);
+    final Map<String, Long> tinyFilesUsers = queryEngine.byUserHistogram(tinyFiles, "count", null);
+    final Map<String, Long> smallFilesUsers =
+        queryEngine.byUserHistogram(smallFiles, "count", null);
+    final Map<String, Long> mediumFilesUsers =
+        queryEngine.byUserHistogram(mediumFiles, "count", null);
     final Map<String, Long> largeFilesUsers = new HashMap<>(users.size());
     users.forEach(
         u -> {
@@ -242,48 +245,48 @@ public class SuggestionsEngine {
         });
 
     final Map<String, Long> emptyFiles24hUsers =
-        queryEngine.byUserHistogramCpu(emptyFiles24h, "count");
+        queryEngine.byUserHistogram(emptyFiles24h, "count", null);
     final Map<String, Long> emptyDirs24hUsers =
-        queryEngine.byUserHistogramCpu(emptyDirs24h, "count");
+        queryEngine.byUserHistogram(emptyDirs24h, "count", null);
     final Map<String, Long> tinyFiles24hUsers =
-        queryEngine.byUserHistogramCpu(tinyFiles24h, "count");
+        queryEngine.byUserHistogram(tinyFiles24h, "count", null);
     final Map<String, Long> smallFiles24hUsers =
-        queryEngine.byUserHistogramCpu(smallFiles24h, "count");
+        queryEngine.byUserHistogram(smallFiles24h, "count", null);
     final Map<String, Long> emptyFiles1yrUsers =
-        queryEngine.byUserHistogramCpu(emptyFiles1yr, "count");
+        queryEngine.byUserHistogram(emptyFiles1yr, "count", null);
     final Map<String, Long> emptyDirs1yrUsers =
-        queryEngine.byUserHistogramCpu(emptyDirs1yr, "count");
+        queryEngine.byUserHistogram(emptyDirs1yr, "count", null);
     final Map<String, Long> tinyFiles1yrUsers =
-        queryEngine.byUserHistogramCpu(tinyFiles1yr, "count");
+        queryEngine.byUserHistogram(tinyFiles1yr, "count", null);
     final Map<String, Long> smallFiles1yrUsers =
-        queryEngine.byUserHistogramCpu(smallFiles1yr, "count");
+        queryEngine.byUserHistogram(smallFiles1yr, "count", null);
     final Map<String, Long> emptyFilesMemUsers =
-        queryEngine.byUserHistogramCpu(emptyFiles, "memoryConsumed");
+        queryEngine.byUserHistogram(emptyFiles, "memoryConsumed", null);
     final Map<String, Long> emptyDirsMemUsers =
-        queryEngine.byUserHistogramCpu(emptyDirs, "memoryConsumed");
+        queryEngine.byUserHistogram(emptyDirs, "memoryConsumed", null);
     final Map<String, Long> tinyFilesMemUsers =
-        queryEngine.byUserHistogramCpu(tinyFiles, "memoryConsumed");
+        queryEngine.byUserHistogram(tinyFiles, "memoryConsumed", null);
     final Map<String, Long> smallFilesMemUsers =
-        queryEngine.byUserHistogramCpu(smallFiles, "memoryConsumed");
+        queryEngine.byUserHistogram(smallFiles, "memoryConsumed", null);
     final Map<String, Long> tinyFilesDsUsers =
-        queryEngine.byUserHistogramCpu(tinyFiles, "diskspaceConsumed");
+        queryEngine.byUserHistogram(tinyFiles, "diskspaceConsumed", null);
     final Map<String, Long> smallFilesDsUsers =
-        queryEngine.byUserHistogramCpu(smallFiles, "diskspaceConsumed");
+        queryEngine.byUserHistogram(smallFiles, "diskspaceConsumed", null);
     final Map<String, Long> emptyFiles24hMemUsers =
-        queryEngine.byUserHistogramCpu(emptyFiles24h, "memoryConsumed");
+        queryEngine.byUserHistogram(emptyFiles24h, "memoryConsumed", null);
     final Map<String, Long> emptyDirs24hMemUsers =
-        queryEngine.byUserHistogramCpu(emptyDirs24h, "memoryConsumed");
+        queryEngine.byUserHistogram(emptyDirs24h, "memoryConsumed", null);
     final Map<String, Long> tinyFiles24hMemUsers =
-        queryEngine.byUserHistogramCpu(tinyFiles24h, "memoryConsumed");
+        queryEngine.byUserHistogram(tinyFiles24h, "memoryConsumed", null);
     final Map<String, Long> smallFiles24hMemUsers =
-        queryEngine.byUserHistogramCpu(smallFiles24h, "memoryConsumed");
+        queryEngine.byUserHistogram(smallFiles24h, "memoryConsumed", null);
     final Map<String, Long> tinyFiles24hDsUsers =
-        queryEngine.byUserHistogramCpu(tinyFiles24h, "diskspaceConsumed");
+        queryEngine.byUserHistogram(tinyFiles24h, "diskspaceConsumed", null);
     final Map<String, Long> smallFiles24hDsUsers =
-        queryEngine.byUserHistogramCpu(smallFiles24h, "diskspaceConsumed");
+        queryEngine.byUserHistogram(smallFiles24h, "diskspaceConsumed", null);
 
-    Map<String, Long> dirCount = queryEngine.parentDirHistogramCpu(files, 3, "count");
-    Map<String, Long> dirDs = queryEngine.parentDirHistogramCpu(files, 3, "diskspaceConsumed");
+    Map<String, Long> dirCount = queryEngine.parentDirHistogram(files, 3, "count", null);
+    Map<String, Long> dirDs = queryEngine.parentDirHistogram(files, 3, "diskspaceConsumed", null);
     dirCount = Histograms.sliceToTop(dirCount, 1000);
     dirDs = Histograms.sliceToTop(dirDs, 1000);
 
@@ -315,10 +318,10 @@ public class SuggestionsEngine {
       }
     }
 
-    Map<String, Long> dirCount24h = queryEngine.parentDirHistogramCpu(files24h, 3, "count");
+    Map<String, Long> dirCount24h = queryEngine.parentDirHistogram(files24h, 3, "count", null);
     dirCount24h = Histograms.sliceToTop(dirCount24h, 1000);
     Map<String, Long> dirDs24h =
-        queryEngine.parentDirHistogramCpu(files24h, 3, "diskspaceConsumed");
+        queryEngine.parentDirHistogram(files24h, 3, "diskspaceConsumed", null);
     dirDs24h = Histograms.sliceToTop(dirDs24h, 1000);
     for (String dir : cachedDirs) {
       Collection<INode> inodes =
@@ -342,12 +345,12 @@ public class SuggestionsEngine {
       Collection<INode> quotaDirs =
           queryEngine.combinedFilter(
               dirs, new String[] {"user", "hasQuota"}, new String[] {"eq:" + user, "eq:true"});
-      Map<String, Long> nsQuotaRatio =
-          queryEngine.dirQuotaHistogramCpu(quotaDirs, "nsQuotaRatioUsed");
-      Map<String, Long> dsQuotaRatio =
-          queryEngine.dirQuotaHistogramCpu(quotaDirs, "dsQuotaRatioUsed");
-      long nsThreshExceeded = nsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
-      long dsThreshExceeded = dsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
+      Map<String, Long> nsQuotaRatio = queryEngine.dirQuotaHistogram(quotaDirs, "nsQuotaRatioUsed");
+      Map<String, Long> dsQuotaRatio = queryEngine.dirQuotaHistogram(quotaDirs, "dsQuotaRatioUsed");
+      final long nsThreshExceeded =
+          nsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
+      final long dsThreshExceeded =
+          dsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
       cachedUserNsQuotas.put(user, nsQuotaRatio);
       cachedUserDsQuotas.put(user, dsQuotaRatio);
       nsQuotaThreshCountsUsers.put(user, nsThreshExceeded);
@@ -361,11 +364,10 @@ public class SuggestionsEngine {
     }
 
     long e1 = System.currentTimeMillis();
-    long timeTaken = (e1 - s1);
+    final long timeTaken = (e1 - s1);
+    final long s2 = System.currentTimeMillis();
 
-    long s2 = System.currentTimeMillis();
-
-    cachedLogins.putAll(nnLoader.getTokenExtractor().getTokenLastLogins());
+    cachedLogins.putAll(nameNodeLoader.getTokenExtractor().getTokenLastLogins());
     cachedUsers.clear();
     cachedUsers.addAll(users);
     cachedValues.put("timeTaken", timeTaken);
@@ -463,8 +465,8 @@ public class SuggestionsEngine {
     LOG.info("Reloading suggestions matrices took: {} ms.", timeTaken);
     loaded.set(true);
 
-    HSQLDriver historyDbDriver = nnLoader.getEmbeddedHistoryDatabaseDriver();
-    if (historyDbDriver != null && nnLoader.isInit() && nnLoader.isHistorical()) {
+    HsqlDriver historyDbDriver = nameNodeLoader.getEmbeddedHistoryDatabaseDriver();
+    if (historyDbDriver != null && nameNodeLoader.isInit() && nameNodeLoader.isHistorical()) {
       long s3 = System.currentTimeMillis();
       try {
         historyDbDriver.logHistoryPerUser(cachedValues, cachedMaps, cachedUsers);
@@ -491,6 +493,12 @@ public class SuggestionsEngine {
     return Histograms.toJson(Histograms.sortByValue(cachedLogins, true));
   }
 
+  /**
+   * Adds a directory to get count and size analysis for specifically.
+   *
+   * @param directory directory to add to reporting
+   * @throws IOException directory could not be added to reporting
+   */
   public void addDirectoryToAnalysis(String directory) throws IOException {
     if (directory == null || directory.isEmpty()) {
       throw new IllegalArgumentException("Directory parameter 'dir' not defined.");
@@ -504,6 +512,12 @@ public class SuggestionsEngine {
     }
   }
 
+  /**
+   * Removes a directory from count and size analysis.
+   *
+   * @param directory directory to remove from reporting
+   * @throws IOException directory could not be removed from reporting
+   */
   public void removeDirectoryFromAnalysis(String directory) throws IOException {
     if (directory == null || directory.isEmpty()) {
       throw new IllegalArgumentException("Directory parameter 'dir' not defined.");
@@ -521,6 +535,13 @@ public class SuggestionsEngine {
     return cachedDirs;
   }
 
+  /**
+   * Get quota information from cache as a JSON String.
+   *
+   * @param user optional; username to get quota info for
+   * @param sum required; which type of quota to get
+   * @return quota info returned as JSON string
+   */
   public String getQuotaAsJson(String user, String sum) {
     if (sum == null || sum.length() == 0) {
       throw new IllegalArgumentException(
@@ -549,6 +570,12 @@ public class SuggestionsEngine {
     }
   }
 
+  /**
+   * Get file age histogram from cache as a JSON String.
+   *
+   * @param sum required; either count or diskspaceConsumed
+   * @return file ages returned as JSON string
+   */
   public String getFileAgeAsJson(String sum) {
     if (sum == null || sum.length() == 0) {
       throw new IllegalArgumentException(
@@ -565,6 +592,12 @@ public class SuggestionsEngine {
     }
   }
 
+  /**
+   * Get issue analysis from cache as a JSON String.
+   *
+   * @param suggestion the issue to look for from cache
+   * @return the cached issue dump as a JSON string
+   */
   public String getUsersAsJson(String suggestion) {
     if (suggestion == null || suggestion.isEmpty()) {
       return Histograms.toJson(cachedUsers);
@@ -577,6 +610,12 @@ public class SuggestionsEngine {
     }
   }
 
+  /**
+   * Get user analysis from cache as a JSON String.
+   *
+   * @param user the user to look for from cache
+   * @return the cached user dump as a JSON string
+   */
   public String getSuggestionsAsJson(String user) {
     if (user == null || user.isEmpty()) {
       return Histograms.toJson(cachedValues);
@@ -628,6 +667,13 @@ public class SuggestionsEngine {
     }
   }
 
+  /**
+   * Get directory analysis from cache as a JSON String.
+   *
+   * @param directory the dir path to look for
+   * @param sum required; either count or diskspaceConsumed
+   * @return the cached directory dump as a JSON string
+   */
   public String getDirectoriesAsJson(String directory, String sum) {
     Map<String, Long> dirMap;
     switch (sum) {
@@ -646,6 +692,13 @@ public class SuggestionsEngine {
     return Histograms.toJson(dirMap);
   }
 
+  /**
+   * Get issues list from cache as a JSON String.
+   *
+   * @param limit the number of users to get for each issue
+   * @param ascending whether to represent the top users or bottom users
+   * @return the issue list as a JSON string
+   */
   public String getIssuesAsJson(Integer limit, boolean ascending) {
     Map<String, Map<String, Long>> issuesMap = new LinkedHashMap<>();
     Map<String, Long> topEmptyFileUsers =
@@ -697,6 +750,12 @@ public class SuggestionsEngine {
     cacheManager.stop();
   }
 
+  /**
+   * Starts the SuggestionsEngine and cache'ing layer.
+   *
+   * @param conf the application configuration
+   * @throws IOException an error occurred starting the cache engine
+   */
   public void start(SecurityConfiguration conf) throws IOException {
     cacheManager.start(conf);
     this.cachedDirs = Collections.synchronizedSet(cacheManager.getCachedSet("cachedDirs"));
