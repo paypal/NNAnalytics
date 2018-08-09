@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
 
-import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.io.File;
 import java.io.IOException;
@@ -73,7 +73,7 @@ public class TestWithMiniCluster {
   private static MiniQJMHACluster cluster;
   private static HttpHost hostPort;
   private static HttpClient client;
-  private static NNAnalyticsRestAPI nna;
+  private static WebServerMain nna;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -98,7 +98,7 @@ public class TestWithMiniCluster {
     HATestUtil.setFailoverConfigurations(cluster.getDfsCluster(), CONF, NAMESERVICE, 0);
     CONF.set("dfs.nameservice.id", NAMESERVICE);
 
-    nna = new NNAnalyticsRestAPI();
+    nna = new WebServerMain();
     SecurityConfiguration nnaConf = new SecurityConfiguration();
     nnaConf.set("ldap.enable", "false");
     nnaConf.set("authorization.enable", "false");

@@ -21,8 +21,8 @@ package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.Collection;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
 
 public class SetStoragePolicy extends BaseOperation {
 
@@ -83,6 +83,6 @@ public class SetStoragePolicy extends BaseOperation {
 
   @Override
   public String type() {
-    return NNAConstants.OPERATION.setStoragePolicy.name();
+    return Constants.Operation.setStoragePolicy.name();
   }
 }

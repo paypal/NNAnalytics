@@ -27,15 +27,21 @@ import java.util.stream.LongStream;
 
 public class TimeHistogram {
 
-  public enum TIME_RANGES {
+  public enum TimeRange {
     daily,
     weekly,
     monthly,
     yearly
   }
 
+  /**
+   * Get range of Longs that represent the time range desired.
+   *
+   * @param timeRange the time range desired
+   * @return long array representing time range desired.
+   */
   public static Long[] getBinsArray(String timeRange) {
-    TIME_RANGES timeRangeEnum = TIME_RANGES.valueOf(timeRange);
+    TimeRange timeRangeEnum = TimeRange.valueOf(timeRange);
     switch (timeRangeEnum) {
       case daily:
         return daily_binsArray.clone();
@@ -50,8 +56,14 @@ public class TimeHistogram {
     }
   }
 
+  /**
+   * Get range of Strings that represent the time range desired.
+   *
+   * @param timeRange the time range desired
+   * @return String array representing time range desired.
+   */
   public static List<String> getKeys(String timeRange) {
-    TIME_RANGES timeRangeEnum = TIME_RANGES.valueOf(timeRange);
+    TimeRange timeRangeEnum = TimeRange.valueOf(timeRange);
     switch (timeRangeEnum) {
       case daily:
         return Collections.unmodifiableList(daily_keys);

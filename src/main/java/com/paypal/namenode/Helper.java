@@ -24,13 +24,13 @@ import java.util.Collection;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.queries.BaseQuery;
 import org.apache.hadoop.io.IOUtils;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 
-class NNAHelper {
+class Helper {
 
   static String toYAxis(String sum) {
     switch (sum) {
@@ -67,7 +67,7 @@ class NNAHelper {
   }
 
   static String toTitle(String histType, String sum) {
-    return histType.toUpperCase() + " HISTOGRAM | " + sum.toUpperCase();
+    return histType.toUpperCase() + " Histogram | " + sum.toUpperCase();
   }
 
   static String getTrackingUrl(HttpServletRequest req) {
@@ -80,20 +80,24 @@ class NNAHelper {
   }
 
   static Collection<INode> performFilters(
-      NNLoader nnLoader, String set, String[] filters, String[] filterOps, String find) {
-    Collection<INode> interim = performFilters(nnLoader, set, filters, filterOps);
-    return nnLoader.getQueryEngine().findFilter(interim, find);
+      NameNodeLoader nameNodeLoader,
+      String set,
+      String[] filters,
+      String[] filterOps,
+      String find) {
+    Collection<INode> interim = performFilters(nameNodeLoader, set, filters, filterOps);
+    return nameNodeLoader.getQueryEngine().findFilter(interim, find);
   }
 
   static Collection<INode> performFilters(
-      NNLoader nnLoader, String set, String[] filters, String[] filterOps) {
-    Collection<INode> inodes = nnLoader.getINodeSet(set);
+      NameNodeLoader nameNodeLoader, String set, String[] filters, String[] filterOps) {
+    Collection<INode> inodes = nameNodeLoader.getINodeSet(set);
 
     if (filters == null || filters.length == 0 || filterOps == null || filterOps.length == 0) {
       return inodes;
     }
 
-    return nnLoader.getQueryEngine().combinedFilter(inodes, filters, filterOps);
+    return nameNodeLoader.getQueryEngine().combinedFilter(inodes, filters, filterOps);
   }
 
   static void toJsonList(HttpServletResponse resp, Enum[]... values) throws IOException {
@@ -161,6 +165,6 @@ class NNAHelper {
   }
 
   static BaseQuery createQuery(HttpServletRequest raw, String userName) {
-    return new BaseQuery(NNAHelper.getTrackingUrl(raw), userName);
+    return new BaseQuery(Helper.getTrackingUrl(raw), userName);
   }
 }

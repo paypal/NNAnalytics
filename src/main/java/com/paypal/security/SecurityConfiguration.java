@@ -47,6 +47,7 @@ public class SecurityConfiguration {
   private static final String NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT = "900000";
   private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
 
+  /** Constructor. Fetches configuration from ClassLoader stream. */
   public SecurityConfiguration() {
     InputStream input = this.getClass().getClassLoader().getResourceAsStream(SEC_PROPERTIES);
     try {
@@ -89,6 +90,11 @@ public class SecurityConfiguration {
     return properties.getProperty("ldap.trust.store.password");
   }
 
+  /**
+   * Get the set of LDAP Base Domain Name's that will be attempted for authentication.
+   *
+   * @return set of ldap base dn's as per configuration
+   */
   public Set<String> getLdapBaseDn() {
     Set<String> result = new HashSet<>();
     String value;
@@ -100,7 +106,7 @@ public class SecurityConfiguration {
     return result;
   }
 
-  public boolean getLdapUseStartTLS() {
+  public boolean getLdapUseStartTls() {
     return Boolean.parseBoolean(
         properties.getProperty("ldap.use.starttls", LDAP_USE_STARTTLS_DEFAULT));
   }
@@ -123,6 +129,11 @@ public class SecurityConfiguration {
     return Integer.parseInt(properties.getProperty("ldap.connection.pool.max.size"));
   }
 
+  /**
+   * Get the interval in milliseconds per suggestions report to sleep for.
+   *
+   * @return integer representing milliseconds to in-between each report
+   */
   public int getSuggestionsReloadSleepMs() {
     return Integer.parseInt(
         properties.getProperty(
@@ -137,6 +148,11 @@ public class SecurityConfiguration {
     return properties.getProperty("jwt.encryption.secret");
   }
 
+  /**
+   * Get list of user names representing NNA admins.
+   *
+   * @return set of user names that are NNA admins
+   */
   public Set<String> getAdminUsers() {
     return new HashSet<String>() {
       {
@@ -145,6 +161,12 @@ public class SecurityConfiguration {
     };
   }
 
+  /**
+   * Get list of user names representing NNA write users. These users may issue operations that
+   * touch data on the live cluster.
+   *
+   * @return set of user names that are NNA writers
+   */
   public Set<String> getWriteUsers() {
     return new HashSet<String>() {
       {
@@ -153,6 +175,12 @@ public class SecurityConfiguration {
     };
   }
 
+  /**
+   * Get list of user names representing NNA read-only users. These users may run queries on NNA and
+   * view all live metadata.
+   *
+   * @return set of user names that are NNA readers
+   */
   public Set<String> getReadOnlyUsers() {
     return new HashSet<String>() {
       {
@@ -161,6 +189,12 @@ public class SecurityConfiguration {
     };
   }
 
+  /**
+   * Get list of user names representing NNA cache-only users. These users may only view aggregated
+   * reports that are cached by NNA.
+   *
+   * @return set of user names that are NNA cache-only readers
+   */
   public Set<String> getCacheReaderUsers() {
     return new HashSet<String>() {
       {
@@ -169,6 +203,13 @@ public class SecurityConfiguration {
     };
   }
 
+  /**
+   * These are NNA local only accounts that can be used by outside applications. If you intend to
+   * utilize local-only accounts then you must lock down the permissions on the security.properties
+   * file as it will contain passwords.
+   *
+   * @return map of username : password for locally maintained NNA users
+   */
   public Map<String, String> getLocalOnlyUsers() {
     HashMap<String, String> localOnlyUsers = new HashMap<>();
     String property = properties.getProperty("nna.localonly.users");

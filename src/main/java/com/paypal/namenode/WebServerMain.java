@@ -62,20 +62,20 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Filter;
+import org.apache.hadoop.hdfs.server.namenode.Constants.FilterOp;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Find;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
+import org.apache.hadoop.hdfs.server.namenode.Constants.HistogramOutput;
+import org.apache.hadoop.hdfs.server.namenode.Constants.INodeSet;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Operation;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Transform;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.ENDPOINT;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.FILTER;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.FILTER_OP;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.FIND;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.HISTOGRAM;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.HISTOGRAM_OUTPUT;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.OPERATION;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.SET;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.SUM;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.TRANSFORM;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
 import org.apache.hadoop.hdfs.server.namenode.operations.Delete;
@@ -132,13 +132,13 @@ import spark.Spark;
  * against the NNA instance while it is updating since all queries are performed as read operations
  * and all filtered results are separate from the set of updating INodes in-memory.
  */
-public class NNAnalyticsRestAPI {
+public class WebServerMain {
 
-  public static final Logger LOG = LoggerFactory.getLogger(NNAnalyticsRestAPI.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(WebServerMain.class.getName());
 
-  private final NNLoader nnLoader = new NNLoader();
-  private final HSQLDriver hsqlDriver = new HSQLDriver();
-  private final TransferFsImageWrapper transferFsImage = new TransferFsImageWrapper(nnLoader);
+  private final NameNodeLoader nameNodeLoader = new NameNodeLoader();
+  private final HsqlDriver hsqlDriver = new HsqlDriver();
+  private final TransferFsImageWrapper transferFsImage = new TransferFsImageWrapper(nameNodeLoader);
   private final List<BaseQuery> runningQueries = Collections.synchronizedList(new LinkedList<>());
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
   private final SecurityContext secContext = new SecurityContext();
@@ -151,8 +151,8 @@ public class NNAnalyticsRestAPI {
   private final AtomicBoolean savingNamespace = new AtomicBoolean(false);
 
   /**
-   * This is the main launching call for use in production. Should not accept any arguments --
-   * service is dictated by configuration files.
+   * This is the main launching call for use in production. Should not accept any arguments. Service
+   * is dictated by configuration files.
    *
    * @param args main argument although its not used
    * @throws InterruptedException InterruptedException
@@ -162,7 +162,7 @@ public class NNAnalyticsRestAPI {
   public static void main(String[] args)
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
-      NNAnalyticsRestAPI main = new NNAnalyticsRestAPI();
+      WebServerMain main = new WebServerMain();
       SecurityConfiguration conf = new SecurityConfiguration();
       main.init(conf);
     } catch (Throwable e) {
@@ -171,8 +171,8 @@ public class NNAnalyticsRestAPI {
   }
 
   @VisibleForTesting
-  public NNLoader getLoader() {
-    return nnLoader;
+  public NameNodeLoader getLoader() {
+    return nameNodeLoader;
   }
 
   public void init(SecurityConfiguration conf) throws Exception {
@@ -180,15 +180,24 @@ public class NNAnalyticsRestAPI {
   }
 
   @VisibleForTesting
-  public void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> gSet)
+  public void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
       throws Exception {
-    init(conf, gSet, null);
+    init(conf, inodes, null);
   }
 
+  /**
+   * Main method of initializing an NNA instance. Web server will start first. Then INodes will
+   * load.
+   *
+   * @param conf the application configuration
+   * @param inodes preloaded inodes (used by tests)
+   * @param preloadedHadoopConf preloaded hadoop configuration (used by tests)
+   * @throws Exception errors here will crash NNA
+   */
   @VisibleForTesting
   public void init(
       SecurityConfiguration conf,
-      GSet<INode, INodeWithAdditionalFields> gSet,
+      GSet<INode, INodeWithAdditionalFields> inodes,
       Configuration preloadedHadoopConf)
       throws Exception {
     String sslKeystorePath = conf.getSslKeystorePath();
@@ -214,15 +223,15 @@ public class NNAnalyticsRestAPI {
       EncryptionConfiguration encConf =
           new SecretEncryptionConfiguration(
               conf.getJwtEncryptionSecret(), JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
-      JwtGenerator<CommonProfile> jwtGenerator = new JwtGenerator<>(sigConf, encConf);
-      JwtAuthenticator jwtAuthenticator = new JwtAuthenticator(sigConf, encConf);
+      final JwtGenerator<CommonProfile> jwtGenerator = new JwtGenerator<>(sigConf, encConf);
+      final JwtAuthenticator jwtAuthenticator = new JwtAuthenticator(sigConf, encConf);
 
       // ldaptive:
       ConnectionConfig connectionConfig = new ConnectionConfig();
       KeyStoreCredentialConfig keyStoreCredentialConfig = new KeyStoreCredentialConfig();
       keyStoreCredentialConfig.setTrustStore(conf.getLdapTrustStorePath());
       keyStoreCredentialConfig.setTrustStorePassword(conf.getLdapTruststorePassword());
-      connectionConfig.setUseStartTLS(conf.getLdapUseStartTLS());
+      connectionConfig.setUseStartTLS(conf.getLdapUseStartTls());
       connectionConfig.setUseSSL(true);
       connectionConfig.setSslConfig(new SslConfig(keyStoreCredentialConfig));
       connectionConfig.setConnectTimeout(conf.getLdapConnectTimeout());
@@ -304,7 +313,7 @@ public class NNAnalyticsRestAPI {
     get(
         "/endpoints",
         (req, res) -> {
-          NNAHelper.toJsonList(res.raw(), ENDPOINT.values());
+          Helper.toJsonList(res.raw(), Endpoint.values());
           return res;
         });
 
@@ -314,7 +323,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          nnLoader.sendLoadingStatus(res.raw());
+          nameNodeLoader.sendLoadingStatus(res.raw());
           return res;
         });
 
@@ -326,7 +335,7 @@ public class NNAnalyticsRestAPI {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           Runtime runtime = Runtime.getRuntime();
-          OperatingSystemMXBean operatingSystemMXBean =
+          OperatingSystemMXBean systemMxBean =
               (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
           RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
           MemoryMXBean mb = ManagementFactory.getMemoryMXBean();
@@ -335,8 +344,8 @@ public class NNAnalyticsRestAPI {
 
           StringBuilder sb = new StringBuilder();
           int availableCores = runtime.availableProcessors();
-          double cpuLoad = operatingSystemMXBean.getSystemCpuLoad();
-          double procLoad = operatingSystemMXBean.getProcessCpuLoad();
+          double cpuLoad = systemMxBean.getSystemCpuLoad();
+          double procLoad = systemMxBean.getProcessCpuLoad();
 
           sb.append("Server uptime (ms): ").append(rb.getUptime()).append("\n\n");
 
@@ -379,18 +388,18 @@ public class NNAnalyticsRestAPI {
           }
           sb.append("\n");
 
-          boolean isInit = nnLoader.isInit();
-          boolean isHistorical = nnLoader.isHistorical();
-          boolean isProvidingSuggestions = nnLoader.getSuggestionsEngine().isLoaded();
+          boolean isInit = nameNodeLoader.isInit();
+          boolean isHistorical = nameNodeLoader.isHistorical();
+          boolean isProvidingSuggestions = nameNodeLoader.getSuggestionsEngine().isLoaded();
           sb.append("Current system time (ms): ").append(Time.now()).append("\n");
           sb.append("Ready to service queries: ").append(isInit).append("\n");
           sb.append("Ready to service history: ").append(isHistorical).append("\n");
           sb.append("Ready to service suggestions: ").append(isProvidingSuggestions).append("\n\n");
           if (isInit) {
-            long allSetSize = nnLoader.getINodeSet(SET.all.name()).size();
-            long fileSetSize = nnLoader.getINodeSet(SET.files.name()).size();
-            long dirSetSize = nnLoader.getINodeSet(SET.dirs.name()).size();
-            sb.append("Current TxID: ").append(nnLoader.getCurrentTxID()).append("\n");
+            long allSetSize = nameNodeLoader.getINodeSet(INodeSet.all.name()).size();
+            long fileSetSize = nameNodeLoader.getINodeSet(INodeSet.files.name()).size();
+            long dirSetSize = nameNodeLoader.getINodeSet(INodeSet.dirs.name()).size();
+            sb.append("Current TxID: ").append(nameNodeLoader.getCurrentTxId()).append("\n");
             sb.append("INode GSet size: ").append(allSetSize).append("\n\n");
             sb.append("INodeFile set size: ").append(fileSetSize).append("\n");
             sb.append("INodeFile set percentage: ")
@@ -402,7 +411,7 @@ public class NNAnalyticsRestAPI {
                 .append("\n\n");
           }
           sb.append("Cached directories for analysis::\n");
-          Set<String> dirs = nnLoader.getSuggestionsEngine().getDirectoriesForAnalysis();
+          Set<String> dirs = nameNodeLoader.getSuggestionsEngine().getDirectoriesForAnalysis();
           sb.append("Cached directories size: ").append(dirs.size()).append("\n");
           for (String dir : dirs) {
             sb.append(dir).append("\n");
@@ -424,7 +433,7 @@ public class NNAnalyticsRestAPI {
           int threadsWaiting = 0;
           int threadsTimedWaiting = 0;
           int threadsTerminated = 0;
-          long threadIds[] = tb.getAllThreadIds();
+          long[] threadIds = tb.getAllThreadIds();
           for (ThreadInfo threadInfo : tb.getThreadInfo(threadIds, 0)) {
             if (threadInfo == null) {
               continue; // race protection
@@ -447,6 +456,8 @@ public class NNAnalyticsRestAPI {
                 break;
               case TERMINATED:
                 threadsTerminated++;
+                break;
+              default:
                 break;
             }
           }
@@ -479,10 +490,10 @@ public class NNAnalyticsRestAPI {
           String key = req.queryMap("key").value();
           if (key != null && !key.isEmpty()) {
             res.header("Content-Type", "text/plain");
-            return nnLoader.getConfigValue(key);
+            return nameNodeLoader.getConfigValue(key);
           } else {
             res.header("Content-Type", "application/xml; charset=UTF-8");
-            nnLoader.dumpConfig(res.raw());
+            nameNodeLoader.dumpConfig(res.raw());
             return res;
           }
         });
@@ -508,7 +519,7 @@ public class NNAnalyticsRestAPI {
           } else {
             res.status(HttpStatus.SC_BAD_REQUEST);
           }
-          NNAHelper.toJsonList(res.raw(), secContext.getAccessLevels());
+          Helper.toJsonList(res.raw(), secContext.getAccessLevels());
           return res;
         });
 
@@ -518,7 +529,7 @@ public class NNAnalyticsRestAPI {
           secContext.handleAuthentication(req, res);
           secContext.handleAuthorization(req, res);
           if (!"POST".equals(req.raw().getMethod())) {
-            runningQueries.add(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
+            runningQueries.add(Helper.createQuery(req.raw(), secContext.getUserName()));
           }
         });
 
@@ -529,7 +540,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), HISTOGRAM.values());
+          Helper.toJsonList(res.raw(), Histogram.values());
           return res;
         });
 
@@ -541,7 +552,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), HISTOGRAM_OUTPUT.values());
+          Helper.toJsonList(res.raw(), HistogramOutput.values());
           return res;
         });
 
@@ -553,7 +564,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), FILTER.values());
+          Helper.toJsonList(res.raw(), Filter.values());
           return res;
         });
 
@@ -565,7 +576,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), FIND.values());
+          Helper.toJsonList(res.raw(), Find.values());
           return res;
         });
 
@@ -578,7 +589,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), TRANSFORM.values());
+          Helper.toJsonList(res.raw(), Transform.values());
           return res;
         });
 
@@ -590,7 +601,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), SET.values());
+          Helper.toJsonList(res.raw(), INodeSet.values());
           return res;
         });
 
@@ -604,7 +615,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), FILTER_OP.values());
+          Helper.toJsonList(res.raw(), FilterOp.values());
           return res;
         });
 
@@ -617,7 +628,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), SUM.values());
+          Helper.toJsonList(res.raw(), Sum.values());
           return res;
         });
 
@@ -629,7 +640,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json; charset=UTF-8");
-          NNAHelper.toJsonList(res.raw(), OPERATION.values());
+          Helper.toJsonList(res.raw(), Operation.values());
           return res;
         });
 
@@ -639,11 +650,11 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!nameNodeLoader.isInit()) {
             return "Namesystem is not fully initialized.\n";
           }
           String path = req.queryMap("path").value();
-          nnLoader.dumpINodeInDetail(path, res.raw());
+          nameNodeLoader.dumpINodeInDetail(path, res.raw());
           return res;
         });
 
@@ -654,7 +665,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!nameNodeLoader.isInit()) {
             return "";
           }
 
@@ -663,16 +674,16 @@ public class NNAnalyticsRestAPI {
             String filterStr1 = req.queryMap("filters1").value();
             String filterStr2 = req.queryMap("filters2").value();
             String emailsToStr = req.queryMap("emailTo").value();
-            String emailsCCStr = req.queryMap("emailCC").value();
+            String emailsCcStr = req.queryMap("emailCC").value();
             String emailFrom = req.queryMap("emailFrom").value();
             String emailHost = req.queryMap("emailHost").value();
             String emailConditionsStr = req.queryMap("emailConditions").value();
-            String[] filters1 = NNAHelper.parseFilters(filterStr1);
-            String[] filterOps1 = NNAHelper.parseFilterOps(filterStr1);
-            String[] filters2 = NNAHelper.parseFilters(filterStr2);
-            String[] filterOps2 = NNAHelper.parseFilterOps(filterStr2);
+            String[] filters1 = Helper.parseFilters(filterStr1);
+            String[] filterOps1 = Helper.parseFilterOps(filterStr1);
+            String[] filters2 = Helper.parseFilters(filterStr2);
+            String[] filterOps2 = Helper.parseFilterOps(filterStr2);
             String[] emailsTo = (emailsToStr != null) ? emailsToStr.split(",") : null;
-            String[] emailsCC = (emailsCCStr != null) ? emailsCCStr.split(",") : null;
+            String[] emailsCc = (emailsCcStr != null) ? emailsCcStr.split(",") : null;
             String set1 = req.queryMap("set1").value();
             String set2 = req.queryMap("set2").value();
             String sumStr1 = req.queryMap("sum1").value();
@@ -683,13 +694,13 @@ public class NNAnalyticsRestAPI {
             QueryChecker.isValidQuery(set2, filters2, null, sum2, filterOps2, null);
 
             Collection<INode> inodes1 =
-                NNAHelper.performFilters(nnLoader, set1, filters1, filterOps1);
+                Helper.performFilters(nameNodeLoader, set1, filters1, filterOps1);
             Collection<INode> inodes2 =
-                NNAHelper.performFilters(nnLoader, set2, filters2, filterOps2);
+                Helper.performFilters(nameNodeLoader, set2, filters2, filterOps2);
 
             if (!sum1.isEmpty() && !sum2.isEmpty()) {
-              long sumValue1 = nnLoader.getQueryEngine().sum(inodes1, sum1);
-              long sumValue2 = nnLoader.getQueryEngine().sum(inodes2, sum2);
+              long sumValue1 = nameNodeLoader.getQueryEngine().sum(inodes1, sum1);
+              long sumValue2 = nameNodeLoader.getQueryEngine().sum(inodes2, sum2);
               float division = (float) sumValue1 / (float) sumValue2;
 
               LOG.info("The result of {} dividied by {} is: {}", sumValue1, sumValue2, division);
@@ -703,12 +714,12 @@ public class NNAnalyticsRestAPI {
                   && emailsTo.length != 0
                   && emailHost != null
                   && emailFrom != null) {
-                String subject = nnLoader.getAuthority() + " | DIVISION";
+                String subject = nameNodeLoader.getAuthority() + " | DIVISION";
                 try {
                   if (emailConditionsStr != null) {
-                    MailOutput.check(emailConditionsStr, (long) division, nnLoader);
+                    MailOutput.check(emailConditionsStr, (long) division, nameNodeLoader);
                   }
-                  MailOutput.write(subject, message, emailHost, emailsTo, emailsCC, emailFrom);
+                  MailOutput.write(subject, message, emailHost, emailsTo, emailsCc, emailFrom);
                 } catch (Exception e) {
                   LOG.info("Failed to email output with exception: {}", e);
                 }
@@ -722,7 +733,7 @@ public class NNAnalyticsRestAPI {
           }
         });
 
-    /* FILTER endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either
+    /* Filter endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either
     the list of file paths that pass the filters or the summation of the INode fields that pass the filters
     in PLAINTEXT form. */
     /* TODO: Consider separating logic of "list of file paths" to /dump endpoint. */
@@ -732,7 +743,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!nameNodeLoader.isInit()) {
             return "";
           }
 
@@ -740,15 +751,15 @@ public class NNAnalyticsRestAPI {
           try {
             String fullFilterStr = req.queryMap("filters").value();
             String emailsToStr = req.queryMap("emailTo").value();
-            String emailsCCStr = req.queryMap("emailCC").value();
+            String emailsCcStr = req.queryMap("emailCC").value();
             String emailFrom = req.queryMap("emailFrom").value();
             String emailHost = req.queryMap("emailHost").value();
             String find = req.queryMap("find").value();
             String emailConditionsStr = req.queryMap("emailConditions").value();
-            String[] filters = NNAHelper.parseFilters(fullFilterStr);
-            String[] filterOps = NNAHelper.parseFilterOps(fullFilterStr);
+            String[] filters = Helper.parseFilters(fullFilterStr);
+            String[] filterOps = Helper.parseFilterOps(fullFilterStr);
             String[] emailsTo = (emailsToStr != null) ? emailsToStr.split(",") : null;
-            String[] emailsCC = (emailsCCStr != null) ? emailsCCStr.split(",") : null;
+            String[] emailsCc = (emailsCcStr != null) ? emailsCcStr.split(",") : null;
             String set = req.queryMap("set").value();
             String sumStr = req.queryMap("sum").value();
             String[] sums = (sumStr != null) ? sumStr.split(",") : new String[] {"count"};
@@ -761,19 +772,19 @@ public class NNAnalyticsRestAPI {
               QueryChecker.isValidQuery(set, filters, null, sum, filterOps, find);
             }
 
-            Collection<INode> inodes =
-                NNAHelper.performFilters(nnLoader, set, filters, filterOps, find);
+            Collection<INode> filteredINodes =
+                Helper.performFilters(nameNodeLoader, set, filters, filterOps, find);
 
             if (sums.length == 1 && sumStr != null) {
               String sum = sums[0];
-              long sumValue = nnLoader.getQueryEngine().sum(inodes, sum);
+              long sumValue = nameNodeLoader.getQueryEngine().sum(filteredINodes, sum);
               String message = String.valueOf(sumValue);
               if (emailsTo != null
                   && emailsTo.length != 0
                   && emailHost != null
                   && emailFrom != null) {
                 String subject =
-                    nnLoader.getAuthority()
+                    nameNodeLoader.getAuthority()
                         + " | "
                         + sum
                         + " | "
@@ -782,9 +793,9 @@ public class NNAnalyticsRestAPI {
                         + fullFilterStr;
                 try {
                   if (emailConditionsStr != null) {
-                    MailOutput.check(emailConditionsStr, sumValue, nnLoader);
+                    MailOutput.check(emailConditionsStr, sumValue, nameNodeLoader);
                   }
-                  MailOutput.write(subject, message, emailHost, emailsTo, emailsCC, emailFrom);
+                  MailOutput.write(subject, message, emailHost, emailsTo, emailsCc, emailFrom);
                 } catch (Exception e) {
                   LOG.info("Failed to email output with exception: {}", e);
                 }
@@ -794,12 +805,12 @@ public class NNAnalyticsRestAPI {
             } else if (sums.length > 1 && sumStr != null) {
               StringBuilder message = new StringBuilder();
               for (String sum : sums) {
-                long sumValue = nnLoader.getQueryEngine().sum(inodes, sum);
+                long sumValue = nameNodeLoader.getQueryEngine().sum(filteredINodes, sum);
                 message.append(sumValue).append("\n");
               }
               res.body(message.toString());
             } else {
-              nnLoader.getQueryEngine().dumpINodePaths(inodes, limit, res.raw());
+              nameNodeLoader.getQueryEngine().dumpINodePaths(filteredINodes, limit, res.raw());
             }
 
             return res;
@@ -808,7 +819,7 @@ public class NNAnalyticsRestAPI {
           }
         });
 
-    /* HISTOGRAM endpoint takes 1 set of "set", "filter", "type", and  "sum" parameters and returns a histogram
+    /* Histogram endpoint takes 1 set of "set", "filter", "type", and  "sum" parameters and returns a histogram
     where the X-axis represents the "type" type and the Y-axis represents the "sum" type.
     Output types available dictated by "&histogramOutput=". Default is CHART form. */
     /* TODO: Consider separating logic of "list of file paths" to /dump endpoint. */
@@ -819,116 +830,135 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
 
-          if (!nnLoader.isInit()) {
+          if (!nameNodeLoader.isInit()) {
             res.header("Content-Type", "application/json");
             return Histograms.toChartJsJson(new HashMap<>(), "not_loaded", "", "");
           }
 
           lock.writeLock().lock();
           try {
-            String fullFilterStr = req.queryMap("filters").value();
-            String histogramConditionsStr = req.queryMap("histogramConditions").value();
-            String emailsToStr = req.queryMap("emailTo").value();
-            String emailsCCStr = req.queryMap("emailCC").value();
-            String emailFrom = req.queryMap("emailFrom").value();
-            String emailHost = req.queryMap("emailHost").value();
-            String emailConditionsStr = req.queryMap("emailConditions").value();
-            String[] filters = NNAHelper.parseFilters(fullFilterStr);
-            String[] filterOps = NNAHelper.parseFilterOps(fullFilterStr);
-            String histType = req.queryMap("type").value();
-            String set = req.queryMap("set").value();
-            Integer top = req.queryMap("top").integerValue();
-            Integer bottom = req.queryMap("bottom").integerValue();
-            String sumStr = req.queryMap("sum").value();
-            Boolean useLock = req.queryMap("useLock").booleanValue();
-            Boolean sortAscending = req.queryMap("sortAscending").booleanValue();
-            Boolean sortDescending = req.queryMap("sortDescending").booleanValue();
-            String sum = (sumStr != null) ? sumStr : "count";
-            String[] emailsTo = (emailsToStr != null) ? emailsToStr.split(",") : null;
-            String[] emailsCC = (emailsCCStr != null) ? emailsCCStr.split(",") : null;
-            String transformConditionsStr = req.queryMap("transformConditions").value();
-            String transformFieldsStr = req.queryMap("transformFields").value();
-            String transformOutputsStr = req.queryMap("transformOutputs").value();
-            Integer parentDirDepth = req.queryMap("parentDirDepth").integerValue();
-            String timeRangeStr = req.queryMap("timeRange").value();
-            String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
-            String outputTypeStr = req.queryMap("histogramOutput").value();
-            String outputType = (outputTypeStr != null) ? outputTypeStr : "chart";
-            String type = req.queryMap("type").value();
-            String find = req.queryMap("find").value();
+            final String fullFilterStr = req.queryMap("filters").value();
+            final String histogramConditionsStr = req.queryMap("histogramConditions").value();
+            final String emailsToStr = req.queryMap("emailTo").value();
+            final String emailsCcStr = req.queryMap("emailCC").value();
+            final String emailFrom = req.queryMap("emailFrom").value();
+            final String emailHost = req.queryMap("emailHost").value();
+            final String emailConditionsStr = req.queryMap("emailConditions").value();
+            final String[] filters = Helper.parseFilters(fullFilterStr);
+            final String[] filterOps = Helper.parseFilterOps(fullFilterStr);
+            final String histType = req.queryMap("type").value();
+            final String set = req.queryMap("set").value();
+            final Integer top = req.queryMap("top").integerValue();
+            final Integer bottom = req.queryMap("bottom").integerValue();
+            final String sumStr = req.queryMap("sum").value();
+            final Boolean useLock = req.queryMap("useLock").booleanValue();
+            final Boolean sortAscending = req.queryMap("sortAscending").booleanValue();
+            final Boolean sortDescending = req.queryMap("sortDescending").booleanValue();
+            final String sum = (sumStr != null) ? sumStr : "count";
+            final String[] emailsTo = (emailsToStr != null) ? emailsToStr.split(",") : null;
+            final String[] emailsCc = (emailsCcStr != null) ? emailsCcStr.split(",") : null;
+            final String transformConditionsStr = req.queryMap("transformConditions").value();
+            final String transformFieldsStr = req.queryMap("transformFields").value();
+            final String transformOutputsStr = req.queryMap("transformOutputs").value();
+            final Integer parentDirDepth = req.queryMap("parentDirDepth").integerValue();
+            final String timeRangeStr = req.queryMap("timeRange").value();
+            final String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
+            final String outputTypeStr = req.queryMap("histogramOutput").value();
+            final String outputType = (outputTypeStr != null) ? outputTypeStr : "chart";
+            final String type = req.queryMap("type").value();
+            final String find = req.queryMap("find").value();
 
             QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
-            Collection<INode> inodes = NNAHelper.performFilters(nnLoader, set, filters, filterOps);
+            Collection<INode> filteredINodes =
+                Helper.performFilters(nameNodeLoader, set, filters, filterOps);
 
-            HISTOGRAM htEnum = HISTOGRAM.valueOf(histType);
+            Histogram htEnum = Histogram.valueOf(histType);
             Map<String, Function<INode, Long>> transformMap =
                 Transforms.getAttributeTransforms(
-                    transformConditionsStr, transformFieldsStr, transformOutputsStr, nnLoader);
+                    transformConditionsStr,
+                    transformFieldsStr,
+                    transformOutputsStr,
+                    nameNodeLoader);
             Map<String, Long> histogram;
-            long startTime = System.currentTimeMillis();
-            String xAxis;
+            final long startTime = System.currentTimeMillis();
+            String binLabels;
 
-            nnLoader.namesystemWriteLock(useLock);
+            nameNodeLoader.namesystemWriteLock(useLock);
             try {
               switch (htEnum) {
                 case user:
-                  histogram = nnLoader.getQueryEngine().byUserHistogram(inodes, sum, find);
-                  xAxis = "User Names";
+                  histogram =
+                      nameNodeLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
+                  binLabels = "User Names";
                   break;
                 case group:
-                  histogram = nnLoader.getQueryEngine().byGroupHistogram(inodes, sum, find);
-                  xAxis = "Group Names";
+                  histogram =
+                      nameNodeLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
+                  binLabels = "Group Names";
                   break;
                 case accessTime:
                   histogram =
-                      nnLoader.getQueryEngine().accessTimeHistogram(inodes, sum, find, timeRange);
-                  xAxis = "Last Accessed Time";
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .accessTimeHistogram(filteredINodes, sum, find, timeRange);
+                  binLabels = "Last Accessed Time";
                   break;
                 case modTime:
                   histogram =
-                      nnLoader.getQueryEngine().modTimeHistogram(inodes, sum, find, timeRange);
-                  xAxis = "Last Modified Time";
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .modTimeHistogram(filteredINodes, sum, find, timeRange);
+                  binLabels = "Last Modified Time";
                   break;
                 case fileSize:
-                  histogram = nnLoader.getQueryEngine().fileSizeHistogram(inodes, sum, find);
-                  xAxis = "File Sizes (No Replication Factor)";
+                  histogram =
+                      nameNodeLoader.getQueryEngine().fileSizeHistogram(filteredINodes, sum, find);
+                  binLabels = "File Sizes (No Replication Factor)";
                   break;
                 case diskspaceConsumed:
                   histogram =
-                      nnLoader
+                      nameNodeLoader
                           .getQueryEngine()
-                          .diskspaceConsumedHistogram(inodes, sum, find, transformMap);
-                  xAxis = "Diskspace Consumed (File Size * Replication Factor)";
+                          .diskspaceConsumedHistogram(filteredINodes, sum, find, transformMap);
+                  binLabels = "Diskspace Consumed (File Size * Replication Factor)";
                   break;
                 case fileReplica:
                   histogram =
-                      nnLoader
+                      nameNodeLoader
                           .getQueryEngine()
-                          .fileReplicaHistogram(inodes, sum, find, transformMap);
-                  xAxis = "File Replication Factor";
+                          .fileReplicaHistogram(filteredINodes, sum, find, transformMap);
+                  binLabels = "File Replication Factor";
                   break;
                 case storageType:
-                  histogram = nnLoader.getQueryEngine().storageTypeHistogram(inodes, sum, find);
-                  xAxis = "Storage Type Policy";
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .storageTypeHistogram(filteredINodes, sum, find);
+                  binLabels = "Storage Type Policy";
                   break;
                 case memoryConsumed:
-                  histogram = nnLoader.getQueryEngine().memoryConsumedHistogram(inodes, sum, find);
-                  xAxis = "Memory Consumed";
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .memoryConsumedHistogram(filteredINodes, sum, find);
+                  binLabels = "Memory Consumed";
                   break;
                 case parentDir:
                   histogram =
-                      nnLoader
+                      nameNodeLoader
                           .getQueryEngine()
-                          .parentDirHistogram(inodes, parentDirDepth, sum, find);
-                  xAxis = "Directory Path";
+                          .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
+                  binLabels = "Directory Path";
                   break;
                 case fileType:
-                  histogram = nnLoader.getQueryEngine().fileTypeHistogram(inodes, sum, find);
-                  xAxis = "File Type";
+                  histogram =
+                      nameNodeLoader.getQueryEngine().fileTypeHistogram(filteredINodes, sum, find);
+                  binLabels = "File Type";
                   break;
                 case dirQuota:
-                  histogram = nnLoader.getQueryEngine().dirQuotaHistogram(inodes, sum);
-                  xAxis = "Directory Path";
+                  histogram =
+                      nameNodeLoader.getQueryEngine().dirQuotaHistogram(filteredINodes, sum);
+                  binLabels = "Directory Path";
                   break;
                 default:
                   throw new IllegalArgumentException(
@@ -937,13 +967,13 @@ public class NNAnalyticsRestAPI {
                           + ".\nPlease check /histograms for available histograms.");
               }
             } finally {
-              nnLoader.namesystemWriteUnlock(useLock);
+              nameNodeLoader.namesystemWriteUnlock(useLock);
             }
 
             // Perform conditions filtering.
             if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
               histogram =
-                  nnLoader
+                  nameNodeLoader
                       .getQueryEngine()
                       .removeKeysOnConditional(histogram, histogramConditionsStr);
             }
@@ -975,7 +1005,7 @@ public class NNAnalyticsRestAPI {
                 && emailHost != null
                 && emailFrom != null) {
               String subject =
-                  nnLoader.getAuthority()
+                  nameNodeLoader.getAuthority()
                       + " | X: "
                       + histType
                       + " | Y: "
@@ -987,28 +1017,28 @@ public class NNAnalyticsRestAPI {
               try {
                 Set<String> highlightKeys = new HashSet<>();
                 if (emailConditionsStr != null) {
-                  MailOutput.check(emailConditionsStr, histogram, highlightKeys, nnLoader);
+                  MailOutput.check(emailConditionsStr, histogram, highlightKeys, nameNodeLoader);
                 }
                 MailOutput.write(
-                    subject, histogram, highlightKeys, emailHost, emailsTo, emailsCC, emailFrom);
+                    subject, histogram, highlightKeys, emailHost, emailsTo, emailsCc, emailFrom);
               } catch (Exception e) {
                 LOG.info("Failed to email output with exception: {}", e);
               }
             }
 
             // Return final histogram to Web UI as output type.
-            HISTOGRAM_OUTPUT output = HISTOGRAM_OUTPUT.valueOf(outputType);
+            HistogramOutput output = HistogramOutput.valueOf(outputType);
             switch (output) {
               case chart:
                 res.header("Content-Type", "application/json");
                 return Histograms.toChartJsJson(
-                    histogram, NNAHelper.toTitle(histType, sum), NNAHelper.toYAxis(sum), xAxis);
+                    histogram, Helper.toTitle(histType, sum), Helper.toYAxis(sum), binLabels);
               case json:
                 res.header("Content-Type", "application/json");
                 return Histograms.toJson(histogram);
               case csv:
                 res.header("Content-Type", "text/plain");
-                return Histograms.toCSV(histogram, find);
+                return Histograms.toCsv(histogram, find);
               default:
                 throw new IllegalArgumentException(
                     "Could not determine output type: "
@@ -1023,38 +1053,38 @@ public class NNAnalyticsRestAPI {
     /* HISTOGRAM2 endpoint takes 1 set of "set", "filter", "type", and  "sum" parameters and returns a histogram
     where the X-axis represents the "type" type and the Y-axis represents the "sum" type.
     Output types available dictated by "&histogramOutput=". Default is CHART form.
-    This differs from HISTOGRAM endpoint in that it can output multiple sums and values in a single query. */
+    This differs from Histogram endpoint in that it can output multiple sums and values in a single query. */
     get(
         "/histogram2",
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
 
-          if (!nnLoader.isInit()) {
+          if (!nameNodeLoader.isInit()) {
             res.header("Content-Type", "application/json");
             return Histograms.toChartJsJson(new HashMap<>(), "not_loaded", "", "");
           }
 
           lock.writeLock().lock();
           try {
-            String fullFilterStr = req.queryMap("filters").value();
-            String[] filters = NNAHelper.parseFilters(fullFilterStr);
-            String[] filterOps = NNAHelper.parseFilterOps(fullFilterStr);
-            String histType = req.queryMap("type").value();
-            String set = req.queryMap("set").value();
-            String sumStr = req.queryMap("sum").value();
-            Integer sortAscendingIndex = req.queryMap("sortAscendingIndex").integerValue();
-            Integer sortDescendingIndex = req.queryMap("sortDescendingIndex").integerValue();
-            String histogramConditionsStr = req.queryMap("histogramConditions").value();
-            Boolean useLock = req.queryMap("useLock").booleanValue();
-            String[] sums = (sumStr != null) ? sumStr.split(",") : new String[0];
-            Integer parentDirDepth = req.queryMap("parentDirDepth").integerValue();
-            String outputTypeStr = req.queryMap("histogramOutput").value();
-            String timeRangeStr = req.queryMap("timeRange").value();
-            String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
-            String outputType = (outputTypeStr != null) ? outputTypeStr : "json";
-            String type = req.queryMap("type").value();
-            String findStr = req.queryMap("find").value();
-            String[] finds = (findStr != null) ? findStr.split(",") : new String[0];
+            final String fullFilterStr = req.queryMap("filters").value();
+            final String[] filters = Helper.parseFilters(fullFilterStr);
+            final String[] filterOps = Helper.parseFilterOps(fullFilterStr);
+            final String histType = req.queryMap("type").value();
+            final String set = req.queryMap("set").value();
+            final String sumStr = req.queryMap("sum").value();
+            final Integer sortAscendingIndex = req.queryMap("sortAscendingIndex").integerValue();
+            final Integer sortDescendingIndex = req.queryMap("sortDescendingIndex").integerValue();
+            final String histogramConditionsStr = req.queryMap("histogramConditions").value();
+            final Boolean useLock = req.queryMap("useLock").booleanValue();
+            final String[] sums = (sumStr != null) ? sumStr.split(",") : new String[0];
+            final Integer parentDirDepth = req.queryMap("parentDirDepth").integerValue();
+            final String outputTypeStr = req.queryMap("histogramOutput").value();
+            final String timeRangeStr = req.queryMap("timeRange").value();
+            final String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
+            final String outputType = (outputTypeStr != null) ? outputTypeStr : "json";
+            final String type = req.queryMap("type").value();
+            final String findStr = req.queryMap("find").value();
+            final String[] finds = (findStr != null) ? findStr.split(",") : new String[0];
 
             for (String sum : sums) {
               QueryChecker.isValidQuery(set, filters, type, sum, filterOps, null);
@@ -1062,12 +1092,13 @@ public class NNAnalyticsRestAPI {
             for (String find : finds) {
               QueryChecker.isValidQuery(set, filters, type, null, filterOps, find);
             }
-            Collection<INode> inodes = NNAHelper.performFilters(nnLoader, set, filters, filterOps);
+            Collection<INode> filteredINodes =
+                Helper.performFilters(nameNodeLoader, set, filters, filterOps);
 
-            HISTOGRAM htEnum = HISTOGRAM.valueOf(histType);
+            Histogram htEnum = Histogram.valueOf(histType);
             List<Map<String, Long>> histograms = new ArrayList<>(sums.length + finds.length);
 
-            long startTime = System.currentTimeMillis();
+            final long startTime = System.currentTimeMillis();
             for (int i = 0, j = 0; i < sums.length || j < finds.length; ) {
               Map<String, Long> histogram;
               String sum = null;
@@ -1080,51 +1111,70 @@ public class NNAnalyticsRestAPI {
                 j++;
               }
 
-              nnLoader.namesystemWriteLock(useLock);
+              nameNodeLoader.namesystemWriteLock(useLock);
               try {
                 switch (htEnum) {
                   case user:
-                    histogram = nnLoader.getQueryEngine().byUserHistogram(inodes, sum, find);
+                    histogram =
+                        nameNodeLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
                     break;
                   case group:
-                    histogram = nnLoader.getQueryEngine().byGroupHistogram(inodes, sum, find);
+                    histogram =
+                        nameNodeLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
                     break;
                   case accessTime:
                     histogram =
-                        nnLoader.getQueryEngine().accessTimeHistogram(inodes, sum, find, timeRange);
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .accessTimeHistogram(filteredINodes, sum, find, timeRange);
                     break;
                   case modTime:
                     histogram =
-                        nnLoader.getQueryEngine().modTimeHistogram(inodes, sum, find, timeRange);
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .modTimeHistogram(filteredINodes, sum, find, timeRange);
                     break;
                   case fileSize:
-                    histogram = nnLoader.getQueryEngine().fileSizeHistogram(inodes, sum, find);
+                    histogram =
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .fileSizeHistogram(filteredINodes, sum, find);
                     break;
                   case diskspaceConsumed:
                     histogram =
-                        nnLoader
+                        nameNodeLoader
                             .getQueryEngine()
-                            .diskspaceConsumedHistogram(inodes, sum, find, null);
+                            .diskspaceConsumedHistogram(filteredINodes, sum, find, null);
                     break;
                   case fileReplica:
                     histogram =
-                        nnLoader.getQueryEngine().fileReplicaHistogram(inodes, sum, find, null);
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .fileReplicaHistogram(filteredINodes, sum, find, null);
                     break;
                   case storageType:
-                    histogram = nnLoader.getQueryEngine().storageTypeHistogram(inodes, sum, find);
+                    histogram =
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .storageTypeHistogram(filteredINodes, sum, find);
                     break;
                   case memoryConsumed:
                     histogram =
-                        nnLoader.getQueryEngine().memoryConsumedHistogram(inodes, sum, find);
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .memoryConsumedHistogram(filteredINodes, sum, find);
                     break;
                   case parentDir:
                     histogram =
-                        nnLoader
+                        nameNodeLoader
                             .getQueryEngine()
-                            .parentDirHistogram(inodes, parentDirDepth, sum, find);
+                            .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
                     break;
                   case fileType:
-                    histogram = nnLoader.getQueryEngine().fileTypeHistogram(inodes, sum, find);
+                    histogram =
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .fileTypeHistogram(filteredINodes, sum, find);
                     break;
                   default:
                     throw new IllegalArgumentException(
@@ -1133,7 +1183,7 @@ public class NNAnalyticsRestAPI {
                             + ".\nPlease check /histograms for available histograms.");
                 }
               } finally {
-                nnLoader.namesystemWriteUnlock(useLock);
+                nameNodeLoader.namesystemWriteUnlock(useLock);
               }
               histograms.add(histogram);
             }
@@ -1156,7 +1206,7 @@ public class NNAnalyticsRestAPI {
             // Perform conditions filtering.
             if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
               mergedHistogram =
-                  nnLoader
+                  nameNodeLoader
                       .getQueryEngine()
                       .removeKeysOnConditional2(mergedHistogram, histogramConditionsStr);
             }
@@ -1174,14 +1224,14 @@ public class NNAnalyticsRestAPI {
             LOG.info("Performing histogram2: {} took: {} ms.", histType, (endTime - startTime));
 
             // Return final histogram to Web UI as output type.
-            HISTOGRAM_OUTPUT output = HISTOGRAM_OUTPUT.valueOf(outputType);
+            HistogramOutput output = HistogramOutput.valueOf(outputType);
             switch (output) {
               case json:
                 res.header("Content-Type", "application/json");
                 return Histograms.toJson(mergedHistogram);
               case csv:
                 res.header("Content-Type", "text/plain");
-                return Histograms.toCSV(mergedHistogram);
+                return Histograms.toCsv(mergedHistogram);
               default:
                 throw new IllegalArgumentException(
                     "Could not determine output type: "
@@ -1193,7 +1243,7 @@ public class NNAnalyticsRestAPI {
           }
         });
 
-    /* FILTER endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either
+    /* Filter endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either
     the list of file paths that pass the filters or the summation of the INode fields that pass the filters
     in PLAINTEXT form. */
     /* TODO: Consider separating logic of "list of file paths" to /dump endpoint. */
@@ -1203,53 +1253,59 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!nameNodeLoader.isInit()) {
             return "";
           }
 
           lock.writeLock().lock();
           try {
-            String fullFilterStr = req.queryMap("filters").value();
-            String find = req.queryMap("find").value();
-            String[] filters = NNAHelper.parseFilters(fullFilterStr);
-            String[] filterOps = NNAHelper.parseFilterOps(fullFilterStr);
-            String set = req.queryMap("set").value();
+            final String fullFilterStr = req.queryMap("filters").value();
+            final String find = req.queryMap("find").value();
+            final String[] filters = Helper.parseFilters(fullFilterStr);
+            final String[] filterOps = Helper.parseFilterOps(fullFilterStr);
+            final String set = req.queryMap("set").value();
+            final String operation = req.queryMap("operation").value();
             Integer limit = req.queryMap("limit").integerValue();
-            Integer sleep = req.queryMap("sleep").integerValue();
-            String operation = req.queryMap("operation").value();
             if (limit == null) {
               limit = Integer.MAX_VALUE;
             }
+            Integer sleep = req.queryMap("sleep").integerValue();
             if (sleep == null) {
-              sleep = NNAConstants.DEFAULT_DELETE_SLEEP_MS;
+              sleep = Constants.DEFAULT_DELETE_SLEEP_MS;
             }
+
             if (operation == null || operation.isEmpty()) {
               throw new IllegalArgumentException("No operation defined. Please check /operations.");
             }
             QueryChecker.isValidQuery(set, filters, null, null, filterOps, find);
 
-            Collection<INode> inodes =
-                NNAHelper.performFilters(nnLoader, set, filters, filterOps, find);
-            if (inodes.size() == 0) {
+            Collection<INode> filteredINodes =
+                Helper.performFilters(nameNodeLoader, set, filters, filterOps, find);
+            if (filteredINodes.size() == 0) {
               LOG.info("Skipping operation request because it resulted in empty INode set.");
               throw new IOException(
                   "Skipping operation request because it resulted in empty INode set.");
             }
 
-            FileSystem fs = nnLoader.getFileSystem();
+            FileSystem fs = nameNodeLoader.getFileSystem();
             String[] operationSplits = operation.split(":");
             String logBaseDir = conf.getBaseDir();
             BaseOperation operationObj;
             switch (operationSplits[0]) {
               case "delete":
                 operationObj =
-                    new Delete(inodes, req.queryString(), secContext.getUserName(), logBaseDir, fs);
+                    new Delete(
+                        filteredINodes,
+                        req.queryString(),
+                        secContext.getUserName(),
+                        logBaseDir,
+                        fs);
                 break;
               case "setReplication":
                 short newReplFactor = Short.parseShort(operationSplits[1]);
                 operationObj =
                     new SetReplication(
-                        inodes,
+                        filteredINodes,
                         req.queryString(),
                         secContext.getUserName(),
                         logBaseDir,
@@ -1259,7 +1315,7 @@ public class NNAnalyticsRestAPI {
               case "setStoragePolicy":
                 operationObj =
                     new SetStoragePolicy(
-                        inodes,
+                        filteredINodes,
                         req.queryString(),
                         secContext.getUserName(),
                         logBaseDir,
@@ -1284,6 +1340,7 @@ public class NNAnalyticsRestAPI {
                               Thread.sleep(finalSleep);
                             }
                           } catch (InterruptedException ignored) {
+                            LOG.debug("Operation sleep interrupted due to: {}", ignored);
                           }
                           operationObj.performOp();
                         }
@@ -1303,7 +1360,7 @@ public class NNAnalyticsRestAPI {
           }
         });
 
-    /* FILTER endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either
+    /* Filter endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either
     the list of file paths that pass the filters or the summation of the INode fields that pass the filters
     in PLAINTEXT form. */
     /* TODO: Consider separating logic of "list of file paths" to /dump endpoint. */
@@ -1313,7 +1370,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!nameNodeLoader.isInit()) {
             return "";
           }
 
@@ -1394,7 +1451,7 @@ public class NNAnalyticsRestAPI {
           }
         });
 
-    /* FILTER endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either
+    /* Filter endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either
     the list of file paths that pass the filters or the summation of the INode fields that pass the filters
     in PLAINTEXT form. */
     /* TODO: Consider separating logic of "list of file paths" to /dump endpoint. */
@@ -1404,7 +1461,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
-          if (!nnLoader.isInit()) {
+          if (!nameNodeLoader.isInit()) {
             return "";
           }
 
@@ -1473,7 +1530,7 @@ public class NNAnalyticsRestAPI {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
           String username = req.queryMap("username").value();
-          return nnLoader.getSuggestionsEngine().getSuggestionsAsJson(username);
+          return nameNodeLoader.getSuggestionsEngine().getSuggestionsAsJson(username);
         });
 
     /* DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by NNA. */
@@ -1487,7 +1544,7 @@ public class NNAnalyticsRestAPI {
           if (sum == null || sum.isEmpty()) {
             sum = "count";
           }
-          return nnLoader.getSuggestionsEngine().getDirectoriesAsJson(directory, sum);
+          return nameNodeLoader.getSuggestionsEngine().getDirectoriesAsJson(directory, sum);
         });
 
     /* DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by NNA. */
@@ -1500,7 +1557,7 @@ public class NNAnalyticsRestAPI {
           if (sum == null || sum.isEmpty()) {
             sum = "count";
           }
-          return nnLoader.getSuggestionsEngine().getFileAgeAsJson(sum);
+          return nameNodeLoader.getSuggestionsEngine().getFileAgeAsJson(sum);
         });
 
     /* ADDDIRECTORY endpoint is an admin-level endpoint meant to add a directory for cached analysis by NNA. */
@@ -1509,7 +1566,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           String directory = req.queryMap("dir").value();
-          nnLoader.getSuggestionsEngine().addDirectoryToAnalysis(directory);
+          nameNodeLoader.getSuggestionsEngine().addDirectoryToAnalysis(directory);
           res.status(HttpStatus.SC_OK);
           res.body(directory + " added for analysis.");
           return res;
@@ -1521,7 +1578,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           String directory = req.queryMap("dir").value();
-          nnLoader.getSuggestionsEngine().removeDirectoryFromAnalysis(directory);
+          nameNodeLoader.getSuggestionsEngine().removeDirectoryFromAnalysis(directory);
           res.status(HttpStatus.SC_OK);
           res.body(directory + " removed from analysis.");
           return res;
@@ -1535,7 +1592,7 @@ public class NNAnalyticsRestAPI {
           res.header("Content-Type", "application/json");
           String user = req.queryMap("user").value();
           String sum = req.queryMap("sum").value();
-          return nnLoader.getSuggestionsEngine().getQuotaAsJson(user, sum);
+          return nameNodeLoader.getSuggestionsEngine().getQuotaAsJson(user, sum);
         });
 
     /* USERS endpoint is an admin-level endpoint meant to dump the cached set of detected users by NNA. */
@@ -1545,7 +1602,7 @@ public class NNAnalyticsRestAPI {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
           String suggestion = req.queryMap("suggestion").value();
-          return nnLoader.getSuggestionsEngine().getUsersAsJson(suggestion);
+          return nameNodeLoader.getSuggestionsEngine().getUsersAsJson(suggestion);
         });
 
     /* TOP endpoint is an admin-level endpoint meant to dump the cached set of top issues by NNA. */
@@ -1558,7 +1615,7 @@ public class NNAnalyticsRestAPI {
           if (limit == null) {
             limit = 10;
           }
-          return nnLoader.getSuggestionsEngine().getIssuesAsJson(limit, false);
+          return nameNodeLoader.getSuggestionsEngine().getIssuesAsJson(limit, false);
         });
 
     /* BOTTOM endpoint is an admin-level endpoint meant to dump the cached set of bottom issues by NNA.
@@ -1572,7 +1629,7 @@ public class NNAnalyticsRestAPI {
           if (limit == null) {
             limit = 10;
           }
-          return nnLoader.getSuggestionsEngine().getIssuesAsJson(limit, true);
+          return nameNodeLoader.getSuggestionsEngine().getIssuesAsJson(limit, true);
         });
 
     /* HISTORY endpoint returns a set of data points from DB-stored suggestion snapshots. */
@@ -1594,7 +1651,7 @@ public class NNAnalyticsRestAPI {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
-          return nnLoader.getSuggestionsEngine().getTokens();
+          return nameNodeLoader.getSuggestionsEngine().getTokens();
         });
 
     /* SAVENAMESPACE endpoint is an admin-level endpoint meant to dump the in-memory INode set
@@ -1616,9 +1673,9 @@ public class NNAnalyticsRestAPI {
             writer.write("Saving namespace.<br />");
             writer.flush();
             if (legacy != null && legacy) {
-              nnLoader.saveLegacyNamespace(dir);
+              nameNodeLoader.saveLegacyNamespace(dir);
             } else {
-              nnLoader.saveNamespace();
+              nameNodeLoader.saveNamespace();
             }
             writer.write("Done.");
             writer.flush();
@@ -1646,7 +1703,8 @@ public class NNAnalyticsRestAPI {
           try {
             transferFsImage.downloadMostRecentImage();
             writer.write(
-                "Done.<br />Please reload by going to `/reloadNamespace` or by `service nn-analytics restart` on command line.");
+                "Done.<br />Please reload by going to `/reloadNamespace` "
+                    + "or by `service nn-analytics restart` on command line.");
             writer.flush();
           } catch (Throwable e) {
             writer.write("Bootstrap failed: " + e);
@@ -1666,8 +1724,8 @@ public class NNAnalyticsRestAPI {
           res.header("Content-Type", "text/plain");
           lock.writeLock().lock();
           try {
-            nnLoader.clear();
-            nnLoader.load(null, null, conf);
+            nameNodeLoader.clear();
+            nameNodeLoader.load(null, null, conf);
             res.body("Reload complete.");
           } catch (Throwable e) {
             res.body("Reload failed: " + e);
@@ -1684,7 +1742,7 @@ public class NNAnalyticsRestAPI {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           Integer charsLimit = req.queryMap("limit").integerValue();
-          nnLoader.dumpLog(charsLimit, res.raw());
+          nameNodeLoader.dumpLog(charsLimit, res.raw());
           return res;
         });
 
@@ -1717,7 +1775,7 @@ public class NNAnalyticsRestAPI {
     after(
         (req, res) -> {
           res.header("Content-Encoding", "gzip");
-          runningQueries.remove(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
+          runningQueries.remove(Helper.createQuery(req.raw(), secContext.getUserName()));
         });
 
     /* Any encountered Exceptions should be handled here and returned with appropriate HTTP error codes. */
@@ -1737,7 +1795,7 @@ public class NNAnalyticsRestAPI {
             res.header("Content-Type", "text/plain");
             res.status(HttpStatus.SC_BAD_REQUEST);
             res.body(ex.getMessage());
-            runningQueries.remove(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
+            runningQueries.remove(Helper.createQuery(req.raw(), secContext.getUserName()));
           } else {
             res.header("Access-Control-Allow-Origin", "*");
             res.header("Content-Type", "text/plain");
@@ -1756,8 +1814,9 @@ public class NNAnalyticsRestAPI {
               }
               IOUtils.closeStream(writer);
             } catch (IOException ignored) {
+              LOG.debug("Failed to send failure stacktrace due to: {}", ignored);
             } finally {
-              runningQueries.remove(NNAHelper.createQuery(req.raw(), secContext.getUserName()));
+              runningQueries.remove(Helper.createQuery(req.raw(), secContext.getUserName()));
             }
           }
           LOG.info("EXCEPTION encountered: {}", ex);
@@ -1766,11 +1825,15 @@ public class NNAnalyticsRestAPI {
 
     Spark.awaitInitialization();
 
-    nnLoader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
-    nnLoader.load(gSet, preloadedHadoopConf, conf);
-    nnLoader.initReloadThreads(internalService, conf);
+    nameNodeLoader.initHistoryRecorder(hsqlDriver, conf, conf.getHistoricalEnabled());
+    nameNodeLoader.load(inodes, preloadedHadoopConf, conf);
+    nameNodeLoader.initReloadThreads(internalService, conf);
   }
 
+  /**
+   * Shutdown all stateful NNA objects. Should not kill JVM. Goal is that calling `init` again
+   * should bring NNA back from persisted state.
+   */
   @VisibleForTesting
   public void shutdown() {
     try {
@@ -1778,7 +1841,7 @@ public class NNAnalyticsRestAPI {
     } catch (Exception e) {
       LOG.error("Error during shutdown: ", e);
     }
-    nnLoader.clear();
+    nameNodeLoader.clear();
     runningOperations.clear();
     runningQueries.clear();
     operationService.shutdown();

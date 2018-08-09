@@ -26,7 +26,8 @@ public class SRandom extends Random {
   /** Returns a long that is bounded between 0 and @param bound. */
   long nextLong(long bound) {
     // error checking and 2^x checking removed for simplicity.
-    long bits, val;
+    long bits;
+    long val;
     do {
       bits = (nextLong() << 1) >>> 1;
       val = bits % bound;

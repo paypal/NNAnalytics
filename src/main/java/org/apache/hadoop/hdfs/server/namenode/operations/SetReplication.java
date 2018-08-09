@@ -21,8 +21,8 @@ package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.Collection;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
 
 public class SetReplication extends BaseOperation {
 
@@ -78,6 +78,6 @@ public class SetReplication extends BaseOperation {
 
   @Override
   public String type() {
-    return NNAConstants.OPERATION.setReplication.name();
+    return Constants.Operation.setReplication.name();
   }
 }

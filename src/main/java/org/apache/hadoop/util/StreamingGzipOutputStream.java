@@ -25,12 +25,12 @@ import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * Utility class used to streaming big log files from Deletes to GZIP file to attempt to save on
+ * Utility class used to streaming big log files from Operations to GZIP file to attempt to save on
  * space.
  */
-public class StreamingGZIPOutputStream extends GZIPOutputStream {
+public class StreamingGzipOutputStream extends GZIPOutputStream {
 
-  public StreamingGZIPOutputStream(OutputStream out) throws IOException {
+  public StreamingGzipOutputStream(OutputStream out) throws IOException {
     super(out);
   }
 

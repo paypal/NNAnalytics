@@ -24,7 +24,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.util.Collection;
 import java.util.Map;
@@ -44,14 +44,14 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class TestTransforms {
 
-  private static NNAnalyticsRestAPI nna;
+  private static WebServerMain nna;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new NNAnalyticsRestAPI();
+    nna = new WebServerMain();
     SecurityConfiguration conf = new SecurityConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");

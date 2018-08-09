@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
@@ -64,6 +63,14 @@ public class QueryEngine {
     this.versionLoader = versionLoader;
   }
 
+  /**
+   * Main filter method for filtering down a set of INodes to a smaller subset.
+   *
+   * @param inodes the main inode set to work on
+   * @param filters set of filters to use
+   * @param filterOps matching length set of filter operands and operators
+   * @return the filtered set of inodes
+   */
   public Collection<INode> combinedFilter(
       Collection<INode> inodes, String[] filters, String[] filterOps) {
     final ArrayList<Function<INode, Boolean>> filterArray = new ArrayList<>();
@@ -81,7 +88,7 @@ public class QueryEngine {
 
     long start = System.currentTimeMillis();
     try {
-      Stream<INode> stream = StreamSupport.stream(inodes.spliterator(), true);
+      Stream<INode> stream = inodes.parallelStream();
       for (Function<INode, Boolean> filter : filterArray) {
         stream = stream.filter(filter::apply);
       }
@@ -96,8 +103,14 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Perform the find operation on a /filter endpoint call.
+   *
+   * @param inodes set of inodes to work on
+   * @param find the find operation to perform
+   * @return the result of the find operation
+   */
   public Collection<INode> findFilter(Collection<INode> inodes, String find) {
-
     if (find == null || find.isEmpty()) {
       return inodes;
     }
@@ -174,6 +187,13 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Performs a summation against a collection of INodes.
+   *
+   * @param inodes the inodes to sum on
+   * @param sum the type of summation to perform
+   * @return the resulting sum as a long
+   */
   public Long sum(Collection<INode> inodes, String sum) {
     long startTime = System.currentTimeMillis();
     try {
@@ -185,6 +205,12 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Get a Function to convert INode to a Long value.
+   *
+   * @param filter the filter to look for
+   * @return the function representing the filter transform
+   */
   public Function<INode, Long> getFilterFunctionToLongForINode(String filter) {
     switch (filter) {
       case "fileSize":
@@ -227,6 +253,12 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Get a Function to convert INode to a String value.
+   *
+   * @param filter the filter to look for
+   * @return the function representing the filter transform
+   */
   public Function<INode, String> getFilterFunctionToStringForINode(String filter) {
     switch (filter) {
       case "name":
@@ -262,6 +294,12 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Get a Function to convert INode to a Boolean value.
+   *
+   * @param filter the filter to look for
+   * @return the function representing the filter transform
+   */
   public Function<INode, Boolean> getFilterFunctionToBooleanForINode(String filter) {
     switch (filter) {
       case "isUnderConstruction":
@@ -275,40 +313,46 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Get a Function that performs a summation on an entire INode collection to a single Long.
+   *
+   * @param sum the sum to look for
+   * @return the function representing the summation against the INode collection
+   */
   private Function<Collection<INode>, Long> getSumFunctionForCollection(String sum) {
     switch (sum) {
       case "count":
         return collection -> ((long) collection.size());
       case "fileSize":
         return collection ->
-            StreamSupport.stream(collection.spliterator(), true)
-                .mapToLong(node -> node.asFile().computeFileSize())
-                .sum();
+            collection.parallelStream().mapToLong(node -> node.asFile().computeFileSize()).sum();
       case "diskspaceConsumed":
         return collection ->
-            StreamSupport.stream(collection.spliterator(), true)
+            collection
+                .parallelStream()
                 .mapToLong(
                     node -> node.asFile().computeFileSize() * node.asFile().getFileReplication())
                 .sum();
       case "blockSize":
         return collection ->
-            StreamSupport.stream(collection.spliterator(), true)
+            collection
+                .parallelStream()
                 .mapToLong(node -> node.asFile().getPreferredBlockSize())
                 .sum();
       case "numBlocks":
         return collection ->
-            StreamSupport.stream(collection.spliterator(), true)
-                .mapToLong(node -> node.asFile().numBlocks())
-                .sum();
+            collection.parallelStream().mapToLong(node -> node.asFile().numBlocks()).sum();
       case "numReplicas":
         return collection ->
-            StreamSupport.stream(collection.spliterator(), true)
+            collection
+                .parallelStream()
                 .mapToLong(
                     node -> ((long) node.asFile().numBlocks() * node.asFile().getFileReplication()))
                 .sum();
       case "memoryConsumed":
         return collection ->
-            StreamSupport.stream(collection.spliterator(), true)
+            collection
+                .parallelStream()
                 .mapToLong(
                     node -> {
                       long inodeSize = 100L;
@@ -324,6 +368,13 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Get a Function that converts an INode to a single Long for summation. Used mostly by Histogram
+   * functions.
+   *
+   * @param sum the sum to look for
+   * @return the function representing the sum transform
+   */
   Function<INode, Long> getSumFunctionForINode(String sum) {
     switch (sum) {
       case "count":
@@ -349,29 +400,36 @@ public class QueryEngine {
       case "nsQuotaRatioUsed":
         return node ->
             (long)
-                ((double) versionLoader.getNSQuotaUsed(node)
-                    / (double) versionLoader.getNSQuota(node)
+                ((double) versionLoader.getNsQuotaUsed(node)
+                    / (double) versionLoader.getNsQuota(node)
                     * 100);
       case "dsQuotaRatioUsed":
         return node ->
             (long)
-                ((double) versionLoader.getDSQuotaUsed(node)
-                    / (double) versionLoader.getDSQuota(node)
+                ((double) versionLoader.getDsQuotaUsed(node)
+                    / (double) versionLoader.getDsQuota(node)
                     * 100);
       case "nsQuotaUsed":
-        return versionLoader::getNSQuotaUsed;
+        return versionLoader::getNsQuotaUsed;
       case "dsQuotaUsed":
-        return versionLoader::getDSQuotaUsed;
+        return versionLoader::getDsQuotaUsed;
       case "nsQuota":
-        return versionLoader::getNSQuota;
+        return versionLoader::getNsQuota;
       case "dsQuota":
-        return versionLoader::getDSQuota;
+        return versionLoader::getDsQuota;
       default:
         throw new IllegalArgumentException(
             "Could not determine sum type: " + sum + ".\nPlease check /sums for available sums.");
     }
   }
 
+  /**
+   * Get a Function that converts a String into a Boolean expression.
+   *
+   * @param value the value to compute against
+   * @param op the operation to perform
+   * @return the function representing a String to Boolean transformation
+   */
   public Function<String, Boolean> getFilterFunctionForString(String value, String op) {
     switch (op) {
       case "eq":
@@ -465,6 +523,13 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Get a Function that converts a Boolean into a Boolean expression.
+   *
+   * @param value the value to compute against
+   * @param op the operation to perform
+   * @return the function representing a Boolean to Boolean transformation
+   */
   public Function<Boolean, Boolean> getFilterFunctionForBoolean(Boolean value, String op) {
     switch (op) {
       case "eq":
@@ -478,6 +543,13 @@ public class QueryEngine {
     }
   }
 
+  /**
+   * Get a Function that converts a Long into a Boolean expression.
+   *
+   * @param value the value to compute against
+   * @param op the operation to perform
+   * @return the function representing a Long to Boolean transformation
+   */
   public Function<Long, Boolean> getFilterFunctionForLong(Long value, String op) {
     switch (op) {
       case "lt":
@@ -530,6 +602,15 @@ public class QueryEngine {
     return stdFunc;
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents diskspace consumed.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @param transformMap a transform to overlay during histogram processing
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> diskspaceConsumedHistogram(
       Collection<INode> inodes,
       String sum,
@@ -579,6 +660,14 @@ public class QueryEngine {
         SpaceSizeHistogram.getKeys());
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents memory consumed.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> memoryConsumedHistogram(
       Collection<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
@@ -740,6 +829,8 @@ public class QueryEngine {
                           histogram[chosenBin] = compareVal;
                         }
                         break;
+                      default:
+                        break;
                     }
                   }
                 });
@@ -895,6 +986,8 @@ public class QueryEngine {
                         if (currentVal == -1 || currentVal > compareVal) {
                           histogram[chosenBin] = compareVal;
                         }
+                        break;
+                      default:
                         break;
                     }
                   }
@@ -1055,6 +1148,8 @@ public class QueryEngine {
                           histogram[chosenBin] = compareVal;
                         }
                         break;
+                      default:
+                        break;
                     }
                   }
                 });
@@ -1078,6 +1173,14 @@ public class QueryEngine {
     return Histograms.sortByKeys(keys, histogram);
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents file size.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> fileSizeHistogram(Collection<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return fileSizeHistogramCpu(inodes, sum);
@@ -1085,7 +1188,7 @@ public class QueryEngine {
     return fileSizeHistogramCpuWithFind(inodes, find);
   }
 
-  public Map<String, Long> fileSizeHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> fileSizeHistogramCpu(Collection<INode> inodes, String sum) {
     return filteringHistogram(
         inodes,
         sum,
@@ -1109,6 +1212,14 @@ public class QueryEngine {
         SpaceSizeHistogram.getKeys());
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents replication factors.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> fileReplicaHistogram(
       Collection<INode> inodes,
       String sum,
@@ -1120,7 +1231,7 @@ public class QueryEngine {
     return fileReplicaHistogramCpuWithFind(inodes, find);
   }
 
-  public Map<String, Long> fileReplicaHistogramCpu(
+  private Map<String, Long> fileReplicaHistogramCpu(
       Collection<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
     Function<INode, Long> binFunc =
         getTransformFunction(
@@ -1139,6 +1250,14 @@ public class QueryEngine {
     return strictMappingHistogramWithFind(inodes, findField, findOp, findFunc, binFunc);
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents storage policies.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> storageTypeHistogram(Collection<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return storageTypeHistogramCpu(inodes, sum);
@@ -1146,7 +1265,7 @@ public class QueryEngine {
     return storageTypeHistogramCpuWithFind(inodes, find);
   }
 
-  public Map<String, Long> storageTypeHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> storageTypeHistogramCpu(Collection<INode> inodes, String sum) {
     return versionLoader.storageTypeHistogramCpu(inodes, sum, this);
   }
 
@@ -1154,6 +1273,14 @@ public class QueryEngine {
     return versionLoader.storageTypeHistogramCpuWithFind(inodes, find, this);
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents access time ranges.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> accessTimeHistogram(
       Collection<INode> inodes, String sum, String find, String timeRange) {
     if (find == null || find.length() == 0) {
@@ -1162,7 +1289,7 @@ public class QueryEngine {
     return accessTimeHistogramCpuWithFind(inodes, find, timeRange);
   }
 
-  public Map<String, Long> accessTimeHistogramCpu(
+  private Map<String, Long> accessTimeHistogramCpu(
       Collection<INode> inodes, String sum, String timeRange) {
     return filteringHistogram(
         inodes,
@@ -1188,6 +1315,15 @@ public class QueryEngine {
         TimeHistogram.getKeys(timeRange));
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents modification time
+   * ranges.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> modTimeHistogram(
       Collection<INode> inodes, String sum, String find, String timeRange) {
     if (find == null || find.length() == 0) {
@@ -1196,7 +1332,7 @@ public class QueryEngine {
     return modTimeHistogramCpuWithFind(inodes, find, timeRange);
   }
 
-  public Map<String, Long> modTimeHistogramCpu(
+  private Map<String, Long> modTimeHistogramCpu(
       Collection<INode> inodes, String sum, String timeRange) {
     return filteringHistogram(
         inodes,
@@ -1222,6 +1358,14 @@ public class QueryEngine {
         TimeHistogram.getKeys(timeRange));
   }
 
+  /**
+   * Dump collection of INodes to parameter HTTP response.
+   *
+   * @param inodes the collection to dump
+   * @param limit some limit of inodes to show
+   * @param resp the HTTP response
+   * @throws IOException error in dumping collection
+   */
   public void dumpINodePaths(Collection<INode> inodes, Integer limit, HttpServletResponse resp)
       throws IOException {
     LOG.info("Dumping a list of {} INodes to a client.", inodes.size());
@@ -1250,6 +1394,14 @@ public class QueryEngine {
     LOG.info("Sending the entire response took {} ms.", (end - start));
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents user names.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> byUserHistogram(Collection<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return byUserHistogramCpu(inodes, sum);
@@ -1257,12 +1409,9 @@ public class QueryEngine {
     return byUserHistogramCpuWithFind(inodes, find);
   }
 
-  public Map<String, Long> byUserHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> byUserHistogramCpu(Collection<INode> inodes, String sum) {
     List<String> distinctUsers =
-        StreamSupport.stream(inodes.spliterator(), true)
-            .map(INode::getUserName)
-            .distinct()
-            .collect(Collectors.toList());
+        inodes.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toList());
     Map<String, Long> userToIdMap =
         distinctUsers
             .parallelStream()
@@ -1280,10 +1429,7 @@ public class QueryEngine {
 
   private Map<String, Long> byUserHistogramCpuWithFind(Collection<INode> inodes, String find) {
     List<String> distinctUsers =
-        StreamSupport.stream(inodes.spliterator(), true)
-            .map(INode::getUserName)
-            .distinct()
-            .collect(Collectors.toList());
+        inodes.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toList());
     Map<String, Long> userToIdMap =
         distinctUsers
             .parallelStream()
@@ -1303,6 +1449,14 @@ public class QueryEngine {
         userToIdMap);
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents group names.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> byGroupHistogram(Collection<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return byGroupHistogramCpu(inodes, sum);
@@ -1310,12 +1464,9 @@ public class QueryEngine {
     return byGroupHistogramCpuWithFind(inodes, find);
   }
 
-  public Map<String, Long> byGroupHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> byGroupHistogramCpu(Collection<INode> inodes, String sum) {
     List<String> distinctGroups =
-        StreamSupport.stream(inodes.spliterator(), true)
-            .map(INode::getGroupName)
-            .distinct()
-            .collect(Collectors.toList());
+        inodes.parallelStream().map(INode::getGroupName).distinct().collect(Collectors.toList());
     Map<String, Long> groupToIdMap =
         distinctGroups
             .parallelStream()
@@ -1333,10 +1484,7 @@ public class QueryEngine {
 
   private Map<String, Long> byGroupHistogramCpuWithFind(Collection<INode> inodes, String find) {
     List<String> distinctGroups =
-        StreamSupport.stream(inodes.spliterator(), true)
-            .map(INode::getGroupName)
-            .distinct()
-            .collect(Collectors.toList());
+        inodes.parallelStream().map(INode::getGroupName).distinct().collect(Collectors.toList());
     Map<String, Long> groupToIdMap =
         distinctGroups
             .parallelStream()
@@ -1356,6 +1504,15 @@ public class QueryEngine {
         groupToIdMap);
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents parent directories.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param parentDirDepth the depth of the parents to group on
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> parentDirHistogram(
       Collection<INode> inodes, Integer parentDirDepth, String sum, String find) {
     if (find == null || find.length() == 0) {
@@ -1364,7 +1521,7 @@ public class QueryEngine {
     return parentDirHistogramCpuWithFind(inodes, parentDirDepth, find);
   }
 
-  public Map<String, Long> parentDirHistogramCpu(
+  private Map<String, Long> parentDirHistogramCpu(
       Collection<INode> inodes, Integer parentDirDepth, String sum) {
     int dirDepth =
         (parentDirDepth == null || parentDirDepth <= 0) ? Integer.MAX_VALUE : parentDirDepth;
@@ -1490,6 +1647,14 @@ public class QueryEngine {
     return result;
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents a file type extension.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @param find optional; a find operation to perform; overrides sum
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> fileTypeHistogram(Collection<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return fileTypeHistogramCpu(inodes, sum);
@@ -1497,7 +1662,7 @@ public class QueryEngine {
     return fileTypeHistogramCpu(inodes, sum);
   }
 
-  public Map<String, Long> fileTypeHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> fileTypeHistogramCpu(Collection<INode> inodes, String sum) {
     List<String> fileTypes = FileTypeHistogram.keys;
 
     Map<String, Long> typeToIdMap =
@@ -1518,11 +1683,18 @@ public class QueryEngine {
     return removeKeysOnConditional(histogram, "gt:0");
   }
 
+  /**
+   * Creates a histogram representation of INodes where the X-axis represents a directory quota.
+   *
+   * @param inodes the filtered inodes to operate with
+   * @param sum the Y-axis type
+   * @return a map representing bins as Strings and the sum/finds as Longs
+   */
   public Map<String, Long> dirQuotaHistogram(Collection<INode> inodes, String sum) {
     return dirQuotaHistogramCpu(inodes, sum);
   }
 
-  public Map<String, Long> dirQuotaHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> dirQuotaHistogramCpu(Collection<INode> inodes, String sum) {
     List<String> distinctDirectories =
         inodes.parallelStream().map(INode::getFullPathName).distinct().collect(Collectors.toList());
 
@@ -1642,6 +1814,13 @@ public class QueryEngine {
     return comparisons;
   }
 
+  /**
+   * Check the parameter `value` against a series of checks.
+   *
+   * @param comparisons the Long to Boolean comparison functions
+   * @param value the Long value to compare against
+   * @return true if checks passed; false otherwise
+   */
   public boolean check(List<Function<Long, Boolean>> comparisons, long value) {
     boolean check = true;
     for (Function<Long, Boolean> comparison : comparisons) {
@@ -1654,7 +1833,7 @@ public class QueryEngine {
     return check;
   }
 
-  public boolean check(List<Function<List<Long>, Boolean>> comparisons, List<Long> value) {
+  private boolean check(List<Function<List<Long>, Boolean>> comparisons, List<Long> value) {
     boolean check = true;
     for (Function<List<Long>, Boolean> comparison : comparisons) {
       boolean compareResult = comparison.apply(value);
@@ -1666,7 +1845,7 @@ public class QueryEngine {
     return check;
   }
 
-  public List<Function<List<Long>, Boolean>> createIndexedComparisons(String conditionsStr) {
+  private List<Function<List<Long>, Boolean>> createIndexedComparisons(String conditionsStr) {
     String[] conditionsArray = conditionsStr.split(",");
     String[][] conditionTuplets = new String[conditionsArray.length][3];
 

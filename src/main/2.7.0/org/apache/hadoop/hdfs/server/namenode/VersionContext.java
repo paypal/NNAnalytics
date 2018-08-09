@@ -207,27 +207,27 @@ public class VersionContext implements VersionInterface {
   }
 
   @Override // VersionInterface
-  public void saveLegacyOIVImage(String dir) throws IOException {
+  public void saveLegacyOivImage(String dir) throws IOException {
     namesystem.getFSImage().saveLegacyOIVImage(namesystem, dir, new Canceler());
   }
 
   @Override // VersionInterface
-  public Long getNSQuota(INode node) {
+  public Long getNsQuota(INode node) {
     return node.getQuotaCounts().getNameSpace();
   }
 
   @Override // VersionInterface
-  public Long getNSQuotaUsed(INode node) {
+  public Long getNsQuotaUsed(INode node) {
     return node.computeQuotaUsage(BlockStoragePolicySuite.createDefaultSuite()).getNameSpace();
   }
 
   @Override // VersionInterface
-  public Long getDSQuota(INode node) {
+  public Long getDsQuota(INode node) {
     return node.getQuotaCounts().getStorageSpace();
   }
 
   @Override // VersionInterface
-  public Long getDSQuotaUsed(INode node) {
+  public Long getDsQuotaUsed(INode node) {
     return node.computeQuotaUsage(BlockStoragePolicySuite.createDefaultSuite()).getStorageSpace();
   }
 }

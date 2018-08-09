@@ -24,7 +24,7 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,10 +33,14 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Find;
+import org.apache.hadoop.hdfs.server.namenode.Constants.FindField;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
+import org.apache.hadoop.hdfs.server.namenode.Constants.INodeSet;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -54,7 +58,7 @@ public class TestFinderQuery {
 
   private static HttpHost hostPort;
   private static DefaultHttpClient client;
-  private static NNAnalyticsRestAPI nna;
+  private static WebServerMain nna;
   private static int count = 0;
   private static long timeTaken = 0;
 
@@ -63,7 +67,7 @@ public class TestFinderQuery {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new NNAnalyticsRestAPI();
+    nna = new WebServerMain();
     SecurityConfiguration conf = new SecurityConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
@@ -87,111 +91,94 @@ public class TestFinderQuery {
     timeTaken = 0;
   }
 
-  public static HashMap<
-          NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
-      getSetFilterFindConfig() {
-    HashMap<NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
-        config = new HashMap<>();
+  public static HashMap<INodeSet, HashMap<Find, ArrayList<FindField>>> getSetFilterFindConfig() {
+    HashMap<INodeSet, HashMap<Find, ArrayList<FindField>>> config = new HashMap<>();
 
     // For 'File' set type
-    HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> fileFilterFind = new HashMap<>();
-    ArrayList<NNAConstants.FIND_FIELD> fileFind = new ArrayList<>();
-    fileFind.addAll(NNAConstants.FIND_FILE);
-    fileFilterFind.put(NNAConstants.FIND.max, fileFind);
-    fileFilterFind.put(NNAConstants.FIND.min, fileFind);
-    config.put(NNAConstants.SET.files, fileFilterFind);
+    HashMap<Find, ArrayList<FindField>> fileFilterFind = new HashMap<>();
+    ArrayList<FindField> fileFind = new ArrayList<>();
+    fileFind.addAll(Constants.FIND_FILE);
+    fileFilterFind.put(Find.max, fileFind);
+    fileFilterFind.put(Find.min, fileFind);
+    config.put(INodeSet.files, fileFilterFind);
 
     // For 'Dir' set type
-    HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> dirFilterFind = new HashMap<>();
-    ArrayList<NNAConstants.FIND_FIELD> dirFind = new ArrayList<>();
-    dirFind.addAll(NNAConstants.FIND_DIR);
-    dirFilterFind.put(NNAConstants.FIND.max, dirFind);
-    dirFilterFind.put(NNAConstants.FIND.min, dirFind);
-    config.put(NNAConstants.SET.dirs, dirFilterFind);
+    HashMap<Find, ArrayList<FindField>> dirFilterFind = new HashMap<>();
+    ArrayList<FindField> dirFind = new ArrayList<>();
+    dirFind.addAll(Constants.FIND_DIR);
+    dirFilterFind.put(Find.max, dirFind);
+    dirFilterFind.put(Find.min, dirFind);
+    config.put(INodeSet.dirs, dirFilterFind);
 
     // For 'All' set type
-    HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> allFilterFind = new HashMap<>();
-    ArrayList<NNAConstants.FIND_FIELD> allFind = new ArrayList<>();
-    allFind.addAll(NNAConstants.FIND_ALL);
-    allFilterFind.put(NNAConstants.FIND.max, allFind);
-    allFilterFind.put(NNAConstants.FIND.min, allFind);
-    config.put(NNAConstants.SET.all, allFilterFind);
+    HashMap<Find, ArrayList<FindField>> allFilterFind = new HashMap<>();
+    ArrayList<FindField> allFind = new ArrayList<>();
+    allFind.addAll(Constants.FIND_ALL);
+    allFilterFind.put(Find.max, allFind);
+    allFilterFind.put(Find.min, allFind);
+    config.put(INodeSet.all, allFilterFind);
 
     return config;
   }
 
-  public static HashMap<
-          NNAConstants.SET,
-          HashMap<
-              NNAConstants.HISTOGRAM,
-              HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>>
+  public static HashMap<INodeSet, HashMap<Histogram, HashMap<Find, ArrayList<FindField>>>>
       getSetHistogramTypeFindConfig() {
-    HashMap<
-            NNAConstants.SET,
-            HashMap<
-                NNAConstants.HISTOGRAM,
-                HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>>
-        config = new HashMap<>();
+    HashMap<INodeSet, HashMap<Histogram, HashMap<Find, ArrayList<FindField>>>> config =
+        new HashMap<>();
 
     // For 'File' set type
-    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
-        fileFindField = new HashMap<>();
-    HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findFile = new HashMap<>();
-    ArrayList<NNAConstants.FIND_FIELD> fileFind = new ArrayList<>();
-    fileFind.addAll(NNAConstants.FIND_FILE);
-    findFile.put(NNAConstants.FIND.max, fileFind);
-    findFile.put(NNAConstants.FIND.avg, fileFind);
-    findFile.put(NNAConstants.FIND.min, fileFind);
-    for (NNAConstants.HISTOGRAM typeFile : NNAConstants.TYPE_FILE) {
+    HashMap<Histogram, HashMap<Find, ArrayList<FindField>>> fileFindField = new HashMap<>();
+    HashMap<Find, ArrayList<FindField>> findFile = new HashMap<>();
+    ArrayList<FindField> fileFind = new ArrayList<>();
+    fileFind.addAll(Constants.FIND_FILE);
+    findFile.put(Find.max, fileFind);
+    findFile.put(Find.avg, fileFind);
+    findFile.put(Find.min, fileFind);
+    for (Histogram typeFile : Constants.TYPE_FILE) {
       fileFindField.put(typeFile, findFile);
     }
-    config.put(NNAConstants.SET.files, fileFindField);
+    config.put(INodeSet.files, fileFindField);
 
     // For 'Dir' set type
-    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
-        dirFindField = new HashMap<>();
-    HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findDir = new HashMap<>();
-    ArrayList<NNAConstants.FIND_FIELD> dirFind = new ArrayList<>();
-    dirFind.addAll(NNAConstants.FIND_DIR);
-    findDir.put(NNAConstants.FIND.max, dirFind);
-    findDir.put(NNAConstants.FIND.avg, fileFind);
-    findDir.put(NNAConstants.FIND.min, dirFind);
-    for (NNAConstants.HISTOGRAM typeDir : NNAConstants.TYPE_DIR) {
+    HashMap<Histogram, HashMap<Find, ArrayList<FindField>>> dirFindField = new HashMap<>();
+    HashMap<Find, ArrayList<FindField>> findDir = new HashMap<>();
+    ArrayList<FindField> dirFind = new ArrayList<>();
+    dirFind.addAll(Constants.FIND_DIR);
+    findDir.put(Find.max, dirFind);
+    findDir.put(Find.avg, fileFind);
+    findDir.put(Find.min, dirFind);
+    for (Histogram typeDir : Constants.TYPE_DIR) {
       dirFindField.put(typeDir, findDir);
     }
-    config.put(NNAConstants.SET.dirs, dirFindField);
+    config.put(INodeSet.dirs, dirFindField);
 
     // For 'All' set type
-    HashMap<NNAConstants.HISTOGRAM, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
-        allFindField = new HashMap<>();
-    HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findAll = new HashMap<>();
-    ArrayList<NNAConstants.FIND_FIELD> allFind = new ArrayList<>();
-    allFind.addAll(NNAConstants.FIND_ALL);
-    findAll.put(NNAConstants.FIND.max, allFind);
-    findDir.put(NNAConstants.FIND.avg, allFind);
-    findAll.put(NNAConstants.FIND.min, allFind);
-    for (NNAConstants.HISTOGRAM typeAll : NNAConstants.TYPE_ALL) {
+    HashMap<Histogram, HashMap<Find, ArrayList<FindField>>> allFindField = new HashMap<>();
+    HashMap<Find, ArrayList<FindField>> findAll = new HashMap<>();
+    ArrayList<FindField> allFind = new ArrayList<>();
+    allFind.addAll(Constants.FIND_ALL);
+    findAll.put(Find.max, allFind);
+    findDir.put(Find.avg, allFind);
+    findAll.put(Find.min, allFind);
+    for (Histogram typeAll : Constants.TYPE_ALL) {
       allFindField.put(typeAll, findAll);
     }
-    config.put(NNAConstants.SET.all, allFindField);
+    config.put(INodeSet.all, allFindField);
 
     return config;
   }
 
   @Test
   public void testFilterAndFindQuery() throws IOException {
-    HashMap<NNAConstants.SET, HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
-        config = getSetFilterFindConfig();
+    HashMap<INodeSet, HashMap<Find, ArrayList<FindField>>> config = getSetFilterFindConfig();
     String[] parameters = new String[5];
     parameters[0] = "http://localhost:4567/filter?";
-    for (NNAConstants.SET setType : NNAConstants.SET.values()) {
+    for (INodeSet setType : INodeSet.values()) {
       parameters[1] = setType.toString();
-      HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findFields =
-          config.get(setType);
-      for (Map.Entry<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findField :
-          findFields.entrySet()) {
+      HashMap<Find, ArrayList<FindField>> findFields = config.get(setType);
+      for (Map.Entry<Find, ArrayList<FindField>> findField : findFields.entrySet()) {
         parameters[3] = findField.getKey().toString();
-        for (NNAConstants.FIND_FIELD field : findField.getValue()) {
+        for (FindField field : findField.getValue()) {
           parameters[4] = field.toString();
           String testingURL = buildFindQuery(parameters, false);
           checkOutput(testingURL);
@@ -202,31 +189,20 @@ public class TestFinderQuery {
 
   @Test
   public void testHistogramTypeAndFindQuery() throws IOException {
-    HashMap<
-            NNAConstants.SET,
-            HashMap<
-                NNAConstants.HISTOGRAM,
-                HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>>
-        config = getSetHistogramTypeFindConfig();
+    HashMap<INodeSet, HashMap<Histogram, HashMap<Find, ArrayList<FindField>>>> config =
+        getSetHistogramTypeFindConfig();
     String[] parameters = new String[5];
     parameters[0] = "http://localhost:4567/histogram?";
-    for (NNAConstants.SET setType : NNAConstants.SET.values()) {
+    for (INodeSet setType : INodeSet.values()) {
       parameters[1] = setType.toString();
-      HashMap<
-              NNAConstants.HISTOGRAM,
-              HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
-          histFindFields = config.get(setType);
-      for (Map.Entry<
-              NNAConstants.HISTOGRAM,
-              HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>>>
-          histFindField : histFindFields.entrySet()) {
+      HashMap<Histogram, HashMap<Find, ArrayList<FindField>>> histFindFields = config.get(setType);
+      for (Map.Entry<Histogram, HashMap<Find, ArrayList<FindField>>> histFindField :
+          histFindFields.entrySet()) {
         parameters[2] = histFindField.getKey().toString();
-        HashMap<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findFields =
-            histFindField.getValue();
-        for (Map.Entry<NNAConstants.FIND, ArrayList<NNAConstants.FIND_FIELD>> findField :
-            findFields.entrySet()) {
+        HashMap<Find, ArrayList<FindField>> findFields = histFindField.getValue();
+        for (Map.Entry<Find, ArrayList<FindField>> findField : findFields.entrySet()) {
           parameters[3] = findField.getKey().toString();
-          for (NNAConstants.FIND_FIELD field : findField.getValue()) {
+          for (FindField field : findField.getValue()) {
             parameters[4] = field.toString();
             String requestedURL = buildFindQuery(parameters, true);
             checkOutput(requestedURL);

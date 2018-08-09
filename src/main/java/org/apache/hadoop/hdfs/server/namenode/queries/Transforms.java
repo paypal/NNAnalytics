@@ -26,13 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.slf4j.Logger;
 
 public class Transforms {
 
-  public static final Logger LOG = NNLoader.LOG;
+  public static final Logger LOG = NameNodeLoader.LOG;
 
   private static class Transform {
 
@@ -45,11 +45,21 @@ public class Transforms {
     }
   }
 
+  /**
+   * Get set of attribute transforms asked for by parameters. Attribute transforms require a
+   * condition, a field, and a replacement value for that field, if the condition is met.
+   *
+   * @param transformConditionArray string representing the conditions
+   * @param transformFields string representing the field to observe
+   * @param transformOutputs string representing the value to replace
+   * @param loader the NameNodeLoader
+   * @return a mapping of fields to transformations for use by histograms
+   */
   public static Map<String, Function<INode, Long>> getAttributeTransforms(
       String transformConditionArray,
       String transformFields,
       String transformOutputs,
-      NNLoader loader) {
+      NameNodeLoader loader) {
     if (transformConditionArray == null
         || transformFields == null
         || transformOutputs == null
@@ -89,7 +99,10 @@ public class Transforms {
   }
 
   private static Map<String, List<Transform>> transformINodeToLongFunction(
-      String transformConditions, String transformField, String transformOutput, NNLoader loader) {
+      String transformConditions,
+      String transformField,
+      String transformOutput,
+      NameNodeLoader loader) {
     Map<String, List<Transform>> transformMap = new HashMap<>(2);
     String[] conditionTriplets = transformConditions.split(",");
     String[][] conditions = new String[conditionTriplets.length][3];
@@ -191,7 +204,7 @@ public class Transforms {
   }
 
   private static Map<String, Function<INode, Long>> compoundMethods(
-      Map<String, List<Transform>> transformMap, NNLoader loader) {
+      Map<String, List<Transform>> transformMap, NameNodeLoader loader) {
     if (transformMap.isEmpty()) {
       return Collections.emptyMap();
     }

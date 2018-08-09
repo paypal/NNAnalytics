@@ -24,8 +24,8 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 import javax.servlet.http.HttpSession;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants.ENDPOINT;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
 import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.security.authorize.AuthorizationException;
 import org.eclipse.jetty.http.HttpStatus;
@@ -64,7 +64,7 @@ public class SecurityContext {
   private static final ThreadLocal<String> currentUser =
       ThreadLocal.withInitial(() -> "default_unsecured_user");
 
-  private enum ACCESS_LEVEL {
+  private enum AccessLevel {
     ADMIN,
     WRITER,
     READER,
@@ -73,6 +73,14 @@ public class SecurityContext {
 
   public SecurityContext() {}
 
+  /**
+   * Initializes the authentication and authorization of NNA.
+   *
+   * @param secConf the security configuration
+   * @param jwtAuth the JWT authentication object
+   * @param jwtGen the JWT generator object
+   * @param ldapAuthenticator ldap authenticator
+   */
   public void init(
       SecurityConfiguration secConf,
       JwtAuthenticator jwtAuth,
@@ -92,6 +100,11 @@ public class SecurityContext {
     this.init = true;
   }
 
+  /**
+   * Re-reads SecurityConfiguration from ClassLoader and updates authorization.
+   *
+   * @param secConf the newly read security configuration
+   */
   public synchronized void refresh(SecurityConfiguration secConf) {
     this.adminUsers = new UserSet(secConf.getAdminUsers());
     this.writeUsers = new UserSet(secConf.getWriteUsers());
@@ -162,7 +175,7 @@ public class SecurityContext {
         CommonProfile profile = credentials.getUserProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
-        res.header("Set-Cookie", "nna-jwt-token=" + generate);
+        res.header("INodeSet-Cookie", "nna-jwt-token=" + generate);
         currentUser.set(username);
         return true;
       }
@@ -183,7 +196,7 @@ public class SecurityContext {
         CommonProfile profile = new CommonProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
-        res.header("Set-Cookie", "nna-jwt-token=" + generate);
+        res.header("INodeSet-Cookie", "nna-jwt-token=" + generate);
         currentUser.set(username);
         return true;
       } else {
@@ -197,8 +210,8 @@ public class SecurityContext {
   /**
    * Perform logout of authenticated web session.
    *
-   * @param req - The HTTP request.
-   * @param res - The HTTP response.
+   * @param req the HTTP request
+   * @param res the HTTP response
    */
   public void logout(Request req, Response res) {
     boolean authenticationEnabled = isAuthenticationEnabled();
@@ -222,6 +235,14 @@ public class SecurityContext {
     }
   }
 
+  /**
+   * Ensures that user request has proper authentication token / credentials.
+   *
+   * @param req the HTTP request
+   * @param res the HTTP response
+   * @throws AuthenticationException error with authentication
+   * @throws HttpAction error with HTTP call
+   */
   public void handleAuthentication(Request req, Response res)
       throws AuthenticationException, HttpAction {
     if (!init) {
@@ -229,7 +250,7 @@ public class SecurityContext {
       throw new AuthenticationException("Please wait for initialization.");
     }
 
-    boolean isLoginAttempt = req.raw().getRequestURI().startsWith("/" + ENDPOINT.login.name());
+    boolean isLoginAttempt = req.raw().getRequestURI().startsWith("/" + Endpoint.login.name());
     if (isLoginAttempt) {
       return;
     }
@@ -274,7 +295,7 @@ public class SecurityContext {
 
         userProfile.removeAttribute("iat");
         String generate = jwtGenerator.generate(userProfile);
-        res.header("Set-Cookie", "nna-jwt-token=" + generate);
+        res.header("INodeSet-Cookie", "nna-jwt-token=" + generate);
 
         manager.save(true, userProfile, false);
         String profileId = userProfile.getId();
@@ -291,20 +312,27 @@ public class SecurityContext {
     throw new AuthenticationException("Authentication required.");
   }
 
+  /**
+   * Checks whether user has authorization to make the call they intend to.
+   *
+   * @param req the HTTP request
+   * @param res the HTTP resopnse
+   * @throws AuthorizationException user does not have authorization
+   */
   public synchronized void handleAuthorization(Request req, Response res)
-      throws AuthenticationException, HttpAction, AuthorizationException {
+      throws AuthorizationException {
     boolean authorizationEnabled = securityConfiguration.getAuthorizationEnabled();
     if (!authorizationEnabled) {
       return;
     }
     String user = getUserName();
     String uri = req.raw().getRequestURI();
-    for (NNAConstants.ENDPOINT unsecured : NNAConstants.UNSECURED_ENDPOINTS) {
+    for (Endpoint unsecured : Constants.UNSECURED_ENDPOINTS) {
       if (uri.startsWith("/" + unsecured.name())) {
         return;
       }
     }
-    for (NNAConstants.ENDPOINT admins : NNAConstants.ADMIN_ENDPOINTS) {
+    for (Endpoint admins : Constants.ADMIN_ENDPOINTS) {
       if (uri.startsWith("/" + admins.name())) {
         if (adminUsers.allows(user)) {
           return;
@@ -313,7 +341,7 @@ public class SecurityContext {
         }
       }
     }
-    for (NNAConstants.ENDPOINT writers : NNAConstants.WRITER_ENDPOINTS) {
+    for (Endpoint writers : Constants.WRITER_ENDPOINTS) {
       if (uri.startsWith("/" + writers.name())) {
         if (writeUsers.allows(user)) {
           return;
@@ -322,7 +350,7 @@ public class SecurityContext {
         }
       }
     }
-    for (NNAConstants.ENDPOINT readers : NNAConstants.READER_ENDPOINTS) {
+    for (Endpoint readers : Constants.READER_ENDPOINTS) {
       if (uri.startsWith("/" + readers.name())) {
         if (readOnlyUsers.allows(user)) {
           return;
@@ -331,7 +359,7 @@ public class SecurityContext {
         }
       }
     }
-    for (NNAConstants.ENDPOINT cacheReaders : NNAConstants.CACHE_READER_ENDPOINTS) {
+    for (Endpoint cacheReaders : Constants.CACHE_READER_ENDPOINTS) {
       if (uri.startsWith("/" + cacheReaders.name())) {
         if (cacheReaderUsers.allows(user)) {
           return;
@@ -347,6 +375,11 @@ public class SecurityContext {
     return currentUser.get();
   }
 
+  /**
+   * Get the access levels of the currently logged in user.
+   *
+   * @return the authorizations given to current user
+   */
   public synchronized Enum[] getAccessLevels() {
     String username = currentUser.get();
     boolean isAdmin = adminUsers.allows(username);
@@ -355,13 +388,14 @@ public class SecurityContext {
     boolean isCacheReader = cacheReaderUsers.allows(username);
 
     return new Enum[] {
-      (isAdmin ? ACCESS_LEVEL.ADMIN : null),
-      (isWriter ? ACCESS_LEVEL.WRITER : null),
-      (isReader ? ACCESS_LEVEL.READER : null),
-      (isCacheReader ? ACCESS_LEVEL.CACHE : null)
+      (isAdmin ? AccessLevel.ADMIN : null),
+      (isWriter ? AccessLevel.WRITER : null),
+      (isReader ? AccessLevel.READER : null),
+      (isCacheReader ? AccessLevel.CACHE : null)
     };
   }
 
+  @Override // Object
   public String toString() {
     return "admins: "
         + adminUsers.toString()

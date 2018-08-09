@@ -150,27 +150,27 @@ public class VersionContext implements VersionInterface {
   }
 
   @Override // VersionInterface
-  public void saveLegacyOIVImage(String dir) {
+  public void saveLegacyOivImage(String dir) {
     throw new UnsupportedOperationException("Legacy OIV Image not supported in 2.4.0.");
   }
 
   @Override // VersionInterface
-  public Long getNSQuota(INode node) {
+  public Long getNsQuota(INode node) {
     return node.getQuotaCounts().get(Quota.NAMESPACE);
   }
 
   @Override // VersionInterface
-  public Long getNSQuotaUsed(INode node) {
+  public Long getNsQuotaUsed(INode node) {
     return node.computeQuotaUsage().get(Quota.NAMESPACE);
   }
 
   @Override // VersionInterface
-  public Long getDSQuota(INode node) {
+  public Long getDsQuota(INode node) {
     return node.getQuotaCounts().get(Quota.DISKSPACE);
   }
 
   @Override // VersionInterface
-  public Long getDSQuotaUsed(INode node) {
+  public Long getDsQuotaUsed(INode node) {
     return node.computeQuotaUsage().get(Quota.DISKSPACE);
   }
 }

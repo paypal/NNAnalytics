@@ -23,7 +23,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,14 +55,14 @@ public class TestLdapAuth {
 
   private static HttpHost hostPort;
   private static HttpClient client;
-  private static NNAnalyticsRestAPI nna;
+  private static WebServerMain nna;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new NNAnalyticsRestAPI();
+    nna = new WebServerMain();
     SecurityConfiguration conf = new SecurityConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
@@ -136,7 +136,7 @@ public class TestLdapAuth {
     assertThat(res2.getStatusLine().getStatusCode(), is(200));
 
     // Use JWT to auth again.
-    Header tokenHeader = res2.getFirstHeader("Set-Cookie");
+    Header tokenHeader = res2.getFirstHeader("INodeSet-Cookie");
     HttpGet get2 = new HttpGet("http://localhost:4567/threads");
     get2.addHeader("Cookie", tokenHeader.getValue());
     HttpResponse res3 = client.execute(hostPort, get2);
@@ -164,7 +164,7 @@ public class TestLdapAuth {
     assertThat(res.getStatusLine().getStatusCode(), is(200));
 
     // Logout.
-    Header tokenHeader = res.getFirstHeader("Set-Cookie");
+    Header tokenHeader = res.getFirstHeader("INodeSet-Cookie");
     HttpPost post2 = new HttpPost("http://localhost:4567/logout");
     post2.addHeader("Cookie", tokenHeader.getValue());
     HttpResponse res2 = client.execute(hostPort, post2);

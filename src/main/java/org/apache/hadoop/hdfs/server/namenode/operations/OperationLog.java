@@ -19,7 +19,7 @@
 
 package org.apache.hadoop.hdfs.server.namenode.operations;
 
-import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.CHARSET;
+import static org.apache.hadoop.hdfs.server.namenode.Constants.CHARSET;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.util.StreamingGZIPOutputStream;
+import org.apache.hadoop.util.StreamingGzipOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +101,7 @@ class OperationLog {
           };
       if (gzipLog) {
         LOG.info("Will write log for large op: {}, as GZIP.", identity);
-        fileStream = new StreamingGZIPOutputStream(plainTextStream);
+        fileStream = new StreamingGzipOutputStream(plainTextStream);
       } else {
         fileStream = plainTextStream;
       }

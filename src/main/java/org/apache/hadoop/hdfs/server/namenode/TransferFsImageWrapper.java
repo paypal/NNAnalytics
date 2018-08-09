@@ -46,21 +46,21 @@ import org.apache.hadoop.security.UserGroupInformation;
  */
 public class TransferFsImageWrapper {
 
-  private final NNLoader nnLoader;
+  private final NameNodeLoader nameNodeLoader;
 
-  public TransferFsImageWrapper(NNLoader nnLoader) {
-    this.nnLoader = nnLoader;
+  public TransferFsImageWrapper(NameNodeLoader nameNodeLoader) {
+    this.nameNodeLoader = nameNodeLoader;
   }
 
   /**
    * This is meant to download the latest FSImage without relying on FSNamesystem or other running
-   * HDFS classes within NNLoader.
+   * HDFS classes within NameNodeLoader.
    *
    * @throws IOException if FileSystem can not be initialized
    */
   public void downloadMostRecentImage() throws IOException {
-    FileSystem fileSystem = nnLoader.getFileSystem();
-    Configuration conf = nnLoader.getConfiguration();
+    FileSystem fileSystem = nameNodeLoader.getFileSystem();
+    Configuration conf = nameNodeLoader.getConfiguration();
     String namespaceDirPath = conf.get(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
     File namespaceDir = new File(namespaceDirPath, "current");
     SecurityUtil.login(

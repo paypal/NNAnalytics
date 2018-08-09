@@ -24,7 +24,7 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -33,10 +33,14 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Filter;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
+import org.apache.hadoop.hdfs.server.namenode.Constants.INodeSet;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.NNAConstants;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -54,7 +58,7 @@ public class TestQueryChecker {
 
   private static HttpHost hostPort;
   private static DefaultHttpClient client;
-  private static NNAnalyticsRestAPI nna;
+  private static WebServerMain nna;
   private static int count = 0;
   private static long timeTaken = 0;
 
@@ -63,7 +67,7 @@ public class TestQueryChecker {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new NNAnalyticsRestAPI();
+    nna = new WebServerMain();
     SecurityConfiguration conf = new SecurityConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
@@ -87,34 +91,28 @@ public class TestQueryChecker {
     timeTaken = 0;
   }
 
-  public static HashMap<
-          NNAConstants.SET,
-          HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>>
+  public static HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
       getInvalidCombinations() {
-    HashMap<
-            NNAConstants.SET,
-            HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>>
+    HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
         invalidCombination = new HashMap<>();
     // For 'File' set Type
-    HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>
-        fileSumTypeFilterCombo = new HashMap<>();
-    EnumSet<NNAConstants.SUM> diffFilesDirs =
-        NNAConstants.getDifference(NNAConstants.SUM_DIR, NNAConstants.SUM_FILE);
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> fileSumTypeFilterCombo =
+        new HashMap<>();
+    EnumSet<Sum> diffFilesDirs = Constants.getDifference(Constants.SUM_DIR, Constants.SUM_FILE);
     // For Each value in 'SUM_FILE'
-    for (NNAConstants.SUM sum : diffFilesDirs) {
-      HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilterCombo = new HashMap<>();
-      EnumSet<NNAConstants.FILTER> onlyDir =
-          NNAConstants.getDifference(NNAConstants.FILTER_DIR, NNAConstants.FILTER_ALL);
+    for (Sum sum : diffFilesDirs) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      EnumSet<Filter> onlyDir = Constants.getDifference(Constants.FILTER_DIR, Constants.FILTER_ALL);
       // For each value in 'TYPE_FILE' and 'TYPE_ALL'
-      for (NNAConstants.HISTOGRAM typeFile : NNAConstants.TYPE_FILE) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeFile : Constants.TYPE_FILE) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         filterCombo.add(onlyDir);
 
         typeFilterCombo.put(typeFile.toString(), filterCombo);
       }
 
-      for (NNAConstants.HISTOGRAM typeAll : NNAConstants.TYPE_ALL) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeAll : Constants.TYPE_ALL) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         filterCombo.add(onlyDir);
 
         typeFilterCombo.put(typeAll.toString(), filterCombo);
@@ -124,25 +122,24 @@ public class TestQueryChecker {
     }
 
     // For 'Dir' set type
-    HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>
-        dirSumTypeFilterCombo = new HashMap<>();
-    EnumSet<NNAConstants.SUM> diffDirsFiles =
-        NNAConstants.getDifference(NNAConstants.SUM_FILE, NNAConstants.SUM_DIR);
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> dirSumTypeFilterCombo =
+        new HashMap<>();
+    EnumSet<Sum> diffDirsFiles = Constants.getDifference(Constants.SUM_FILE, Constants.SUM_DIR);
     // For Each value in 'SUM_FILE'
-    for (NNAConstants.SUM sum : diffDirsFiles) {
-      HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilterCombo = new HashMap<>();
-      EnumSet<NNAConstants.FILTER> onlyFile =
-          NNAConstants.getDifference(NNAConstants.FILTER_FILE, NNAConstants.FILTER_ALL);
+    for (Sum sum : diffDirsFiles) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      EnumSet<Filter> onlyFile =
+          Constants.getDifference(Constants.FILTER_FILE, Constants.FILTER_ALL);
       // For each value in 'TYPE_ALL' and 'TYPE_FILE'
-      for (NNAConstants.HISTOGRAM typeAll : NNAConstants.TYPE_ALL) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeAll : Constants.TYPE_ALL) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         // For each value in 'FILTER_FILE'
         filterCombo.add(onlyFile);
         typeFilterCombo.put(typeAll.toString(), filterCombo);
       }
 
-      for (NNAConstants.HISTOGRAM typeFile : NNAConstants.TYPE_FILE) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeFile : Constants.TYPE_FILE) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         // For each value in 'FILTER_FILE'
         filterCombo.add(onlyFile);
         typeFilterCombo.put(typeFile.toString(), filterCombo);
@@ -152,21 +149,19 @@ public class TestQueryChecker {
     }
 
     // For 'All' set type
-    HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>
-        allSumTypeFilterCombo = new HashMap<>();
-    EnumSet<NNAConstants.SUM> sumFiles =
-        NNAConstants.getDifference(NNAConstants.SUM_FILE, NNAConstants.SUM_ALL);
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> allSumTypeFilterCombo =
+        new HashMap<>();
+    EnumSet<Sum> sumFiles = Constants.getDifference(Constants.SUM_FILE, Constants.SUM_ALL);
     // For Each value in 'SUM_FILE'
-    for (NNAConstants.SUM sum : sumFiles) {
-      HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilterCombo = new HashMap<>();
-      EnumSet<NNAConstants.FILTER> onlyFile =
-          NNAConstants.getDifference(NNAConstants.FILTER_FILE, NNAConstants.FILTER_ALL);
-      EnumSet<NNAConstants.FILTER> onlyDir =
-          NNAConstants.getDifference(NNAConstants.FILTER_DIR, NNAConstants.FILTER_ALL);
+    for (Sum sum : sumFiles) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      EnumSet<Filter> onlyFile =
+          Constants.getDifference(Constants.FILTER_FILE, Constants.FILTER_ALL);
+      EnumSet<Filter> onlyDir = Constants.getDifference(Constants.FILTER_DIR, Constants.FILTER_ALL);
       // For each value in 'TYPE_FILE'
 
-      for (NNAConstants.HISTOGRAM typeFile : NNAConstants.TYPE_FILE) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeFile : Constants.TYPE_FILE) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         // For each value in 'FILTER_FILE' and 'FILTER_DIR'
         filterCombo.add(onlyDir);
         filterCombo.add(onlyFile);
@@ -178,40 +173,36 @@ public class TestQueryChecker {
     }
 
     // Combine all of them
-    invalidCombination.put(NNAConstants.SET.files, fileSumTypeFilterCombo);
-    invalidCombination.put(NNAConstants.SET.dirs, dirSumTypeFilterCombo);
-    invalidCombination.put(NNAConstants.SET.all, allSumTypeFilterCombo);
+    invalidCombination.put(INodeSet.files, fileSumTypeFilterCombo);
+    invalidCombination.put(INodeSet.dirs, dirSumTypeFilterCombo);
+    invalidCombination.put(INodeSet.all, allSumTypeFilterCombo);
 
     return invalidCombination;
   }
 
-  public static HashMap<
-          NNAConstants.SET,
-          HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>>
+  public static HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
       getValidCombinations() {
-    HashMap<
-            NNAConstants.SET,
-            HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>>
+    HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
         validCombination = new HashMap<>();
     // For 'File' set Type
-    HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>
-        fileSumTypeFilterCombo = new HashMap<>();
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> fileSumTypeFilterCombo =
+        new HashMap<>();
     // For Each value in 'SUM_FILE'
-    for (NNAConstants.SUM sum : NNAConstants.SUM_FILE) {
-      HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilterCombo = new HashMap<>();
+    for (Sum sum : Constants.SUM_FILE) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
       // For each value in 'TYPE_FILE' and 'TYPE_ALL'
-      for (NNAConstants.HISTOGRAM typeFile : NNAConstants.TYPE_FILE) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeFile : Constants.TYPE_FILE) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         // For each value in 'FILTER_FILE' and 'FILTER_ALL'
-        filterCombo.add(NNAConstants.FILTER_FILE);
+        filterCombo.add(Constants.FILTER_FILE);
 
         typeFilterCombo.put(typeFile.toString(), filterCombo);
       }
 
-      for (NNAConstants.HISTOGRAM typeAll : NNAConstants.TYPE_ALL) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeAll : Constants.TYPE_ALL) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         // For each value in 'FILTER_FILE' and 'FILTER_ALL'
-        filterCombo.add(NNAConstants.FILTER_FILE);
+        filterCombo.add(Constants.FILTER_FILE);
 
         typeFilterCombo.put(typeAll.toString(), filterCombo);
       }
@@ -220,16 +211,16 @@ public class TestQueryChecker {
     }
 
     // For 'Dir' set type
-    HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>
-        dirSumTypeFilterCombo = new HashMap<>();
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> dirSumTypeFilterCombo =
+        new HashMap<>();
     // For Each value in 'SUM_ALL'
-    for (NNAConstants.SUM sum : NNAConstants.SUM_DIR) {
-      HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilterCombo = new HashMap<>();
+    for (Sum sum : Constants.SUM_DIR) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
       // For each value in 'TYPE_ALL'
-      for (NNAConstants.HISTOGRAM typeAll : NNAConstants.TYPE_DIR) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeAll : Constants.TYPE_DIR) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         // For each value in 'FILTER_DIR' and 'FILTER_ALL'
-        filterCombo.add(NNAConstants.FILTER_DIR);
+        filterCombo.add(Constants.FILTER_DIR);
 
         typeFilterCombo.put(typeAll.toString(), filterCombo);
       }
@@ -238,17 +229,17 @@ public class TestQueryChecker {
     }
 
     // For 'All' set type
-    HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>
-        allSumTypeFilterCombo = new HashMap<>();
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> allSumTypeFilterCombo =
+        new HashMap<>();
     // For Each value in 'SUM_ALL'
-    for (NNAConstants.SUM sum : NNAConstants.SUM_ALL) {
-      HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilterCombo = new HashMap<>();
+    for (Sum sum : Constants.SUM_ALL) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
       // For each value in 'TYPE_ALL'
 
-      for (NNAConstants.HISTOGRAM typeAll : NNAConstants.TYPE_ALL) {
-        ArrayList<EnumSet<NNAConstants.FILTER>> filterCombo = new ArrayList<>();
+      for (Histogram typeAll : Constants.TYPE_ALL) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
         // For each value in 'FILTER_ALL'
-        filterCombo.add(NNAConstants.FILTER_ALL);
+        filterCombo.add(Constants.FILTER_ALL);
 
         typeFilterCombo.put(typeAll.toString(), filterCombo);
       }
@@ -257,33 +248,29 @@ public class TestQueryChecker {
     }
 
     // Combine all of them
-    validCombination.put(NNAConstants.SET.files, fileSumTypeFilterCombo);
-    validCombination.put(NNAConstants.SET.dirs, dirSumTypeFilterCombo);
-    validCombination.put(NNAConstants.SET.all, allSumTypeFilterCombo);
+    validCombination.put(INodeSet.files, fileSumTypeFilterCombo);
+    validCombination.put(INodeSet.dirs, dirSumTypeFilterCombo);
+    validCombination.put(INodeSet.all, allSumTypeFilterCombo);
 
     return validCombination;
   }
 
   @Test
   public void testValidQueryChecker() throws Exception {
-    HashMap<
-            NNAConstants.SET,
-            HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>>
+    HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
         setSumTypeFilterConfig = getValidCombinations();
     String[] parameters = new String[4];
-    for (NNAConstants.SET set : NNAConstants.SET.values()) {
+    for (INodeSet set : INodeSet.values()) {
       String setType = set.toString();
       parameters[0] = setType;
-      HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>> sumTypeFilters =
+      HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> sumTypeFilters =
           setSumTypeFilterConfig.get(set);
-      for (Map.Entry<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>
-          sumTypeFilter : sumTypeFilters.entrySet()) {
-        HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilters =
-            sumTypeFilter.getValue();
+      for (Map.Entry<String, HashMap<String, ArrayList<EnumSet<Filter>>>> sumTypeFilter :
+          sumTypeFilters.entrySet()) {
+        HashMap<String, ArrayList<EnumSet<Filter>>> typeFilters = sumTypeFilter.getValue();
         String sum = sumTypeFilter.getKey();
         parameters[1] = sum;
-        for (Map.Entry<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilter :
-            typeFilters.entrySet()) {
+        for (Map.Entry<String, ArrayList<EnumSet<Filter>>> typeFilter : typeFilters.entrySet()) {
           String type = typeFilter.getKey();
           parameters[2] = type;
           String testingURL = buildQuery(parameters);
@@ -295,24 +282,20 @@ public class TestQueryChecker {
 
   @Test
   public void testInvalidQueryChecker() throws Exception {
-    HashMap<
-            NNAConstants.SET,
-            HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>>
+    HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
         setSumTypeFilterConfig = getInvalidCombinations();
     String[] parameters = new String[4];
-    for (NNAConstants.SET set : NNAConstants.SET.values()) {
+    for (INodeSet set : INodeSet.values()) {
       String setType = set.toString();
       parameters[0] = setType;
-      HashMap<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>> sumTypeFilters =
+      HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> sumTypeFilters =
           setSumTypeFilterConfig.get(set);
-      for (Map.Entry<String, HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>>>
-          sumTypeFilter : sumTypeFilters.entrySet()) {
-        HashMap<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilters =
-            sumTypeFilter.getValue();
+      for (Map.Entry<String, HashMap<String, ArrayList<EnumSet<Filter>>>> sumTypeFilter :
+          sumTypeFilters.entrySet()) {
+        HashMap<String, ArrayList<EnumSet<Filter>>> typeFilters = sumTypeFilter.getValue();
         String sum = sumTypeFilter.getKey();
         parameters[1] = sum;
-        for (Map.Entry<String, ArrayList<EnumSet<NNAConstants.FILTER>>> typeFilter :
-            typeFilters.entrySet()) {
+        for (Map.Entry<String, ArrayList<EnumSet<Filter>>> typeFilter : typeFilters.entrySet()) {
           String type = typeFilter.getKey();
           parameters[2] = type;
           String testingURL = buildQuery(parameters);

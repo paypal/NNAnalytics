@@ -33,7 +33,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 
 class MailOutput {
@@ -41,8 +41,9 @@ class MailOutput {
   private static final String MAIL_CONTENT_TEXT_HTML = "text/html";
   private static final String MAIL_SMTP_HOST = "mail.smtp.host";
 
-  static void check(String emailConditionsStr, long value, NNLoader nnLoader) throws IOException {
-    QueryEngine queryEngine = nnLoader.getQueryEngine();
+  static void check(String emailConditionsStr, long value, NameNodeLoader nameNodeLoader)
+      throws IOException {
+    QueryEngine queryEngine = nameNodeLoader.getQueryEngine();
     List<Function<Long, Boolean>> comparisons = queryEngine.createComparisons(emailConditionsStr);
     boolean shouldEmail = queryEngine.check(comparisons, value);
     if (!shouldEmail) {
@@ -54,9 +55,9 @@ class MailOutput {
       String emailConditionsStr,
       Map<String, Long> histogram,
       Set<String> highlightKeys,
-      NNLoader nnLoader)
+      NameNodeLoader nameNodeLoader)
       throws IOException {
-    QueryEngine queryEngine = nnLoader.getQueryEngine();
+    QueryEngine queryEngine = nameNodeLoader.getQueryEngine();
     List<Function<Long, Boolean>> comparisons = queryEngine.createComparisons(emailConditionsStr);
     boolean shouldEmail = false;
     for (Map.Entry<String, Long> entry : histogram.entrySet()) {
@@ -77,7 +78,7 @@ class MailOutput {
       Set<String> highlightKeys,
       String mailHost,
       String[] emailTo,
-      String[] emailCC,
+      String[] emailCc,
       String emailFrom)
       throws Exception {
     write(
@@ -85,7 +86,7 @@ class MailOutput {
         convertHistogramToHtml(histogram, highlightKeys),
         mailHost,
         emailTo,
-        emailCC,
+        emailCc,
         emailFrom);
   }
 
@@ -94,7 +95,7 @@ class MailOutput {
       String html,
       String mailHost,
       String[] emailTo,
-      String[] emailCC,
+      String[] emailCc,
       String emailFrom)
       throws Exception {
 
@@ -104,10 +105,10 @@ class MailOutput {
     }
 
     InternetAddress[] cc = null;
-    if (emailCC != null) {
-      cc = new InternetAddress[emailCC.length];
-      for (int i = 0; i < emailCC.length && i < cc.length; i++) {
-        cc[i] = new InternetAddress(emailCC[i]);
+    if (emailCc != null) {
+      cc = new InternetAddress[emailCc.length];
+      for (int i = 0; i < emailCc.length && i < cc.length; i++) {
+        cc[i] = new InternetAddress(emailCc[i]);
       }
     }
 
@@ -126,16 +127,16 @@ class MailOutput {
     // Create a default MimeMessage object.
     MimeMessage message = new MimeMessage(session);
 
-    // Set From: header field of the header.
+    // INodeSet From: header field of the header.
     message.setFrom(from);
 
-    // Set To: header field of the header.
+    // INodeSet To: header field of the header.
     message.addRecipients(Message.RecipientType.TO, to);
     if (cc != null && cc.length != 0) {
       message.addRecipients(Message.RecipientType.CC, cc);
     }
 
-    // Set Subject: header field
+    // INodeSet Subject: header field
     message.setSubject(subject);
 
     // Send the actual HTML message, as big as you like

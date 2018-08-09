@@ -25,7 +25,7 @@ import static org.apache.hadoop.hdfs.protocol.HdfsConstants.HOT_STORAGE_POLICY_I
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.MEMORY_STORAGE_POLICY_ID;
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.ONESSD_STORAGE_POLICY_ID;
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.WARM_STORAGE_POLICY_ID;
-import static org.apache.hadoop.hdfs.server.namenode.NNAConstants.CHARSET;
+import static org.apache.hadoop.hdfs.server.namenode.Constants.CHARSET;
 import static org.apache.hadoop.util.Time.now;
 
 import java.io.IOException;

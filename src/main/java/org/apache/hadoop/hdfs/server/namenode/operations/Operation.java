@@ -34,12 +34,18 @@ interface Operation {
   void close();
 
   /**
+   * Get the list of paths last enacted upon.
+   *
    * @param numOfLast number of at most paths
    * @return the list of, at most length 'numOfLast', inode paths that operations were attempted on.
    */
   List<String> lastPerformed(int numOfLast);
 
-  /** @return the next inode path that operation will be performed on. */
+  /**
+   * Returns the next INode path to be operated on.
+   *
+   * @return the next inode path that operation will be performed on.
+   */
   String upNext();
 
   /**
@@ -50,24 +56,48 @@ interface Operation {
    */
   boolean performOp();
 
-  /** @return true if has there is a next inode to perform on, false otherwise. */
+  /**
+   * Whether there is a next INode to operate on or not.
+   *
+   * @return true if has there is a next inode to perform on, false otherwise.
+   */
   boolean hasNext();
 
   /** Aborts the operation. Will not "undo". */
   void abort();
 
-  /** @return the identity UUID that represents this operation. */
+  /**
+   * Get the identifier for this operation sequence.
+   *
+   * @return the identity UUID that represents this operation.
+   */
   String identity();
 
-  /** @return the total number of inodes to operate on for this run. */
+  /**
+   * Get the total number of INodes to be operated on.
+   *
+   * @return the total number of inodes to operate on for this run.
+   */
   int totalToPerform();
 
-  /** @return the number of inodes operated on already. */
+  /**
+   * Get the total number of INodes operated on.
+   *
+   * @return the number of inodes operated on already.
+   */
   int numPerformed();
 
-  /** @return the URI path and query parameters that created this operation. */
+  /**
+   * Return the full query.
+   *
+   * @return the URI path and query parameters that created this operation.
+   */
   String query();
 
-  /** @return the username that submitted this operation. */
+  /**
+   * Return the owner of the operation.
+   *
+   * @return the username that submitted this operation.
+   */
   String owner();
 }

@@ -31,28 +31,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.hadoop.hdfs.server.namenode.NNLoader;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.slf4j.Logger;
 
 public class Histograms {
 
-  public static final Logger LOG = NNLoader.LOG;
+  public static final Logger LOG = NameNodeLoader.LOG;
 
   /**
-   * converts given histogram along with title, x and y lables to json string for Chart.js
+   * Converts given histogram along with title, x and y lables to json string for Chart.js.
    *
    * @param histogram data points of histogram
    * @param title title to be used for chart
    * @param ylabel xlabel to be used for chart
    * @param xlabel ylabel to be used for chart
    * @return json string containing data points to be used as input to Chart.js for rendering on
-   *     HTML canvas pages.
+   *     HTML canvas pages
    */
   public static String toChartJsJson(
       Map<String, Long> histogram, String title, String ylabel, String xlabel) {
-    long s1 = System.currentTimeMillis();
+    final long s1 = System.currentTimeMillis();
 
-    Collection<Long> data_array = histogram.values();
+    final Collection<Long> dataArray = histogram.values();
     Set<String> labels = histogram.keySet();
     Map<String, Object> data = new HashMap<>();
     data.put("labels", labels);
@@ -61,7 +61,7 @@ public class Histograms {
     ArrayList<HashMap<String, Object>> datasets = new ArrayList<>();
     HashMap<String, Object> dataset = new HashMap<>();
     dataset.put("label", title);
-    dataset.put("data", data_array);
+    dataset.put("data", dataArray);
     datasets.add(dataset);
     data.put("datasets", datasets);
 
@@ -77,7 +77,7 @@ public class Histograms {
   }
 
   /**
-   * converts given set of values to json string.
+   * Converts given set of values to JSON String.
    *
    * @param set set of values to be converted to json
    * @return json string
@@ -91,13 +91,13 @@ public class Histograms {
   }
 
   /**
-   * converts given histogram data points to csv string
+   * Converts given histogram data points to CSV String.
    *
    * @param histogram data points of histogram
    * @param find specifies field to be included as date (accessTime or modTime)
    * @return csv string of histogram
    */
-  public static String toCSV(Map<String, Long> histogram, String find) {
+  public static String toCsv(Map<String, Long> histogram, String find) {
     long s1 = System.currentTimeMillis();
 
     StringBuilder sb = new StringBuilder();
@@ -132,7 +132,7 @@ public class Histograms {
    * @param histogram data points of histogram
    * @return csv string of the input histogram.
    */
-  public static String toCSV(Map<String, List<Long>> histogram) {
+  public static String toCsv(Map<String, List<Long>> histogram) {
     long s1 = System.currentTimeMillis();
 
     StringBuilder sb = new StringBuilder();
@@ -285,6 +285,15 @@ public class Histograms {
                 Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
   }
 
+  /**
+   * Result is a histogram sorted by its values.
+   *
+   * @param <K> the type of the map keys
+   * @param <V> the type of the map values
+   * @param map map values to be sorted
+   * @param ascending indicates whether ascending or descending sort order
+   * @return sorted map
+   */
   public static <K, V extends Comparable<? super V>> Map<K, List<V>> sortByValue(
       Map<K, List<V>> map, final int sortIndex, boolean ascending) {
 

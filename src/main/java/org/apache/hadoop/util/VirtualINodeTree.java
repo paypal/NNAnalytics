@@ -109,7 +109,7 @@ public class VirtualINodeTree {
   /**
    * Get the set of all VirtualINodes in the tree.
    *
-   * @return Set of all VirtualINodes in the tree.
+   * @return INodeSet of all VirtualINodes in the tree.
    */
   public Set<VirtualINode> getAllNodes() {
     Set<VirtualINode> nodes = new HashSet<>();

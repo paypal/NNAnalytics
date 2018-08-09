@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 
 public abstract class GSetGeneratorBase {
 
-  public static final Logger LOG = NNLoader.LOG;
+  public static final Logger LOG = NameNodeLoader.LOG;
 
   protected static final FsPermission permission = FsPermission.getDefault();
   protected static final PermissionStatus status =

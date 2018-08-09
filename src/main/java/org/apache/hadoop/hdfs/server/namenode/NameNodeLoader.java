@@ -19,7 +19,8 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import com.paypal.namenode.HSQLDriver;
+import com.paypal.namenode.HsqlDriver;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -62,9 +63,9 @@ import org.codehaus.jackson.JsonGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NNLoader {
+public class NameNodeLoader {
 
-  public static final Logger LOG = LoggerFactory.getLogger(NNLoader.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(NameNodeLoader.class.getName());
 
   private final VersionInterface versionLoader;
   private final SuggestionsEngine suggestionsEngine;
@@ -74,13 +75,14 @@ public class NNLoader {
   private AtomicBoolean historical = new AtomicBoolean(false);
   private Configuration conf = null;
   private FSNamesystem namesystem = null;
-  private HSQLDriver hsqlDriver = null;
+  private HsqlDriver hsqlDriver = null;
   private Set<INode> all = null;
   private Map<INode, INode> files = null;
   private Map<INode, INode> dirs = null;
   private TokenExtractor tokenExtractor = null;
 
-  public NNLoader() {
+  /** Constructor. */
+  public NameNodeLoader() {
     versionLoader = new VersionContext();
     suggestionsEngine = new SuggestionsEngine();
     queryEngine = new QueryEngine();
@@ -90,7 +92,7 @@ public class NNLoader {
     return tokenExtractor;
   }
 
-  public HSQLDriver getEmbeddedHistoryDatabaseDriver() {
+  public HsqlDriver getEmbeddedHistoryDatabaseDriver() {
     return hsqlDriver;
   }
 
@@ -110,13 +112,23 @@ public class NNLoader {
     return historical.get();
   }
 
-  public long getCurrentTxID() {
+  /**
+   * Gets the last applied txid on NNA.
+   *
+   * @return long representing last applied txid
+   */
+  public long getCurrentTxId() {
     if (namesystem == null) {
       return -1L;
     }
     return namesystem.getFSImage().lastAppliedTxId;
   }
 
+  /**
+   * Get the authority of the FileSystem URI.
+   *
+   * @return string representing the filesystem authority
+   */
   public String getAuthority() {
     if (conf == null) {
       return "test";
@@ -129,18 +141,24 @@ public class NNLoader {
     return authority;
   }
 
+  /**
+   * Sends the loading status as JSON to the parameter HTTP response. Copied from NameNode.
+   *
+   * @param resp the HTTP response
+   * @throws IOException error in fetching loading status
+   */
   public void sendLoadingStatus(HttpServletResponse resp) throws IOException {
-    String COUNT = "count";
-    String ELAPSED_TIME = "elapsedTime";
-    String FILE = "file";
-    String NAME = "name";
-    String DESC = "desc";
-    String PERCENT_COMPLETE = "percentComplete";
-    String PHASES = "phases";
-    String SIZE = "size";
-    String STATUS = "status";
-    String STEPS = "steps";
-    String TOTAL = "total";
+    String count = "count";
+    String elapsedTime = "elapsedTime";
+    String file = "file";
+    String name = "name";
+    String desc = "desc";
+    String percentComplete = "percentComplete";
+    String phases = "phases";
+    String size = "size";
+    String status = "status";
+    String steps = "steps";
+    String total = "total";
 
     StartupProgressView view = NameNode.getStartupProgress().createView();
     JsonGenerator json =
@@ -148,34 +166,34 @@ public class NNLoader {
 
     try {
       json.writeStartObject();
-      json.writeNumberField(ELAPSED_TIME, view.getElapsedTime());
-      json.writeNumberField(PERCENT_COMPLETE, view.getPercentComplete());
-      json.writeArrayFieldStart(PHASES);
+      json.writeNumberField(elapsedTime, view.getElapsedTime());
+      json.writeNumberField(percentComplete, view.getPercentComplete());
+      json.writeArrayFieldStart(phases);
 
       for (Phase phase : view.getPhases()) {
         json.writeStartObject();
-        json.writeStringField(NAME, phase.getName());
-        json.writeStringField(DESC, phase.getDescription());
-        json.writeStringField(STATUS, view.getStatus(phase).toString());
-        json.writeNumberField(PERCENT_COMPLETE, view.getPercentComplete(phase));
-        json.writeNumberField(ELAPSED_TIME, view.getElapsedTime(phase));
-        writeStringFieldIfNotNull(json, FILE, view.getFile(phase));
-        writeNumberFieldIfDefined(json, SIZE, view.getSize(phase));
-        json.writeArrayFieldStart(STEPS);
+        json.writeStringField(name, phase.getName());
+        json.writeStringField(desc, phase.getDescription());
+        json.writeStringField(status, view.getStatus(phase).toString());
+        json.writeNumberField(percentComplete, view.getPercentComplete(phase));
+        json.writeNumberField(elapsedTime, view.getElapsedTime(phase));
+        writeStringFieldIfNotNull(json, file, view.getFile(phase));
+        writeNumberFieldIfDefined(json, size, view.getSize(phase));
+        json.writeArrayFieldStart(steps);
 
         for (Step step : view.getSteps(phase)) {
           json.writeStartObject();
           StepType stepType = step.getType();
           if (stepType != null) {
-            json.writeStringField(NAME, stepType.getName());
-            json.writeStringField(DESC, stepType.getDescription());
+            json.writeStringField(name, stepType.getName());
+            json.writeStringField(desc, stepType.getDescription());
           }
-          json.writeNumberField(COUNT, view.getCount(phase, step));
-          writeStringFieldIfNotNull(json, FILE, step.getFile());
-          writeNumberFieldIfDefined(json, SIZE, step.getSize());
-          json.writeNumberField(TOTAL, view.getTotal(phase, step));
-          json.writeNumberField(PERCENT_COMPLETE, view.getPercentComplete(phase, step));
-          json.writeNumberField(ELAPSED_TIME, view.getElapsedTime(phase, step));
+          json.writeNumberField(count, view.getCount(phase, step));
+          writeStringFieldIfNotNull(json, file, step.getFile());
+          writeNumberFieldIfDefined(json, size, step.getSize());
+          json.writeNumberField(total, view.getTotal(phase, step));
+          json.writeNumberField(percentComplete, view.getPercentComplete(phase, step));
+          json.writeNumberField(elapsedTime, view.getElapsedTime(phase, step));
           json.writeEndObject();
         }
 
@@ -190,10 +208,23 @@ public class NNLoader {
     }
   }
 
+  /**
+   * Delegates to {@link VersionContext} for dumping INode information.
+   *
+   * @param path the inode path to dump info on
+   * @param resp the HTTP response
+   * @throws IOException error in dumping inode info
+   */
   public void dumpINodeInDetail(String path, HttpServletResponse resp) throws IOException {
     versionLoader.dumpINodeInDetail(path, resp);
   }
 
+  /**
+   * Prints out the HDFS configuration to the parameter HTTP response.
+   *
+   * @param resp the HTTP response
+   * @throws IOException error in dumping hdfs configs
+   */
   public void dumpConfig(HttpServletResponse resp) throws IOException {
     PrintWriter writer = resp.getWriter();
     try {
@@ -207,6 +238,13 @@ public class NNLoader {
     return conf.get(key);
   }
 
+  /**
+   * Reads NNA log information and forwards to parameter HTTP response.
+   *
+   * @param charsLimitVar limit of number of characters to read
+   * @param resp the HTTP response
+   * @throws IOException error in reading log file
+   */
   public void dumpLog(Integer charsLimitVar, HttpServletResponse resp) throws IOException {
     int charLimit = (charsLimitVar != null) ? charsLimitVar : 4000;
     LOG.info("Dumping last {} chars of logging to a client.", charLimit);
@@ -233,6 +271,12 @@ public class NNLoader {
     LOG.info("Dumping the log response took {} ms.", (end - start));
   }
 
+  /**
+   * Saves the current in-memory file system to a binary file snapshot locally. Does not communicate
+   * with active HDFS cluster.
+   *
+   * @throws IOException error in saving namespace
+   */
   public void saveNamespace() throws IOException {
     if (!isInit()) {
       throw new IllegalStateException("Namesystem is not initalized. Cannot saveNamespace.");
@@ -244,17 +288,34 @@ public class NNLoader {
     }
   }
 
+  /**
+   * Saves the current in-memory file system to a binary file snapshot locally as a legacy image.
+   * Does not communicate with active HDFS cluster.
+   *
+   * @param dir custom directory to write legacy image to
+   * @throws IOException error in saving legacy namespace
+   */
   public void saveLegacyNamespace(String dir) throws IOException {
     if (!isInit()) {
       throw new IllegalStateException("Namesystem is not initalized. Cannot saveNamespace.");
     }
     if (namesystem != null) {
-      versionLoader.saveLegacyOIVImage(dir);
+      versionLoader.saveLegacyOivImage(dir);
     } else {
       throw new IOException("Namesystem does not exist.");
     }
   }
 
+  /**
+   * Loads the INodes into NNA from parameter or from local FsImage.
+   *
+   * @param preloadedInodes set of pre-generated inodes; if null loads from fsimage
+   * @param preloadedHadoopConf pre-loaded hdfs configuration; if null will get from classloader
+   * @param nnaConf the NNA application configuration
+   * @throws IOException error in loading inodes
+   * @throws NoSuchFieldException error in fetching inodes from fsimage
+   * @throws IllegalAccessException error in fetching inodes from fsimage
+   */
   @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
   public void load(
       GSet<INode, INodeWithAdditionalFields> preloadedInodes,
@@ -276,7 +337,7 @@ public class NNLoader {
         conf.addResource("hdfs-site.xml");
       }
     }
-    long start = System.currentTimeMillis();
+    final long start = System.currentTimeMillis();
 
     GSetParallelWrapper<INode, INodeWithAdditionalFields> gsetMap;
     if (preloadedInodes == null) {
@@ -330,17 +391,17 @@ public class NNLoader {
       namesystem.writeLock();
       tokenExtractor = new TokenExtractor(namesystem.dtSecretManager, namesystem);
       FSDirectory fsDirectory = namesystem.getFSDirectory();
-      INodeMap iNodeMap = fsDirectory.getINodeMap();
-      Field mapField = iNodeMap.getClass().getDeclaredField("map");
+      INodeMap inodeMap = fsDirectory.getINodeMap();
+      Field mapField = inodeMap.getClass().getDeclaredField("map");
       mapField.setAccessible(true);
       gsetMap =
-          new GSetParallelWrapper((GSet<INode, INodeWithAdditionalFields>) mapField.get(iNodeMap));
+          new GSetParallelWrapper((GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap));
     } else {
       gsetMap = new GSetParallelWrapper(preloadedInodes);
       tokenExtractor = new TokenExtractor(null, null);
     }
 
-    long s1 = System.currentTimeMillis();
+    final long s1 = System.currentTimeMillis();
     all = new GSetCollectionWrapper(gsetMap);
     files =
         StreamSupport.stream(gsetMap.spliterator(), true)
@@ -357,12 +418,12 @@ public class NNLoader {
       // Start tailing and updating security credentials threads.
       try {
         FSDirectory fsDirectory = namesystem.getFSDirectory();
-        INodeMap iNodeMap = fsDirectory.getINodeMap();
-        Field mapField = iNodeMap.getClass().getDeclaredField("map");
+        INodeMap inodeMap = fsDirectory.getINodeMap();
+        Field mapField = inodeMap.getClass().getDeclaredField("map");
         mapField.setAccessible(true);
         GSet<INode, INodeWithAdditionalFields> newGSet =
             new GSetSeperatorWrapper(gsetMap, files, dirs);
-        mapField.set(iNodeMap, newGSet);
+        mapField.set(inodeMap, newGSet);
         namesystem.writeUnlock();
 
         namesystem.startStandbyServices(conf);
@@ -374,7 +435,7 @@ public class NNLoader {
     queryEngine.setVersionLoader(versionLoader);
 
     long end = System.currentTimeMillis();
-    LOG.info("NNLoader bootstrap'd in: {} ms.", (end - start));
+    LOG.info("NameNodeLoader bootstrap'd in: {} ms.", (end - start));
     inited.set(true);
   }
 
@@ -415,6 +476,7 @@ public class NNLoader {
     }
   }
 
+  /** Wipes out all the in-memory INode tree. Stops EditLog tailing. Stops report processing. */
   public void clear() {
     suggestionsEngine.stop();
     if (namesystem != null) {
@@ -440,18 +502,36 @@ public class NNLoader {
     inited.set(false);
   }
 
+  /**
+   * Takes the FSNamesystem writeLock. Certain queries may wish to take the lock if they are finding
+   * inconsistent results or for debugging.
+   *
+   * @param useLock boolean for whether to take the lock or not
+   */
   public void namesystemWriteLock(Boolean useLock) {
     if (useLock != null && useLock && namesystem != null) {
       namesystem.writeLock();
     }
   }
 
+  /**
+   * Releases the FSNamesystem writeLock. Any query that took the writeLock will also release the
+   * lock.
+   *
+   * @param useLock boolean for whether to take the lock or not
+   */
   public void namesystemWriteUnlock(Boolean useLock) {
     if (useLock != null && useLock && namesystem != null) {
       namesystem.writeUnlock();
     }
   }
 
+  /**
+   * Get the INode set that represents the String parameter.
+   *
+   * @param set the set of INodes the user wishes to query against
+   * @return the in-memory set that represents the inodes asked for; a large collection typically
+   */
   public Collection<INode> getINodeSet(String set) {
     long start = System.currentTimeMillis();
     Collection<INode> inodes;
@@ -478,6 +558,13 @@ public class NNLoader {
     return inodes;
   }
 
+  /**
+   * Initializes the background thread that performs cached reporting for all users. Initializes the
+   * background thread that refreshes Kerberos keytab for NNA process.
+   *
+   * @param internalService threadExecutor service hosted by {@link WebServerMain}
+   * @param conf the application configuration
+   */
   public void initReloadThreads(ExecutorService internalService, SecurityConfiguration conf) {
     Future<Void> reload =
         internalService.submit(
@@ -494,6 +581,7 @@ public class NNLoader {
                 try {
                   Thread.sleep(conf.getSuggestionsReloadSleepMs());
                 } catch (InterruptedException ignored) {
+                  LOG.debug("Suggestion reload was interrupted by: {}", ignored);
                 }
               }
             });
@@ -505,6 +593,7 @@ public class NNLoader {
                 try {
                   Thread.sleep(10 * 60 * 1000L);
                 } catch (InterruptedException ignored) {
+                  LOG.debug("Keytab refresh was interrupted by: {}", ignored);
                 }
                 reloadKeytab();
               }
@@ -517,8 +606,16 @@ public class NNLoader {
     }
   }
 
+  /**
+   * If enabled, initializes embedded DB for local trending.
+   *
+   * @param hsqlDriver the hsqldriver; if null then error occurred above
+   * @param conf the application configuration
+   * @param isEnabled whether to attempt to enable or not
+   * @throws SQLException error in starting embedded DB
+   */
   public void initHistoryRecorder(
-      HSQLDriver hsqlDriver, SecurityConfiguration conf, boolean isEnabled) throws SQLException {
+      HsqlDriver hsqlDriver, SecurityConfiguration conf, boolean isEnabled) throws SQLException {
     if (isEnabled && hsqlDriver != null) {
       this.hsqlDriver = hsqlDriver;
       hsqlDriver.startDatabase(conf);
