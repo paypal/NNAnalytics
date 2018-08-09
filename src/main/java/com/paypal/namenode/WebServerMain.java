@@ -132,9 +132,9 @@ import spark.Spark;
  * against the NNA instance while it is updating since all queries are performed as read operations
  * and all filtered results are separate from the set of updating INodes in-memory.
  */
-public class NNAnalyticsRestAPI {
+public class WebServerMain {
 
-  public static final Logger LOG = LoggerFactory.getLogger(NNAnalyticsRestAPI.class.getName());
+  public static final Logger LOG = LoggerFactory.getLogger(WebServerMain.class.getName());
 
   private final NameNodeLoader nameNodeLoader = new NameNodeLoader();
   private final HsqlDriver hsqlDriver = new HsqlDriver();
@@ -162,7 +162,7 @@ public class NNAnalyticsRestAPI {
   public static void main(String[] args)
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
-      NNAnalyticsRestAPI main = new NNAnalyticsRestAPI();
+      WebServerMain main = new WebServerMain();
       SecurityConfiguration conf = new SecurityConfiguration();
       main.init(conf);
     } catch (Throwable e) {

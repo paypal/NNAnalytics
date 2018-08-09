@@ -31,7 +31,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
-import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -68,7 +68,7 @@ public class TestNNAnalytics {
 
   private static HttpHost hostPort;
   private static HttpClient client;
-  private static NNAnalyticsRestAPI nna;
+  private static WebServerMain nna;
 
   /** Long running execution that will launch an NNA instance with a non-updating namespace. */
   public static void main(String[] args) throws Exception {
@@ -83,7 +83,7 @@ public class TestNNAnalytics {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new NNAnalyticsRestAPI();
+    nna = new WebServerMain();
     SecurityConfiguration conf = new SecurityConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");

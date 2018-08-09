@@ -20,7 +20,7 @@
 package org.apache.hadoop.hdfs.server.namenode;
 
 import com.paypal.namenode.HsqlDriver;
-import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -562,7 +562,7 @@ public class NameNodeLoader {
    * Initializes the background thread that performs cached reporting for all users. Initializes the
    * background thread that refreshes Kerberos keytab for NNA process.
    *
-   * @param internalService threadExecutor service hosted by {@link NNAnalyticsRestAPI}
+   * @param internalService threadExecutor service hosted by {@link WebServerMain}
    * @param conf the application configuration
    */
   public void initReloadThreads(ExecutorService internalService, SecurityConfiguration conf) {

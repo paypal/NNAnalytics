@@ -31,6 +31,13 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
   private final Map<INode, INode> fileSet;
   private final Map<INode, INode> dirSet;
 
+  /**
+   * Constructor.
+   *
+   * @param inodes original inode set
+   * @param files mapping of inode files to maintain
+   * @param dirs mapping of inode dirs to maintain
+   */
   public GSetSeperatorWrapper(
       GSet<INode, INodeWithAdditionalFields> inodes,
       Map<INode, INode> files,

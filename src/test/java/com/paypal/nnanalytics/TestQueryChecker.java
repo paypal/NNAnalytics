@@ -24,7 +24,7 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-import com.paypal.namenode.NNAnalyticsRestAPI;
+import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -58,7 +58,7 @@ public class TestQueryChecker {
 
   private static HttpHost hostPort;
   private static DefaultHttpClient client;
-  private static NNAnalyticsRestAPI nna;
+  private static WebServerMain nna;
   private static int count = 0;
   private static long timeTaken = 0;
 
@@ -67,7 +67,7 @@ public class TestQueryChecker {
     GSetGenerator gSetGenerator = new GSetGenerator();
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new NNAnalyticsRestAPI();
+    nna = new WebServerMain();
     SecurityConfiguration conf = new SecurityConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
