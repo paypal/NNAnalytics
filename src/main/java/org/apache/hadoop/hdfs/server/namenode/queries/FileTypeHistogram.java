@@ -21,12 +21,9 @@ package org.apache.hadoop.hdfs.server.namenode.queries;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class FileTypeHistogram {
@@ -38,78 +35,64 @@ public class FileTypeHistogram {
     PARQUET,
     AVRO,
     SNAPPY,
+    TAR,
     GZ,
+    GZIP,
     LOG,
     TXT,
     _SUCCESS,
+    _DONE,
     JSON,
     XML,
     DAT,
+    DATA,
     INDEX,
     ORC,
     JAR,
     ZIP,
     DTDONE,
+    DONE,
     JHIST
   }
 
-  private static final Pattern part_r_pattern_internal = Pattern.compile("part-r-\\d\\d\\d\\d\\d");
-  private static final Pattern part_m_pattern_internal = Pattern.compile("part-m-\\d\\d\\d\\d\\d");
-  private static final Matcher part_r_matcher_internal = part_r_pattern_internal.matcher("");
-  private static final Matcher part_m_matcher_internal = part_m_pattern_internal.matcher("");
-
-  private static final Function<String, Boolean> part_r_pattern =
-      s -> {
-        synchronized (part_r_matcher_internal) {
-          part_r_matcher_internal.reset(s);
-          return part_r_matcher_internal.matches();
-        }
-      };
-  private static final Function<String, Boolean> part_m_pattern =
-      s -> {
-        synchronized (part_m_matcher_internal) {
-          part_m_matcher_internal.reset(s);
-          return part_m_matcher_internal.matches();
-        }
-      };
-  private static final Function<String, Boolean> success_pattern = s -> s.equals("_SUCCESS");
-  private static final Function<String, Boolean> txt_pattern = s -> s.endsWith(".txt");
-  private static final Function<String, Boolean> log_pattern = s -> s.endsWith(".log");
-  private static final Function<String, Boolean> avro_pattern = s -> s.endsWith(".avro");
-  private static final Function<String, Boolean> snappy_pattern = s -> s.endsWith(".snappy");
-  private static final Function<String, Boolean> parquet_pattern = s -> s.endsWith(".parquet");
-  private static final Function<String, Boolean> gz_pattern = s -> s.endsWith(".gz");
-  private static final Function<String, Boolean> json_pattern = s -> s.endsWith(".json");
-  private static final Function<String, Boolean> xml_pattern = s -> s.endsWith(".xml");
-  private static final Function<String, Boolean> dat_pattern = s -> s.endsWith(".dat");
-  private static final Function<String, Boolean> index_pattern = s -> s.endsWith(".index");
-  private static final Function<String, Boolean> orc_pattern = s -> s.endsWith(".orc");
-  private static final Function<String, Boolean> jar_pattern = s -> s.endsWith(".jar");
-  private static final Function<String, Boolean> zip_pattern = s -> s.endsWith(".zip");
-  private static final Function<String, Boolean> dtdone_pattern = s -> s.endsWith(".dtdone");
-  private static final Function<String, Boolean> jhist_pattern = s -> s.endsWith(".jhist");
-
-  private static final Map<String, Function<String, Boolean>> patternMap =
-      new TreeMap<String, Function<String, Boolean>>() {
+  private static final Map<String, String> startsWithMap =
+      new HashMap<String, String>() {
         {
-          put(Types.PART_R.name(), part_r_pattern);
-          put(Types.PART_M.name(), part_m_pattern);
-          put(Types._SUCCESS.name(), success_pattern);
-          put(Types.TXT.name(), txt_pattern);
-          put(Types.LOG.name(), log_pattern);
-          put(Types.AVRO.name(), avro_pattern);
-          put(Types.SNAPPY.name(), snappy_pattern);
-          put(Types.PARQUET.name(), parquet_pattern);
-          put(Types.GZ.name(), gz_pattern);
-          put(Types.JSON.name(), json_pattern);
-          put(Types.XML.name(), xml_pattern);
-          put(Types.DAT.name(), dat_pattern);
-          put(Types.INDEX.name(), index_pattern);
-          put(Types.ORC.name(), orc_pattern);
-          put(Types.JAR.name(), jar_pattern);
-          put(Types.ZIP.name(), zip_pattern);
-          put(Types.DTDONE.name(), dtdone_pattern);
-          put(Types.JHIST.name(), jhist_pattern);
+          put("part_r", Types.PART_R.name());
+          put("part_m", Types.PART_M.name());
+        }
+      };
+
+  private static final Map<String, String> equalsMap =
+      new HashMap<String, String>() {
+        {
+          put("_SUCCESS", Types._SUCCESS.name());
+          put("_DONE", Types._DONE.name());
+        }
+      };
+
+  private static final Map<String, String> suffixExtMap =
+      new HashMap<String, String>() {
+        {
+          put(".txt", Types.TXT.name());
+          put(".log", Types.LOG.name());
+          put(".avro", Types.AVRO.name());
+          put(".snappy", Types.SNAPPY.name());
+          put(".parquet", Types.PARQUET.name());
+          put(".gz", Types.GZ.name());
+          put(".tar", Types.TAR.name());
+          put(".json", Types.JSON.name());
+          put(".xml", Types.XML.name());
+          put(".dat", Types.DAT.name());
+          put(".index", Types.INDEX.name());
+          put(".orc", Types.ORC.name());
+          put(".jar", Types.JAR.name());
+          put(".zip", Types.ZIP.name());
+          put(".gzip", Types.GZIP.name());
+          put(".dtdone", Types.DTDONE.name());
+          put(".done", Types.DONE.name());
+          put(".jhist", Types.JHIST.name());
+          put(".data", Types.DATA.name());
         }
       };
 
@@ -124,9 +107,16 @@ public class FileTypeHistogram {
    * @return the type of the file
    */
   public static String determineType(String name) {
-    for (Map.Entry<String, Function<String, Boolean>> patternEntry : patternMap.entrySet()) {
-      if (patternEntry.getValue().apply(name)) {
-        return patternEntry.getKey();
+    String key;
+    if ((key = equalsMap.get(name)) != null) {
+      return key;
+    } else if (name.length() > 6 && (key = startsWithMap.get(name.substring(0, 7))) != null) {
+      return key;
+    } else {
+      int extIndex = name.lastIndexOf(".");
+      if (extIndex != -1
+          && (key = suffixExtMap.get(name.substring(extIndex, name.length()))) != null) {
+        return key;
       }
     }
     return Types.UNKNOWN.name();
