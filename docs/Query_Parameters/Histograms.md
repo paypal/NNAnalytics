@@ -3,6 +3,9 @@
 `type` is used by only the `/histogram` endpoint and the options available to use on your query will depend on what you choose as your starting `set`
 It is a no-op in the `/filter` endpoint.
 
+You can always find the full list of available histograms by going to `/histograms` REST endpoint.
+You can also find the full list of available histogram output types by going to `/histogramOutputs` REST endpoint.
+
 1. `user` - Usable by files and dirs. Groups the filtered INodes by their owner's username.
 2. `accessTime` - Usable by files. Groups the filtered INodes in bucket ranges of their last accessed timestamp. Please note this only applies if your Hadoop cluster has accesstime enabled.
 3. `modTime` - Usable by files and dirs. Groups the filtered INodes in bucket ranges of their last modified timestamp.

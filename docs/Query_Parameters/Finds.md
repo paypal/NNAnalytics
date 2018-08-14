@@ -3,6 +3,8 @@
 `find` can be used in place of a `sum` by all NNA queries to perform additional calculations on the resulting set.
 `find` works a little differently than `sum` in that it takes an operator and a `filter` value, like so: `&find=<operator>:<filterField>`
 
+You can always find the full list of available finds by going to `/finds` REST endpoint.
+
 When using `find` with a `/filter` query, the find is performed over the resulting INode set.
 For example:
   * `&find=avg:modTime` will perform average across all the resulting set's INodes' modification timestamps.

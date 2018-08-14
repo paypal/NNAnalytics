@@ -2,6 +2,8 @@
 
 `filter` is used by all NNA queries and the options available to use on your query will depend on what you choose as your starting `set`.
 
+You can always find the full list of available filters by going to `/filters` REST endpoint.
+
 1. `accessTime` - Usable by files. Filters the working INode set by some last accessed timestamp. Please note this only applies if your Hadoop cluster has accesstime enabled.
 2. `modTime` - Usable by files and dirs. Filters the working INode set by last modified timestamp. 
 3. `fileSize` - Usable by files. Filters the working INode set by some file size (in bytes). (No replication factor)

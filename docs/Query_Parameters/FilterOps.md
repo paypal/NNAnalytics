@@ -6,6 +6,7 @@ Please remember that `filterOp` sits in between your `filter` and your `value` a
 Example: `&filter=fileSize:eq:0` is a filter looking for empty files (file size equal to 0 bytes).
 Yet, `&filter=fileSize:notEq:0` is the opposite filter, looking for all non-empty files.
 
+You can always find the full list of available filterOps by going to `/filterOps` REST endpoint.
 
 1. `lt` - "less than" - Takes a Long as a `value`.
 2. `gt` - "greater than" - Takes a Long as a `value`.
