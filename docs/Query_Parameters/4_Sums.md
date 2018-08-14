@@ -2,6 +2,8 @@
 
 `sum` is used by all NNA queries and the options available to use on your query will depend on what you choose as your starting `set`.
 
+You can always find the full list of available sums by going to `/sums` REST endpoint.
+
 1. `count` - Usable by files and dirs. Simply counts the filtered INodes.
 2. `fileSize` - Usable by files. Sums filtered INodes by file size. (No replication factor).
 3. `diskspaceConsumed` - Usable by files. Sums filtered INodes by disk space. (Includes replication factor).
