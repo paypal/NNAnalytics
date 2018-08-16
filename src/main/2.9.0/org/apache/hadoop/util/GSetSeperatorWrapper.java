@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.Map;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.util.CollectionsView;
 import org.jetbrains.annotations.NotNull;
 
 public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFields> {
@@ -39,8 +38,7 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
    * @param dirs mapping of inode dirs to maintain
    */
   public GSetSeperatorWrapper(
-      Map<INode, INodeWithAdditionalFields> files,
-      Map<INode, INodeWithAdditionalFields> dirs) {
+      Map<INode, INodeWithAdditionalFields> files, Map<INode, INodeWithAdditionalFields> dirs) {
     this.fileSet = files;
     this.dirSet = dirs;
   }

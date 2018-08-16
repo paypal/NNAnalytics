@@ -38,8 +38,7 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
    * @param dirs mapping of inode dirs to maintain
    */
   public GSetSeperatorWrapper(
-      Map<INode, INodeWithAdditionalFields> files,
-      Map<INode, INodeWithAdditionalFields> dirs) {
+      Map<INode, INodeWithAdditionalFields> files, Map<INode, INodeWithAdditionalFields> dirs) {
     this.fileSet = files;
     this.dirSet = dirs;
   }
