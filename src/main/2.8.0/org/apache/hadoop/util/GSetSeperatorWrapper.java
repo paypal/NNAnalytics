@@ -89,7 +89,7 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
 
   @Override
   public Collection<INodeWithAdditionalFields> values() {
-    return CollectionsView.combine(fileSet.keySet(), dirSet.keySet());
+    return CollectionsView.combine(fileSet.values(), dirSet.values());
   }
 
   @NotNull
