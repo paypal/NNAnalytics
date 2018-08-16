@@ -20,6 +20,7 @@
 package org.apache.hadoop.util;
 
 import com.google.common.collect.Iterators;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import org.apache.hadoop.hdfs.server.namenode.INode;
