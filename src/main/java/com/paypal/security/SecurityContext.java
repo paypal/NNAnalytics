@@ -175,7 +175,7 @@ public class SecurityContext {
         CommonProfile profile = credentials.getUserProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
-        res.header("INodeSet-Cookie", "nna-jwt-token=" + generate);
+        res.header("Set-Cookie", "nna-jwt-token=" + generate);
         currentUser.set(username);
         return true;
       }
@@ -196,7 +196,7 @@ public class SecurityContext {
         CommonProfile profile = new CommonProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
-        res.header("INodeSet-Cookie", "nna-jwt-token=" + generate);
+        res.header("Set-Cookie", "nna-jwt-token=" + generate);
         currentUser.set(username);
         return true;
       } else {
@@ -295,7 +295,7 @@ public class SecurityContext {
 
         userProfile.removeAttribute("iat");
         String generate = jwtGenerator.generate(userProfile);
-        res.header("INodeSet-Cookie", "nna-jwt-token=" + generate);
+        res.header("Set-Cookie", "nna-jwt-token=" + generate);
 
         manager.save(true, userProfile, false);
         String profileId = userProfile.getId();
