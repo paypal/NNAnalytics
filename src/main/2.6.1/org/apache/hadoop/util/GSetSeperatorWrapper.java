@@ -50,16 +50,15 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
 
   @Override
   public boolean contains(INode key) {
-    if (key.isFile()) {
-      return fileSet.containsKey(key);
-    }
-    return dirSet.containsKey(key);
+    return fileSet.containsKey(key) || dirSet.containsKey(key);
   }
 
   @Override
   public INodeWithAdditionalFields get(INode key) {
-    if (key.isFile()) {
-      return fileSet.get(key);
+    INodeWithAdditionalFields val;
+    val = fileSet.get(key);
+    if (val != null) {
+      return val;
     }
     return dirSet.get(key);
   }
@@ -74,8 +73,10 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
 
   @Override
   public INodeWithAdditionalFields remove(INode key) {
-    if (key.isFile()) {
-      return fileSet.remove(key);
+    INodeWithAdditionalFields removed;
+    removed = fileSet.remove(key);
+    if (removed != null) {
+      return removed;
     }
     return dirSet.remove(key);
   }
