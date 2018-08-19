@@ -30,7 +30,6 @@ import java.net.InetAddress;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -54,9 +53,8 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.delegation.TokenExtractor;
+import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
-import org.apache.hadoop.util.GSetCollectionWrapper;
-import org.apache.hadoop.util.GSetParallelWrapper;
 import org.apache.hadoop.util.GSetSeperatorWrapper;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
@@ -76,9 +74,9 @@ public class NameNodeLoader {
   private Configuration conf = null;
   private FSNamesystem namesystem = null;
   private HsqlDriver hsqlDriver = null;
-  private Set<INode> all = null;
-  private Map<INode, INode> files = null;
-  private Map<INode, INode> dirs = null;
+  private Collection<INode> all = null;
+  private Map<INode, INodeWithAdditionalFields> files = null;
+  private Map<INode, INodeWithAdditionalFields> dirs = null;
   private TokenExtractor tokenExtractor = null;
 
   /** Constructor. */
@@ -339,7 +337,7 @@ public class NameNodeLoader {
     }
     final long start = System.currentTimeMillis();
 
-    GSetParallelWrapper<INode, INodeWithAdditionalFields> gsetMap;
+    GSet<INode, INodeWithAdditionalFields> gsetMap;
     if (preloadedInodes == null) {
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
@@ -394,15 +392,13 @@ public class NameNodeLoader {
       INodeMap inodeMap = fsDirectory.getINodeMap();
       Field mapField = inodeMap.getClass().getDeclaredField("map");
       mapField.setAccessible(true);
-      gsetMap =
-          new GSetParallelWrapper((GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap));
+      gsetMap = (GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap);
     } else {
-      gsetMap = new GSetParallelWrapper(preloadedInodes);
+      gsetMap = preloadedInodes;
       tokenExtractor = new TokenExtractor(null, null);
     }
 
     final long s1 = System.currentTimeMillis();
-    all = new GSetCollectionWrapper(gsetMap);
     files =
         StreamSupport.stream(gsetMap.spliterator(), true)
             .filter(INode::isFile)
@@ -411,6 +407,7 @@ public class NameNodeLoader {
         StreamSupport.stream(gsetMap.spliterator(), true)
             .filter(INode::isDirectory)
             .collect(Collectors.toConcurrentMap(node -> node, node -> node));
+    all = CollectionsView.combine(files.keySet(), dirs.keySet());
     long e1 = System.currentTimeMillis();
     LOG.info("Filtering {} files and {} dirs took: {} ms.", files.size(), dirs.size(), (e1 - s1));
 
@@ -421,8 +418,7 @@ public class NameNodeLoader {
         INodeMap inodeMap = fsDirectory.getINodeMap();
         Field mapField = inodeMap.getClass().getDeclaredField("map");
         mapField.setAccessible(true);
-        GSet<INode, INodeWithAdditionalFields> newGSet =
-            new GSetSeperatorWrapper(gsetMap, files, dirs);
+        GSet<INode, INodeWithAdditionalFields> newGSet = new GSetSeperatorWrapper(files, dirs);
         mapField.set(inodeMap, newGSet);
         namesystem.writeUnlock();
 

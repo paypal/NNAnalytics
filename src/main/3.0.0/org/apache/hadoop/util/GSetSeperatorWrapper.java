@@ -19,87 +19,83 @@
 
 package org.apache.hadoop.util;
 
+import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
+import org.jetbrains.annotations.NotNull;
 
 public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFields> {
 
-  private final GSet<INode, INodeWithAdditionalFields> inodes;
-  private final Map<INode, INode> fileSet;
-  private final Map<INode, INode> dirSet;
+  private final Map<INode, INodeWithAdditionalFields> fileSet;
+  private final Map<INode, INodeWithAdditionalFields> dirSet;
 
   /**
    * Constructor.
    *
-   * @param inodes original inode set
    * @param files mapping of inode files to maintain
    * @param dirs mapping of inode dirs to maintain
    */
   public GSetSeperatorWrapper(
-      GSet<INode, INodeWithAdditionalFields> inodes,
-      Map<INode, INode> files,
-      Map<INode, INode> dirs) {
-    this.inodes = inodes;
+      Map<INode, INodeWithAdditionalFields> files, Map<INode, INodeWithAdditionalFields> dirs) {
     this.fileSet = files;
     this.dirSet = dirs;
   }
 
   @Override
   public int size() {
-    return inodes.size();
+    return fileSet.size() + dirSet.size();
   }
 
   @Override
   public boolean contains(INode key) {
-    return inodes.contains(key);
+    return fileSet.containsKey(key) || dirSet.containsKey(key);
   }
 
   @Override
   public INodeWithAdditionalFields get(INode key) {
-    return inodes.get(key);
+    INodeWithAdditionalFields val;
+    val = fileSet.get(key);
+    if (val != null) {
+      return val;
+    }
+    return dirSet.get(key);
   }
 
   @Override
   public INodeWithAdditionalFields put(INodeWithAdditionalFields element) {
     if (element.isFile()) {
-      fileSet.put(element, element);
-    } else if (element.isDirectory()) {
-      dirSet.put(element, element);
+      return fileSet.put(element, element);
     }
-    return inodes.put(element);
+    return dirSet.put(element, element);
   }
 
   @Override
   public INodeWithAdditionalFields remove(INode key) {
-    if (key.isFile()) {
-      fileSet.remove(key);
-    } else if (key.isDirectory()) {
-      dirSet.remove(key);
+    INodeWithAdditionalFields removed;
+    removed = fileSet.remove(key);
+    if (removed != null) {
+      return removed;
     }
-    return inodes.remove(key);
+    return dirSet.remove(key);
   }
 
   @Override
   public void clear() {
-    inodes.clear();
     fileSet.clear();
     dirSet.clear();
   }
 
   @Override
   public Collection<INodeWithAdditionalFields> values() {
-    return inodes.values();
+    return CollectionsView.combine(fileSet.values(), dirSet.values());
   }
 
+  @NotNull
   @Override
   public Iterator<INodeWithAdditionalFields> iterator() {
-    Iterator<INodeWithAdditionalFields> iterator = inodes.iterator();
-    if (iterator instanceof LightWeightGSet.SetIterator) {
-      ((LightWeightGSet.SetIterator) iterator).setTrackModification(false);
-    }
-    return iterator;
+    return Iterators.concat(fileSet.values().iterator(), dirSet.values().iterator());
   }
 }
