@@ -31,12 +31,9 @@ buildscript {
     }
     dependencies {
         classpath 'com.netflix.nebula:gradle-ospackage-plugin:2.2.4'
-    }
-    dependencies {
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.10.0'
-    }
-    dependencies {
         classpath "com.diffplug.spotless:spotless-plugin-gradle:3.13.0"
+        classpath "net.nemerosa:versioning:2.7.1"
     }
 }
 
@@ -44,11 +41,17 @@ apply plugin: 'idea'
 apply plugin: 'os-package'
 apply plugin: 'license'
 apply plugin: 'com.diffplug.gradle.spotless'
+apply plugin: 'net.nemerosa.versioning'
 
 ext {
     mainClass = (properties.get("mainClass") == null) ? "" : "${mainClass}"
     hadoopVersion = (properties.get("hadoopVersion") == null) ? "2.7.0" : "${hadoopVersion}"
     println("Building with hadoopVersion: ${hadoopVersion}")
+}
+
+versioning {
+    full = { scmInfo -> "${scmInfo.lastTag}" }
+    dirty = { version -> "${version}" }
 }
 
 checkstyle {
@@ -118,6 +121,11 @@ test {
 sourceSets.main.java.srcDirs "src/main/java", "src/main/${hadoopVersion}"
 sourceSets.test.java.srcDirs "src/test/java", "src/test/${hadoopVersion}"
 
+compileJava {
+    dependsOn versionDisplay
+    dependsOn versionFile
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -162,8 +170,8 @@ dependencies {
 
 ospackage {
     packageName = 'nn-analytics'
-    version = "1.2_${hadoopVersion}"
-    release = '250'
+    version = versioning.info.full == "null" ? 1.2 : versioning.info.full
+    release = 0
     arch = NOARCH
     os = LINUX
 
@@ -182,6 +190,9 @@ ospackage {
 
     into '/usr/local/nn-analytics/'
 
+    from('build/version.properties') {
+        fileMode = 0444
+    }
     from(jar.outputs.files) {
         into 'lib'
     }
