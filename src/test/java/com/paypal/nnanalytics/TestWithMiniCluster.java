@@ -123,8 +123,12 @@ public class TestWithMiniCluster {
 
   @AfterClass
   public static void tearDown() throws IOException {
-    nna.shutdown();
-    cluster.shutdown();
+    if (nna != null) {
+      nna.shutdown();
+    }
+    if (cluster != null) {
+      cluster.shutdown();
+    }
   }
 
   @Before
