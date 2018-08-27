@@ -196,5 +196,21 @@ ospackage {
         fileType CONFIG | NOREPLACE
         into 'config'
     }
-
 }
+
+apply plugin: 'application'
+
+applicationDistribution.from(jar.outputs.files) {
+    into 'lib'
+}
+applicationDistribution.from(configurations.outboundDep.files) {
+    into 'lib'
+}
+applicationDistribution.from('src/main/resources/bin') {
+    into 'bin'
+    fileMode = 0755
+}
+applicationDistribution.from('src/main/resources/config') {
+    into 'config'
+}
+mainClassName = "com.paypal.namenode.WebServerMain"
