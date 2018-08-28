@@ -27,6 +27,8 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
@@ -350,7 +352,8 @@ public class NameNodeLoader {
 
       String baseDir = nnaConf.getBaseDir();
       LOG.info("Setting: {} to: {}/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir);
-      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir + "/dfs/name");
+      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, 
+          new URI(baseDir + "/dfs/name").getPath());
 
       String nameserviceId = DFSUtil.getOnlyNameServiceIdOrNull(conf);
       nameserviceId =
