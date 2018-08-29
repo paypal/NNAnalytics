@@ -352,8 +352,7 @@ public class NameNodeLoader {
 
       String baseDir = nnaConf.getBaseDir();
       LOG.info("Setting: {} to: {}/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir);
-      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, 
-          new URI(baseDir + "/dfs/name").getPath());
+      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, new URI(baseDir + "/dfs/name").getPath());
 
       String nameserviceId = DFSUtil.getOnlyNameServiceIdOrNull(conf);
       nameserviceId =
