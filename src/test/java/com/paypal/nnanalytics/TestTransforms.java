@@ -62,7 +62,9 @@ public class TestTransforms {
 
   @AfterClass
   public static void tearDown() {
-    nna.shutdown();
+    if (nna != null) {
+      nna.shutdown();
+    }
   }
 
   @Test

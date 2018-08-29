@@ -79,7 +79,9 @@ public class TestQueryChecker {
 
   @AfterClass
   public static void tearDown() {
-    nna.shutdown();
+    if (nna != null) {
+      nna.shutdown();
+    }
     System.out.println("Total # of completed query check for benchmarking: " + count);
     System.out.println("Total time taken in milliseconds: " + timeTaken);
   }
