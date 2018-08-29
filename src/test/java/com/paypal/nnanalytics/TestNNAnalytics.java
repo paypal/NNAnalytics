@@ -95,7 +95,9 @@ public class TestNNAnalytics {
 
   @AfterClass
   public static void tearDown() {
-    nna.shutdown();
+    if (nna != null) {
+      nna.shutdown();
+    }
   }
 
   @Before
