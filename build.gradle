@@ -50,7 +50,7 @@ ext {
 }
 
 versioning {
-    full = { scmInfo -> "${scmInfo.lastTag}" }
+    full = { scmInfo -> ("${scmInfo.lastTag}" == "null" ? "1.2." : "${scmInfo.lastTag}.") + hadoopVersion }
     dirty = { version -> "${version}" }
 }
 
@@ -170,7 +170,7 @@ dependencies {
 
 ospackage {
     packageName = 'nn-analytics'
-    version = (versioning.info.full == "null" ? "1.2." : versioning.info.full + ".") + hadoopVersion
+    version = versioning.info.full.startsWith("null") ? "1.2." + hadoopVersion : versioning.info.full
     release = 0
     arch = NOARCH
     os = LINUX
