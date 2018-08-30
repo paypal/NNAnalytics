@@ -170,7 +170,7 @@ dependencies {
 
 ospackage {
     packageName = 'nn-analytics'
-    version = versioning.info.full == "null" ? 1.2 : versioning.info.full
+    version = (versioning.info.full == "null" ? "1.2." : versioning.info.full + ".") + hadoopVersion
     release = 0
     arch = NOARCH
     os = LINUX
