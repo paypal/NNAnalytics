@@ -27,7 +27,7 @@ after_success:
 deploy:
   provider: releases
   api_key:
-    secure: $GH_TOKEN
+    secure: FXEctGzcdpvQGlTK5nGjg71R3eOdACvqv95wJ64SSgUpbCK/uwgyhifKFFu4uj1vo+n9AAXwsGYjwr+IZekFFmKLoGWl1F7gCW3d6EJuYjo0kkHIbukCqAVWXhG2FQt8CsVvaecsNRGqA/px5KVRGpPVjUSwo9n+JRQoVFLQKL6fJS4bel/QP1UlQa+ATq4EM9Scp5gWfsPhc9WCAKj0Ei031HWvMlgn8cNV59puPgivCZr6JWU6spTB8a0fz+7dLUqijbd4FaIMIxDpPdNGiKNjpUvN2+z4cry+6Vr7qEJmQaMIxzl7i+Bs2wr19xNDX5KCc4HsTMblArYXMLHXxihsCPT/krpnq+wcZ+0v70IUgsaqE5DW4BduYoDsYLqLyN2w08yONIsGbfuCqIeAq9GKTilgthYldg6SX5aaZLdlcBIrDda/aMPXF3pNjgLAcO8FLy9wSHArsnIC4PpssTF+utPTjjfwnyrovLyommcCd/kuHOhX3dXAXJkvFQ7qp9rcFdDhYTTThsLvwTjOTOweRsJruNgjna5kgp45glfVaEH/09st4kMmrgc45rz7tD4K1JxNM5Fk/pBzXOE0qGDN2CH3gqcfw3+6SkXib1i+kd05FWL42lnyGLX2nh1WDFsBUc+JPXGqVxxnU91NqUoVwGz+Tps3wvd271H7ODU=
   file: build/distributions/*
   skip_cleanup: true
   on:
