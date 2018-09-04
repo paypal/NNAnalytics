@@ -85,7 +85,7 @@ public class NameNodeLoader {
   public NameNodeLoader() {
     versionLoader = new VersionContext();
     suggestionsEngine = new SuggestionsEngine();
-    queryEngine = new QueryEngine();
+    queryEngine = new JavaStreamQueryEngine();
   }
 
   public TokenExtractor getTokenExtractor() {
@@ -431,6 +431,7 @@ public class NameNodeLoader {
       }
     }
     queryEngine.setVersionLoader(versionLoader);
+    queryEngine.setNameNodeLoader(this);
 
     long end = System.currentTimeMillis();
     LOG.info("NameNodeLoader bootstrap'd in: {} ms.", (end - start));
