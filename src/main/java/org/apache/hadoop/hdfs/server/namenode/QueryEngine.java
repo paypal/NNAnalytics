@@ -32,9 +32,9 @@ public interface QueryEngine {
 
   Logger LOG = LoggerFactory.getLogger(QueryEngine.class.getName());
 
-  void setNameNodeLoader(NameNodeLoader nameNodeLoader);
+  void setContexts(NameNodeLoader nameNodeLoader, VersionInterface versionLoader);
 
-  void setVersionLoader(VersionInterface versionLoader);
+  Collection<INode> getINodeSet(String set);
 
   Collection<INode> combinedFilter(Collection<INode> inodes, String[] filters, String[] filterOps);
 

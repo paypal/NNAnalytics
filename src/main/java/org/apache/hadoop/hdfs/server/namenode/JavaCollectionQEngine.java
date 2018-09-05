@@ -19,6 +19,26 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
+import static com.googlecode.cqengine.query.QueryFactory.and;
+import static com.googlecode.cqengine.query.QueryFactory.attribute;
+import static com.googlecode.cqengine.query.QueryFactory.contains;
+import static com.googlecode.cqengine.query.QueryFactory.endsWith;
+import static com.googlecode.cqengine.query.QueryFactory.equal;
+import static com.googlecode.cqengine.query.QueryFactory.greaterThan;
+import static com.googlecode.cqengine.query.QueryFactory.greaterThanOrEqualTo;
+import static com.googlecode.cqengine.query.QueryFactory.lessThan;
+import static com.googlecode.cqengine.query.QueryFactory.lessThanOrEqualTo;
+import static com.googlecode.cqengine.query.QueryFactory.not;
+import static com.googlecode.cqengine.query.QueryFactory.startsWith;
+import static com.googlecode.cqengine.stream.StreamFactory.streamOf;
+
+import com.googlecode.cqengine.ConcurrentIndexedCollection;
+import com.googlecode.cqengine.IndexedCollection;
+import com.googlecode.cqengine.attribute.Attribute;
+import com.googlecode.cqengine.attribute.SimpleAttribute;
+import com.googlecode.cqengine.persistence.wrapping.WrappingPersistence;
+import com.googlecode.cqengine.query.Query;
+import com.googlecode.cqengine.resultset.ResultSet;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigInteger;
@@ -51,7 +71,183 @@ import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 import org.apache.hadoop.io.IOUtils;
 
-public class JavaStreamQueryEngine extends AbstractQueryEngine {
+public class JavaCollectionQEngine extends AbstractQueryEngine {
+
+  private final SimpleAttribute<INode, Long> id =
+      attribute("id", node -> getFilterFunctionToLongForINode("id").apply(node));
+  private final SimpleAttribute<INode, Long> accessTime =
+      attribute("accessTime", node -> getFilterFunctionToLongForINode("accessTime").apply(node));
+  private final SimpleAttribute<INode, Long> modTime =
+      attribute("modTime", node -> getFilterFunctionToLongForINode("modTime").apply(node));
+  private final SimpleAttribute<INode, Long> fileSize =
+      attribute("fileSize", node -> getFilterFunctionToLongForINode("fileSize").apply(node));
+  private final SimpleAttribute<INode, Long> diskspaceConsumed =
+      attribute(
+          "diskspaceConsumed",
+          node -> getFilterFunctionToLongForINode("diskspaceConsumed").apply(node));
+  private final SimpleAttribute<INode, Long> memoryConsumed =
+      attribute(
+          "memoryConsumed", node -> getFilterFunctionToLongForINode("memoryConsumed").apply(node));
+  private final SimpleAttribute<INode, Long> fileReplica =
+      attribute("fileReplica", node -> getFilterFunctionToLongForINode("fileReplica").apply(node));
+  private final SimpleAttribute<INode, Long> numBlocks =
+      attribute("numBlocks", node -> getFilterFunctionToLongForINode("numBlocks").apply(node));
+  private final SimpleAttribute<INode, Long> numReplicas =
+      attribute("numReplicas", node -> getFilterFunctionToLongForINode("numReplicas").apply(node));
+  private final SimpleAttribute<INode, Long> depth =
+      attribute("depth", node -> getFilterFunctionToLongForINode("depth").apply(node));
+  private final SimpleAttribute<INode, Long> permission =
+      attribute("permission", node -> getFilterFunctionToLongForINode("permission").apply(node));
+  private final SimpleAttribute<INode, String> user =
+      attribute("user", node -> getFilterFunctionToStringForINode("user").apply(node));
+  private final SimpleAttribute<INode, String> group =
+      attribute("group", node -> getFilterFunctionToStringForINode("group").apply(node));
+  private final SimpleAttribute<INode, String> name =
+      attribute("name", node -> getFilterFunctionToStringForINode("name").apply(node));
+  private final SimpleAttribute<INode, String> path =
+      attribute("path", node -> getFilterFunctionToStringForINode("path").apply(node));
+  private final SimpleAttribute<INode, Date> modDate =
+      attribute(
+          "modDate",
+          node -> {
+            SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+            String modDateInt = getFilterFunctionToStringForINode("modDate").apply(node);
+            try {
+              return sdf.parse(modDateInt);
+            } catch (ParseException e) {
+              throw new RuntimeException(e);
+            }
+          });
+  private final SimpleAttribute<INode, Date> accessDate =
+      attribute(
+          "accessDate",
+          node -> {
+            SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+            String modDateInt = getFilterFunctionToStringForINode("accessDate").apply(node);
+            try {
+              return sdf.parse(modDateInt);
+            } catch (ParseException e) {
+              throw new RuntimeException(e);
+            }
+          });
+  private final SimpleAttribute<INode, Boolean> isUnderConstruction =
+      attribute(
+          "isUnderConstruction",
+          node -> getFilterFunctionToBooleanForINode("isUnderConstruction").apply(node));
+  private final SimpleAttribute<INode, Boolean> isWithSnapshot =
+      attribute(
+          "isWithSnapshot",
+          node -> getFilterFunctionToBooleanForINode("isWithSnapshot").apply(node));
+  private final SimpleAttribute<INode, Boolean> hasAcl =
+      attribute("hasAcl", node -> getFilterFunctionToBooleanForINode("hasAcl").apply(node));
+  private final SimpleAttribute<INode, Boolean> hasQuota =
+      attribute("hasQuota", node -> getFilterFunctionToBooleanForINode("hasQuota").apply(node));
+  private SimpleAttribute<INode, Long> dirNumChildren;
+  private SimpleAttribute<INode, Long> dirSubTreeSize;
+  private SimpleAttribute<INode, Long> dirSubTreeNumFiles;
+  private SimpleAttribute<INode, Long> dirSubTreeNumDirs;
+  private SimpleAttribute<INode, Long> storageType;
+
+  private IndexedCollection<INode> indexedFiles;
+  private IndexedCollection<INode> indexedDirs;
+
+  @Override // QueryEngine
+  public void setContexts(NameNodeLoader loader, VersionInterface versionLoader) {
+    this.nameNodeLoader = loader;
+    this.versionLoader = versionLoader;
+
+    dirNumChildren =
+        attribute(
+            "dirNumChildren",
+            node -> versionLoader.getFilterFunctionToLongForINode("dirNumChildren").apply(node));
+    dirSubTreeSize =
+        attribute(
+            "dirSubTreeSize",
+            node -> versionLoader.getFilterFunctionToLongForINode("dirSubTreeSize").apply(node));
+    dirSubTreeNumFiles =
+        attribute(
+            "dirSubTreeNumFiles",
+            node ->
+                versionLoader.getFilterFunctionToLongForINode("dirSubTreeNumFiles").apply(node));
+    dirSubTreeNumDirs =
+        attribute(
+            "dirSubTreeNumDirs",
+            node -> versionLoader.getFilterFunctionToLongForINode("dirSubTreeNumDirs").apply(node));
+    storageType =
+        attribute(
+            "storageType",
+            node -> versionLoader.getFilterFunctionToLongForINode("storageType").apply(node));
+
+    Collection<INode> files = loader.getINodeSetInternal("files");
+    Collection<INode> dirs = loader.getINodeSetInternal("dirs");
+
+    indexedFiles =
+        new ConcurrentIndexedCollection<>(
+            WrappingPersistence.aroundCollectionOnPrimaryKey(files, id));
+    //    indexedFiles.addIndex(UniqueIndex.onAttribute(id));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(accessTime));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(modTime));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(fileSize));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(diskspaceConsumed));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(memoryConsumed));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(fileReplica));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(numBlocks));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(numReplicas));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(depth));
+    //    indexedFiles.addIndex(NavigableIndex.onAttribute(permission));
+    //    indexedFiles.addIndex(SuffixTreeIndex.onAttribute(user));
+    //    indexedFiles.addIndex(SuffixTreeIndex.onAttribute(group));
+    //    indexedFiles.addIndex(SuffixTreeIndex.onAttribute(name));
+    //    indexedFiles.addIndex(SuffixTreeIndex.onAttribute(path));
+    //    indexedFiles.addIndex(HashIndex.onAttribute(isUnderConstruction));
+    //    indexedFiles.addIndex(HashIndex.onAttribute(isWithSnapshot));
+    //    indexedFiles.addIndex(HashIndex.onAttribute(hasAcl));
+
+    indexedDirs =
+        new ConcurrentIndexedCollection<>(
+            WrappingPersistence.aroundCollectionOnPrimaryKey(dirs, id));
+    //    indexedDirs.addIndex(UniqueIndex.onAttribute(id));
+    //    indexedDirs.addIndex(NavigableIndex.onAttribute(accessTime));
+    //    indexedDirs.addIndex(NavigableIndex.onAttribute(modTime));
+    //    indexedDirs.addIndex(NavigableIndex.onAttribute(memoryConsumed));
+    //    indexedDirs.addIndex(NavigableIndex.onAttribute(depth));
+    //    indexedDirs.addIndex(NavigableIndex.onAttribute(permission));
+    //    indexedDirs.addIndex(SuffixTreeIndex.onAttribute(user));
+    //    indexedDirs.addIndex(SuffixTreeIndex.onAttribute(group));
+    //    indexedDirs.addIndex(SuffixTreeIndex.onAttribute(name));
+    //    indexedDirs.addIndex(SuffixTreeIndex.onAttribute(path));
+    //    indexedDirs.addIndex(HashIndex.onAttribute(hasQuota));
+  }
+
+  @Override // QueryEngine
+  public Collection<INode> getINodeSet(String set) {
+    long start = System.currentTimeMillis();
+    Collection<INode> inodes;
+    switch (set) {
+      case "all":
+        inodes =
+            new ConcurrentIndexedCollection<>(
+                WrappingPersistence.aroundCollectionOnPrimaryKey(
+                    nameNodeLoader.getINodeSetInternal("all"), id));
+        break;
+      case "files":
+        inodes = indexedFiles;
+        break;
+      case "dirs":
+        inodes = indexedDirs;
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "You did not specify a set to use. Please check /sets for available sets.");
+    }
+    long end = System.currentTimeMillis();
+    LOG.info(
+        "Fetching indexed set of: {} had result size: {} and took: {} ms.",
+        set,
+        inodes.size(),
+        (end - start));
+    return inodes;
+  }
 
   /**
    * Main filter method for filtering down a set of INodes to a smaller subset.
@@ -64,26 +260,42 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
   @Override // QueryEngine
   public Collection<INode> combinedFilter(
       Collection<INode> inodes, String[] filters, String[] filterOps) {
-    final ArrayList<Function<INode, Boolean>> filterArray = new ArrayList<>();
+    IndexedCollection<INode> indexedINodes;
+    if (!(inodes instanceof IndexedCollection)) {
+      indexedINodes =
+          new ConcurrentIndexedCollection<>(
+              WrappingPersistence.aroundCollectionOnPrimaryKey(inodes, id));
+    } else {
+      indexedINodes = (IndexedCollection<INode>) inodes;
+    }
 
+    List<Query<INode>> queries = new ArrayList<>();
     for (int i = 0; i < filters.length; i++) {
       String filter = filters[i];
       String[] filterOp = filterOps[i].split(":");
-      Function<INode, Boolean> filterFunc = getFilter(filter, filterOp);
-      filterArray.add(filterFunc);
-    }
-
-    if (filterArray.size() == 0) {
-      return inodes;
+      Query<INode> filterFunc = getFilter(filter, filterOp);
+      queries.add(filterFunc);
     }
 
     long start = System.currentTimeMillis();
     try {
-      Stream<INode> stream = inodes.parallelStream();
-      for (Function<INode, Boolean> filter : filterArray) {
-        stream = stream.filter(filter::apply);
+      ResultSet<INode> result;
+      switch (queries.size()) {
+        case 0:
+          return inodes;
+        case 1:
+          result = indexedINodes.retrieve(queries.get(0));
+          break;
+        case 2:
+          result = indexedINodes.retrieve(and(queries.get(0), queries.get(1)));
+          break;
+        default:
+          result =
+              indexedINodes.retrieve(
+                  and(queries.get(0), queries.get(1), queries.subList(2, queries.size())));
+          break;
       }
-      return stream.collect(Collectors.toList());
+      return streamOf(result).collect(Collectors.toSet());
     } finally {
       long end = System.currentTimeMillis();
       LOG.info(
@@ -132,7 +344,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
     return optional.<Collection<INode>>map(Collections::singleton).orElseGet(Collections::emptySet);
   }
 
-  private Function<INode, Boolean> getFilter(String filter, String[] filterOps) {
+  private Query<INode> getFilter(String filter, String[] filterOps) {
     long start = System.currentTimeMillis();
     try {
       // Values for all other filters
@@ -140,26 +352,27 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
       String opValue = filterOps[1];
 
       // Long value filters
-      Function<INode, Long> longFunction = getFilterFunctionToLongForINode(filter);
-      if (longFunction != null) {
-        Function<Long, Boolean> longCompFunction =
-            getFilterFunctionForLong(Long.parseLong(opValue), op);
-        return longFunction.andThen(longCompFunction);
+      Attribute<INode, Long> longAttribute = getLongAttributeForINode(filter);
+      if (longAttribute != null) {
+        return getQueryForLong(longAttribute, Long.parseLong(opValue), op);
       }
 
       // String value filters
-      Function<INode, String> strFunction = getFilterFunctionToStringForINode(filter);
-      if (strFunction != null) {
-        Function<String, Boolean> strCompFunction = getFilterFunctionForString(opValue, op);
-        return strFunction.andThen(strCompFunction);
+      Attribute<INode, String> stringAttribute = getStringAttributeForINode(filter);
+      if (stringAttribute != null) {
+        return getQueryForString(stringAttribute, opValue, op);
       }
 
       // Boolean value filters
-      Function<INode, Boolean> boolFunction = getFilterFunctionToBooleanForINode(filter);
-      if (boolFunction != null) {
-        Function<Boolean, Boolean> boolCompFunction =
-            getFilterFunctionForBoolean(Boolean.parseBoolean(opValue), op);
-        return boolFunction.andThen(boolCompFunction);
+      Attribute<INode, Boolean> booleanAttribute = getBooleanAttributeForINode(filter);
+      if (booleanAttribute != null) {
+        return getQueryForBoolean(booleanAttribute, opValue, op);
+      }
+
+      // Date value filters
+      Attribute<INode, Date> dateAttribute = getDateAttributeForINode(filter);
+      if (dateAttribute != null) {
+        return getQueryForDate(dateAttribute, opValue, op);
       }
 
       throw new IllegalArgumentException(
@@ -176,6 +389,224 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
           filter,
           Arrays.asList(filterOps),
           (end - start));
+    }
+  }
+
+  private Query<INode> getQueryForDate(
+      Attribute<INode, Date> dateAttribute, String value, String op) {
+    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+    Date valueDate;
+    switch (op) {
+      case "dateEq":
+        try {
+          valueDate = sdf.parse(value);
+        } catch (ParseException e) {
+          throw new RuntimeException(e);
+        }
+        return equal(dateAttribute, valueDate);
+      case "dateNotEq":
+        try {
+          valueDate = sdf.parse(value);
+        } catch (ParseException e) {
+          throw new RuntimeException(e);
+        }
+        return not(equal(dateAttribute, valueDate));
+      case "dateLt":
+        try {
+          valueDate = sdf.parse(value);
+        } catch (ParseException e) {
+          throw new RuntimeException(e);
+        }
+        return lessThan(dateAttribute, valueDate);
+      case "dateStart":
+      case "dateLte":
+        try {
+          valueDate = sdf.parse(value);
+        } catch (ParseException e) {
+          throw new RuntimeException(e);
+        }
+        return lessThanOrEqualTo(dateAttribute, valueDate);
+      case "dateGt":
+        try {
+          valueDate = sdf.parse(value);
+        } catch (ParseException e) {
+          throw new RuntimeException(e);
+        }
+        return greaterThan(dateAttribute, valueDate);
+      case "dateEnd":
+      case "dateGte":
+        try {
+          valueDate = sdf.parse(value);
+        } catch (ParseException e) {
+          throw new RuntimeException(e);
+        }
+        return greaterThanOrEqualTo(dateAttribute, valueDate);
+      default:
+        return null;
+    }
+  }
+
+  private Attribute<INode, Date> getDateAttributeForINode(String filter) {
+    switch (filter) {
+      case "modDate":
+        return modDate;
+      case "accessDate":
+        return accessDate;
+      default:
+        return null;
+    }
+  }
+
+  private Query<INode> getQueryForBoolean(
+      Attribute<INode, Boolean> booleanAttribute, String value, String op) {
+    switch (op) {
+      case "eq":
+        return equal(booleanAttribute, Boolean.valueOf(value));
+      case "notEq":
+        return not(equal(booleanAttribute, Boolean.valueOf(value)));
+      default:
+        return null;
+    }
+  }
+
+  private Attribute<INode, Boolean> getBooleanAttributeForINode(String filter) {
+    switch (filter) {
+      case "isUnderConstruction":
+        return isUnderConstruction;
+      case "isWithSnapshot":
+        return isWithSnapshot;
+      case "hasAcl":
+        return hasAcl;
+      case "hasQuota":
+        return hasQuota;
+      default:
+        return null;
+    }
+  }
+
+  private Query<INode> getQueryForString(
+      Attribute<INode, String> stringAttribute, String value, String op) {
+    switch (op) {
+      case "eq":
+        return equal(stringAttribute, value);
+      case "notEq":
+        return not(equal(stringAttribute, value));
+      case "startsWith":
+        return startsWith(stringAttribute, value);
+      case "notStartsWith":
+        return not(startsWith(stringAttribute, value));
+      case "endsWith":
+        return endsWith(stringAttribute, value);
+      case "notEndsWith":
+        return not(endsWith(stringAttribute, value));
+      case "contains":
+        return contains(stringAttribute, value);
+      case "notContains":
+        return not(contains(stringAttribute, value));
+      default:
+        return null;
+    }
+  }
+
+  private Attribute<INode, String> getStringAttributeForINode(String filter) {
+    switch (filter) {
+      case "user":
+        return user;
+      case "group":
+        return group;
+      case "name":
+        return name;
+      case "path":
+        return path;
+      default:
+        return null;
+    }
+  }
+
+  private Query<INode> getQueryForLong(
+      Attribute<INode, Long> longAttribute, long value, String op) {
+    switch (op) {
+      case "eq":
+        return equal(longAttribute, value);
+      case "gt":
+        return greaterThan(longAttribute, value);
+      case "gte":
+        return greaterThanOrEqualTo(longAttribute, value);
+      case "lt":
+        return lessThan(longAttribute, value);
+      case "lte":
+        return lessThanOrEqualTo(longAttribute, value);
+      case "minutesAgo":
+        return greaterThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(value));
+      case "hoursAgo":
+        return greaterThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(value));
+      case "daysAgo":
+        return greaterThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.DAYS.toMillis(value));
+      case "monthsAgo":
+        return greaterThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30 * value));
+      case "yearsAgo":
+        return greaterThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.DAYS.toMillis(365 * value));
+      case "olderThanMinutes":
+        return lessThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(value));
+      case "olderThanHours":
+        return lessThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(value));
+      case "olderThanDays":
+        return lessThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.DAYS.toMillis(value));
+      case "olderThanMonths":
+        return lessThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30 * value));
+      case "olderThanYears":
+        return lessThanOrEqualTo(
+            longAttribute, System.currentTimeMillis() - TimeUnit.DAYS.toMillis(365 * value));
+      default:
+        return null;
+    }
+  }
+
+  private Attribute<INode, Long> getLongAttributeForINode(String filter) {
+    switch (filter) {
+      case "id":
+        return id;
+      case "accessTime":
+        return accessTime;
+      case "modTime":
+        return modTime;
+      case "fileSize":
+        return fileSize;
+      case "diskspaceConsumed":
+        return diskspaceConsumed;
+      case "memoryConsumed":
+        return memoryConsumed;
+      case "fileReplica":
+        return fileReplica;
+      case "numBlocks":
+        return numBlocks;
+      case "numReplicas":
+        return numReplicas;
+      case "depth":
+        return depth;
+      case "permission":
+        return permission;
+      case "dirNumChildren":
+        return dirNumChildren;
+      case "dirSubTreeSize":
+        return dirSubTreeSize;
+      case "dirSubTreeNumFiles":
+        return dirSubTreeNumFiles;
+      case "dirSubTreeNumDirs":
+        return dirSubTreeNumDirs;
+      case "storageType":
+        return storageType;
+      default:
+        return null;
     }
   }
 
@@ -617,7 +1048,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
     if (histogram.length > 100) {
       LOG.info("It is too big to console out.");
     } else {
-      LOG.info("Result is: {}", java.util.Arrays.toString(histogram));
+      LOG.info("Result is: {}", Arrays.toString(histogram));
     }
     return Histograms.mapToNonEmptyIndex(histogram);
   }
@@ -684,7 +1115,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", Arrays.toString(histogram));
     }
     return Histograms.mapToNonEmptyIndex(histogram);
   }
@@ -738,7 +1169,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", Arrays.toString(histogram));
     }
     return Histograms.mapByKeys(binKeyMap, histogram);
   }
@@ -847,7 +1278,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", Arrays.toString(histogram));
     }
     return Histograms.mapByKeys(binKeyMap, histogram);
   }
@@ -901,7 +1332,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", Arrays.toString(histogram));
     }
     return Histograms.sortByKeys(keys, histogram);
   }
@@ -1005,7 +1436,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
     if (histogram.length > 100) {
       LOG.info(". It is too big to console out.");
     } else {
-      LOG.info(", is: {}", java.util.Arrays.toString(histogram));
+      LOG.info(", is: {}", Arrays.toString(histogram));
     }
     return Histograms.sortByKeys(keys, histogram);
   }

@@ -85,7 +85,7 @@ public class NameNodeLoader {
   public NameNodeLoader() {
     versionLoader = new VersionContext();
     suggestionsEngine = new SuggestionsEngine();
-    queryEngine = new JavaStreamQueryEngine();
+    queryEngine = new JavaCollectionQEngine();
   }
 
   public TokenExtractor getTokenExtractor() {
@@ -403,8 +403,7 @@ public class NameNodeLoader {
         LOG.info("ERROR: Failed to start EditLogTailer: {}", e);
       }
     }
-    queryEngine.setVersionLoader(versionLoader);
-    queryEngine.setNameNodeLoader(this);
+    queryEngine.setContexts(this, versionLoader);
 
     long end = System.currentTimeMillis();
     LOG.info("NameNodeLoader bootstrap'd in: {} ms.", (end - start));
@@ -543,6 +542,10 @@ public class NameNodeLoader {
    * @return the in-memory set that represents the inodes asked for; a large collection typically
    */
   public Collection<INode> getINodeSet(String set) {
+    return queryEngine.getINodeSet(set);
+  }
+
+  Collection<INode> getINodeSetInternal(String set) {
     long start = System.currentTimeMillis();
     Collection<INode> inodes;
     switch (set) {
