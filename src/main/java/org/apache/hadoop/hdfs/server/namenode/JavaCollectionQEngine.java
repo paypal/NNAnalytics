@@ -38,6 +38,7 @@ import com.googlecode.cqengine.attribute.Attribute;
 import com.googlecode.cqengine.attribute.SimpleAttribute;
 import com.googlecode.cqengine.persistence.wrapping.WrappingPersistence;
 import com.googlecode.cqengine.query.Query;
+import com.googlecode.cqengine.query.parser.sql.SQLParser;
 import com.googlecode.cqengine.resultset.ResultSet;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -50,6 +51,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +64,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
@@ -70,6 +73,7 @@ import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 import org.apache.hadoop.io.IOUtils;
+import org.apache.http.HttpStatus;
 
 public class JavaCollectionQEngine extends AbstractQueryEngine {
 
@@ -2148,5 +2152,62 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
     }
 
     return comparisons;
+  }
+
+  /**
+   * Performs an SQL query against this query engine.
+   *
+   * @param req the http request
+   * @param res the http response
+   * @return The same HttpServletResponse as param.
+   */
+  public HttpServletResponse sql(HttpServletRequest req, HttpServletResponse res) {
+    Map<String, Attribute<INode, ?>> attributes = new HashMap<>();
+    attributes.put("id", id);
+    attributes.put("accessTime", accessTime);
+    attributes.put("modTime", modTime);
+    attributes.put("fileSize", fileSize);
+    attributes.put("diskspaceConsumed", diskspaceConsumed);
+    attributes.put("memoryConsumed", memoryConsumed);
+    attributes.put("fileReplica", fileReplica);
+    attributes.put("numBlocks", numBlocks);
+    attributes.put("numReplicas", numReplicas);
+    attributes.put("dirNumChildren", dirNumChildren);
+    attributes.put("dirSubTreeSize", dirSubTreeSize);
+    attributes.put("dirSubTreeNumFiles", dirSubTreeNumFiles);
+    attributes.put("dirSubTreeNumDirs", dirSubTreeNumDirs);
+    attributes.put("storageType", storageType);
+    attributes.put("depth", depth);
+    attributes.put("permission", permission);
+    attributes.put("name", name);
+    attributes.put("path", path);
+    attributes.put("user", user);
+    attributes.put("group", group);
+    attributes.put("modDate", modDate);
+    attributes.put("accessDate", accessDate);
+    attributes.put("isUnderConstruction", isUnderConstruction);
+    attributes.put("isWithSnapshot", isWithSnapshot);
+    attributes.put("hasAcl", hasAcl);
+    attributes.put("hasQuota", hasQuota);
+
+    SQLParser<INode> parser = SQLParser.forPojoWithAttributes(INode.class, attributes);
+
+    long count = 0;
+    try (PrintWriter out = res.getWriter()) {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Content-Type", "text/plain");
+      String sql = req.getParameter("sqlStatement");
+      ResultSet<INode> results = parser.retrieve(indexedFiles, sql);
+      for (INode inode : results) {
+        out.println(inode.getFullPathName());
+        count++;
+      }
+      res.setStatus(HttpStatus.SC_OK);
+    } catch (IOException e) {
+      LOG.warn("SQL statement failed.", e);
+    }
+    LOG.info("SQL statement produced result of: {} inodes.", count);
+
+    return res;
   }
 }
