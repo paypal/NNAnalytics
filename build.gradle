@@ -115,7 +115,7 @@ test {
         events "passed", "skipped", "failed"
         exceptionFormat "full"
     }
-    finalizedBy jacocoTestReport 
+    finalizedBy jacocoTestReport
 }
 
 sourceSets.main.java.srcDirs "src/main/java", "src/main/${hadoopVersion}"
@@ -135,6 +135,7 @@ repositories {
 
 configurations {
     compile.extendsFrom(outboundDep)
+    all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
     all*.exclude group: 'org.mortbay.jetty', module: 'servlet-api'
     all*.exclude group: 'javax.servlet', module: 'servlet-api'
 }
