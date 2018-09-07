@@ -204,6 +204,11 @@ ospackage {
         into 'bin'
         fileMode = 0755
     }
+    from('src/main/resources/env') {
+        fileType CONFIG | NOREPLACE
+        into 'bin'
+        fileMode = 0755
+    }
     from('src/main/resources/config') {
         fileType CONFIG | NOREPLACE
         into 'config'
