@@ -19,7 +19,7 @@
 <configuration>
     <property>
         <name>dfs.namenode.name.dir</name>
-        <value>file:///home/hdfs/dfs/name/</value>
+        <value>file:///usr/local/nn-analytics/dfs/name/</value>
     </property>
 
     <!-- We don't want to be responsible for FSImage checkpoint uploading back to the active. -->
@@ -33,4 +33,16 @@
         <name>dfs.ha.log-roll.period</name>
         <value>-1</value>
     </property>
+
+    <!-- We don't want to be responsible for processing BlockTokens nor BlockKeys. -->
+    <property>
+        <name>dfs.block.access.token.enable</name>
+        <value>false</value>
+    </property>
+
+    <!-- We don't support Ranger as part of NNA. Ensure this is not set. -->
+    <!-- property>
+        <name>dfs.namenode.inode.attributes.provider.class</name>
+        <value></value>
+    </property -->
 </configuration>

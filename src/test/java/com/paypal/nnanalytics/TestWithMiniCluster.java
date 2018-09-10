@@ -100,6 +100,7 @@ public class TestWithMiniCluster {
 
     nna = new WebServerMain();
     SecurityConfiguration nnaConf = new SecurityConfiguration();
+    nnaConf.set("nna.support.bootstrap.overrides", "true");
     nnaConf.set("ldap.enable", "false");
     nnaConf.set("authorization.enable", "false");
     nnaConf.set("nna.historical", "true");

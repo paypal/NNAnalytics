@@ -25,6 +25,7 @@ Definitions of configuration NNA-specific properties:
 
 * `nna.port=<integer>` - Default is 8080. Represents the main web UI port.
 * `nna.historical=<true | false>` - Default is false. True enables a locally embedded HSQL DB to trend data. Not recommended in production.
+* `nna.support.bootstrap.overrides=<true | false>` - Default is true. True will override certain hdfs-site.xml configurations to prevent NNA from communicating with the active cluster. False means it will use configurations as-is. Recommended true in production.
 * `nna.suggestions.reload.sleep.ms=<integer>` - Default is 900000.
 * `ldap.enable=<true | false>` - Default is false. True enables LDAP authentication.
 * `ldap.trust.store.path=<file path as file:/path/to/store>` - Default is empty.
@@ -36,7 +37,7 @@ Definitions of configuration NNA-specific properties:
 * `ldap.response.timeout=<integer>` - Default is 1000.
 * `ldap.connection.pool.min.size=<integer>` - Default is 1.
 * `ldap.connection.pool.max.size=<integer>` - Default is 2.
-* `ssl.keystore.path=<file path as file:/path/to/store>`
+* `ssl.keystore.path=<file path as file:/path/to/store>` - Default is empty. If set, SSL will be enabled.
 * `ssl.keystore.password=<password>` - Default is empty. If set, ensure file has 400 permissions.
 * `jwt.signature.secret=<string of 32 numbers>` - Default is 11111111111111111111111111111111.
 * `jwt.encryption.secret=<string of 16 numbers>` - Default is 0000000000000000.
