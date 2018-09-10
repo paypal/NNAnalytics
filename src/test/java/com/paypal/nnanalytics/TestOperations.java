@@ -23,7 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 import com.paypal.namenode.WebServerMain;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import java.io.IOException;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
@@ -57,7 +57,7 @@ public class TestOperations {
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
     nna = new WebServerMain();
-    SecurityConfiguration conf = new SecurityConfiguration();
+    ApplicationConfiguration conf = new ApplicationConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
     conf.set("nna.historical", "false");

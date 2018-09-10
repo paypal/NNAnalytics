@@ -32,7 +32,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import com.paypal.namenode.WebServerMain;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
@@ -84,7 +84,7 @@ public class TestNNAnalytics {
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
     nna = new WebServerMain();
-    SecurityConfiguration conf = new SecurityConfiguration();
+    ApplicationConfiguration conf = new ApplicationConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
     conf.set("nna.historical", "false");

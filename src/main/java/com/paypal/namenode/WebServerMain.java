@@ -28,7 +28,7 @@ import static spark.Spark.post;
 import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import com.paypal.security.SecurityContext;
 import com.sun.management.OperatingSystemMXBean;
 import java.io.IOException;
@@ -163,7 +163,7 @@ public class WebServerMain {
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
       WebServerMain main = new WebServerMain();
-      SecurityConfiguration conf = new SecurityConfiguration();
+      ApplicationConfiguration conf = new ApplicationConfiguration();
       main.init(conf);
     } catch (Throwable e) {
       LOG.info("FATAL: {}", e);
@@ -175,12 +175,12 @@ public class WebServerMain {
     return nameNodeLoader;
   }
 
-  public void init(SecurityConfiguration conf) throws Exception {
+  public void init(ApplicationConfiguration conf) throws Exception {
     init(conf, null);
   }
 
   @VisibleForTesting
-  public void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
+  public void init(ApplicationConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
       throws Exception {
     init(conf, inodes, null);
   }
@@ -196,7 +196,7 @@ public class WebServerMain {
    */
   @VisibleForTesting
   public void init(
-      SecurityConfiguration conf,
+      ApplicationConfiguration conf,
       GSet<INode, INodeWithAdditionalFields> inodes,
       Configuration preloadedHadoopConf)
       throws Exception {
@@ -209,7 +209,7 @@ public class WebServerMain {
       Spark.secure(sslKeystorePath, sslKeystorePassword, null, null);
     } else {
       throw new IllegalStateException(
-          "Illegal SSL configuration. Check config/security.properties file.");
+          "Illegal SSL configuration. Check config/application.properties file.");
     }
 
     boolean ldapEnabled = conf.getLdapEnabled();
@@ -503,7 +503,7 @@ public class WebServerMain {
         "/refresh",
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
-          secContext.refresh(new SecurityConfiguration());
+          secContext.refresh(new ApplicationConfiguration());
           res.body(secContext.toString());
           return res;
         });

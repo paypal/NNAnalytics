@@ -21,7 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode;
 
 import com.paypal.namenode.HsqlDriver;
 import com.paypal.namenode.WebServerMain;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
@@ -320,7 +320,7 @@ public class NameNodeLoader {
   public void load(
       GSet<INode, INodeWithAdditionalFields> preloadedInodes,
       Configuration preloadedHadoopConf,
-      SecurityConfiguration nnaConf)
+      ApplicationConfiguration nnaConf)
       throws IOException, NoSuchFieldException, IllegalAccessException, URISyntaxException {
     /*
      * Configuration standard is: /etc/hadoop/conf.
@@ -564,7 +564,7 @@ public class NameNodeLoader {
    * @param internalService threadExecutor service hosted by {@link WebServerMain}
    * @param conf the application configuration
    */
-  public void initReloadThreads(ExecutorService internalService, SecurityConfiguration conf) {
+  public void initReloadThreads(ExecutorService internalService, ApplicationConfiguration conf) {
     Future<Void> reload =
         internalService.submit(
             () -> {
@@ -614,7 +614,7 @@ public class NameNodeLoader {
    * @throws SQLException error in starting embedded DB
    */
   public void initHistoryRecorder(
-      HsqlDriver hsqlDriver, SecurityConfiguration conf, boolean isEnabled) throws SQLException {
+      HsqlDriver hsqlDriver, ApplicationConfiguration conf, boolean isEnabled) throws SQLException {
     if (isEnabled && hsqlDriver != null) {
       this.hsqlDriver = hsqlDriver;
       hsqlDriver.startDatabase(conf);

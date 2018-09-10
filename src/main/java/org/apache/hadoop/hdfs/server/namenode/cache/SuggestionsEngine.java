@@ -21,7 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import com.google.common.collect.Sets;
 import com.paypal.namenode.HsqlDriver;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -756,7 +756,7 @@ public class SuggestionsEngine {
    * @param conf the application configuration
    * @throws IOException an error occurred starting the cache engine
    */
-  public void start(SecurityConfiguration conf) throws IOException {
+  public void start(ApplicationConfiguration conf) throws IOException {
     cacheManager.start(conf);
     this.cachedDirs = Collections.synchronizedSet(cacheManager.getCachedSet("cachedDirs"));
     this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));

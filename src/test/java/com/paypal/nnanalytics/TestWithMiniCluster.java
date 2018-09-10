@@ -25,7 +25,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.WebServerMain;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -99,7 +99,7 @@ public class TestWithMiniCluster {
     CONF.set("dfs.nameservice.id", NAMESERVICE);
 
     nna = new WebServerMain();
-    SecurityConfiguration nnaConf = new SecurityConfiguration();
+    ApplicationConfiguration nnaConf = new ApplicationConfiguration();
     nnaConf.set("ldap.enable", "false");
     nnaConf.set("authorization.enable", "false");
     nnaConf.set("nna.historical", "true");

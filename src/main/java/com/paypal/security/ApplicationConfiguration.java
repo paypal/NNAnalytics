@@ -30,11 +30,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SecurityConfiguration {
+public class ApplicationConfiguration {
 
-  public static final Logger LOG = LoggerFactory.getLogger(SecurityConfiguration.class.getName());
+  public static final Logger LOG =
+      LoggerFactory.getLogger(ApplicationConfiguration.class.getName());
 
-  private static final String SEC_PROPERTIES = "security.properties";
+  private static final String APP_PROPERTIES = "application.properties";
   private final Properties properties = new Properties();
 
   private static final String NNA_PORT_DEFAULT = "8080";
@@ -48,12 +49,12 @@ public class SecurityConfiguration {
   private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
 
   /** Constructor. Fetches configuration from ClassLoader stream. */
-  public SecurityConfiguration() {
-    InputStream input = this.getClass().getClassLoader().getResourceAsStream(SEC_PROPERTIES);
+  public ApplicationConfiguration() {
+    InputStream input = this.getClass().getClassLoader().getResourceAsStream(APP_PROPERTIES);
     try {
       properties.load(input);
     } catch (IOException e) {
-      LOG.info("Failed to load properties file: {}, due to: {}", SEC_PROPERTIES, e);
+      LOG.info("Failed to load properties file: {}, due to: {}", APP_PROPERTIES, e);
     }
   }
 
@@ -205,8 +206,8 @@ public class SecurityConfiguration {
 
   /**
    * These are NNA local only accounts that can be used by outside applications. If you intend to
-   * utilize local-only accounts then you must lock down the permissions on the security.properties
-   * file as it will contain passwords.
+   * utilize local-only accounts then you must lock down the permissions on the
+   * application.properties file as it will contain passwords.
    *
    * @return map of username : password for locally maintained NNA users
    */

@@ -48,7 +48,7 @@ public class SecurityContext {
 
   public static final Logger LOG = LoggerFactory.getLogger(SecurityContext.class.getName());
 
-  private SecurityConfiguration securityConfiguration;
+  private ApplicationConfiguration applicationConfiguration;
   private JwtAuthenticator jwtAuthenticator;
   private JwtGenerator<CommonProfile> jwtGenerator;
   private LdapAuthenticator ldapAuthenticator;
@@ -76,41 +76,41 @@ public class SecurityContext {
   /**
    * Initializes the authentication and authorization of NNA.
    *
-   * @param secConf the security configuration
+   * @param appConf the application configuration
    * @param jwtAuth the JWT authentication object
    * @param jwtGen the JWT generator object
    * @param ldapAuthenticator ldap authenticator
    */
   public void init(
-      SecurityConfiguration secConf,
+      ApplicationConfiguration appConf,
       JwtAuthenticator jwtAuth,
       JwtGenerator<CommonProfile> jwtGen,
       LdapAuthenticator ldapAuthenticator) {
-    this.securityConfiguration = secConf;
+    this.applicationConfiguration = appConf;
     this.jwtAuthenticator = jwtAuth;
     this.jwtGenerator = jwtGen;
     this.ldapAuthenticator = ldapAuthenticator;
 
-    this.adminUsers = new UserSet(secConf.getAdminUsers());
-    this.writeUsers = new UserSet(secConf.getWriteUsers());
-    this.readOnlyUsers = new UserSet(secConf.getReadOnlyUsers());
-    this.cacheReaderUsers = new UserSet(secConf.getCacheReaderUsers());
-    this.localOnlyUsers = new UserPasswordSet(secConf.getLocalOnlyUsers());
+    this.adminUsers = new UserSet(appConf.getAdminUsers());
+    this.writeUsers = new UserSet(appConf.getWriteUsers());
+    this.readOnlyUsers = new UserSet(appConf.getReadOnlyUsers());
+    this.cacheReaderUsers = new UserSet(appConf.getCacheReaderUsers());
+    this.localOnlyUsers = new UserPasswordSet(appConf.getLocalOnlyUsers());
 
     this.init = true;
   }
 
   /**
-   * Re-reads SecurityConfiguration from ClassLoader and updates authorization.
+   * Re-reads ApplicationConfiguration from ClassLoader and updates authorization.
    *
-   * @param secConf the newly read security configuration
+   * @param appConf the newly read application configuration
    */
-  public synchronized void refresh(SecurityConfiguration secConf) {
-    this.adminUsers = new UserSet(secConf.getAdminUsers());
-    this.writeUsers = new UserSet(secConf.getWriteUsers());
-    this.readOnlyUsers = new UserSet(secConf.getReadOnlyUsers());
-    this.cacheReaderUsers = new UserSet(secConf.getCacheReaderUsers());
-    this.localOnlyUsers = new UserPasswordSet(secConf.getLocalOnlyUsers());
+  public synchronized void refresh(ApplicationConfiguration appConf) {
+    this.adminUsers = new UserSet(appConf.getAdminUsers());
+    this.writeUsers = new UserSet(appConf.getWriteUsers());
+    this.readOnlyUsers = new UserSet(appConf.getReadOnlyUsers());
+    this.cacheReaderUsers = new UserSet(appConf.getCacheReaderUsers());
+    this.localOnlyUsers = new UserPasswordSet(appConf.getLocalOnlyUsers());
   }
 
   public boolean isAuthenticationEnabled() {
@@ -159,7 +159,7 @@ public class SecurityContext {
       throws HttpAction {
     if (ldapAuthenticator != null) {
       RuntimeException authFailedEx = null;
-      Set<String> ldapBaseDns = securityConfiguration.getLdapBaseDn();
+      Set<String> ldapBaseDns = applicationConfiguration.getLdapBaseDn();
       for (String ldapBaseDn : ldapBaseDns) {
         String ldapDnRegexd = ldapBaseDn.replaceAll("%u", username);
         ldapAuthenticator.getLdapAuthenticator().setDnResolver(new FormatDnResolver(ldapDnRegexd));
@@ -321,7 +321,7 @@ public class SecurityContext {
    */
   public synchronized void handleAuthorization(Request req, Response res)
       throws AuthorizationException {
-    boolean authorizationEnabled = securityConfiguration.getAuthorizationEnabled();
+    boolean authorizationEnabled = applicationConfiguration.getAuthorizationEnabled();
     if (!authorizationEnabled) {
       return;
     }

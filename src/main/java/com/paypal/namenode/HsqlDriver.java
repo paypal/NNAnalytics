@@ -20,7 +20,7 @@
 package com.paypal.namenode;
 
 import com.google.gson.Gson;
-import com.paypal.security.SecurityConfiguration;
+import com.paypal.security.ApplicationConfiguration;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -65,7 +65,7 @@ public class HsqlDriver {
    * @param conf the application configuration
    * @throws SQLException error in opening DB connection
    */
-  public void startDatabase(SecurityConfiguration conf) throws SQLException {
+  public void startDatabase(ApplicationConfiguration conf) throws SQLException {
     try {
       Class.forName("org.hsqldb.jdbc.JDBCDriver");
     } catch (ClassNotFoundException e) {
