@@ -413,7 +413,7 @@ public class NameNodeLoader {
 
   private void handleConfigurationOverrides(Configuration conf, SecurityConfiguration nnaConf)
       throws URISyntaxException {
-    if(nnaConf.allowBootstrapConfigurationOverrides()) {
+    if (nnaConf.allowBootstrapConfigurationOverrides()) {
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
 
@@ -442,9 +442,10 @@ public class NameNodeLoader {
       LOG.info("Unsetting: dfs.namenode.inode.attributes.provider.class");
       conf.unset("dfs.namenode.inode.attributes.provider.class");
     } else {
-      LOG.warn("Not performing defensive configuration overrides; using configuration as-is.\n" 
-          + "This instance may be acting upon your active cluster unless configured properly.\n"
-          + "Please run with 'nna.support.bootstrap.overrides=true' if you did not intend this.");
+      LOG.warn(
+          "Not performing defensive configuration overrides; using configuration as-is.\n"
+              + "This instance may be acting upon your active cluster unless configured properly.\n"
+              + "Please run with 'nna.support.bootstrap.overrides=true' if you did not intend this.");
     }
   }
 

@@ -252,7 +252,7 @@ public class SecurityConfiguration {
   }
 
   public boolean allowBootstrapConfigurationOverrides() {
-    return Boolean.parseBoolean(properties.getProperty("nna.support.bootstrap.overrides", 
-        NNA_SUPPORT_BOOTSTRAP_OVERRIDES));
+    return Boolean.parseBoolean(
+        properties.getProperty("nna.support.bootstrap.overrides", NNA_SUPPORT_BOOTSTRAP_OVERRIDES));
   }
 }
