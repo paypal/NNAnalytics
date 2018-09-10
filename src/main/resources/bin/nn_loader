@@ -19,22 +19,12 @@
 
 #!/bin/bash
 
-export WORKING_DIR=/usr/local/nn-analytics
-export JAVA_HOME=/usr/java/latest
-export JAVA_CLASSPATH=${WORKING_DIR}/config:${WORKING_DIR}/lib/*
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source ${SCRIPT_DIR}/nna_env
 
 nohup \
-${JAVA_HOME}/bin/java -server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:NewSize=25600m -XX:MaxNewSize=25600m \
--XX:PermSize=128m -XX:MaxPermSize=256m -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps \
--XX:CMSInitiatingOccupancyFraction=70 -XX:+UseCMSInitiatingOccupancyOnly -Xms244800m -Xmx244800m \
--XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps \
--Xloggc:/var/log/nn-analytics/gc.log-`date +'%Y%m%d%H%M'` \
--Dhadoop.log.dir=/var/log/nn-analytics -Dhadoop.log.file=nn-analytics.log -Dhadoop.root.logger=INFO,DRFA \
--Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=8004 -Dcom.sun.management.jmxremote.ssl=false \
--Dcom.sun.management.jmxremote.authenticate=false \
--Dnamenode.metrics.logger=INFO,NNMETRICSRFA -Dorg.mortbay.jetty.Request.maxFormContentSize=-1 \
--agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
--cp "${JAVA_CLASSPATH}" com.paypal.namenode.WebServerMain \
-&> /var/log/nn-analytics/nn-analytics.out &
+${JAVA_HOME}/bin/java ${NNA_JVM_OPTIONS} \
+-cp "${JAVA_CLASSPATH}" ${NNA_MAIN} \
+&> ${NNA_OUT_PATH} &
 
 echo $!
