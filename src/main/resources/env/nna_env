@@ -24,7 +24,7 @@ export JAVA_HOME=/usr/java/latest
 export JAVA_CLASSPATH=${WORKING_DIR}/config:${WORKING_DIR}/lib/*
 
 export NNA_JVM_OPTIONS="-server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:NewSize=25600m -XX:MaxNewSize=25600m \
--XX:PermSize=128m -XX:MaxPermSize=256m -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps \
+-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps \
 -XX:CMSInitiatingOccupancyFraction=70 -XX:+UseCMSInitiatingOccupancyOnly -Xms244800m -Xmx244800m \
 -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps \
 -Xloggc:/var/log/nn-analytics/gc.log-`date +'%Y%m%d%H%M'` \
