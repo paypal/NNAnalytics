@@ -19,7 +19,8 @@
 
 #!/bin/bash
 
-source nna_env
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source ${SCRIPT_DIR}/nna_env
 
 nohup \
 ${JAVA_HOME}/bin/java ${NNA_JVM_OPTIONS} \
