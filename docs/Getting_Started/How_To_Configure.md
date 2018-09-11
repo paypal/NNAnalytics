@@ -1,5 +1,21 @@
 **How To Configure:**
 
+0. Check `/usr/local/nn-analytics/bin/nna_env` and update the JVM settings as you wish to meet your needs.
+
+The general rule of thumb is to configure your NNA JVM settings exactly as you would your Standby NameNode.
+Typically it is good to follow a sizing guide to configure your heap as a function of your file system load.
+For example:
+
+| Number of Files | FsImage | Java Heap (Xmx + Xms) | Young Gen (-XX:NewSize + -XX:MaxNewSize) |
+| --------------- | ------- | :--------------------:| ----------------------------------------:|
+| <1mil - 5mil    | 1-4 GB  | 3379m                 | 512m                                     |
+| 5mil - 20mil    | 4-7 GB  | 10982m                | 1280m                                    |
+| 20mil - 50mil   | 7-10 GB | 26752m                | 3072m                                    |
+| 50mil - 100mil  | 10+ GB  | 52659m                | 6144m                                    |
+| 100mil - 150mil | 15+ GB  | 78566m                | 8960m                                    |
+| 150mil - 250mil | 25+ GB  | 204800m               | 10240m                                   |
+| 300mil+         | 30+ GB  | 244800m               | 25600m                                   |
+
 1. SCP over configurations from your Standby NameNode into `/usr/local/nn-analytics/config`
 2. Modify your `hdfs-site.xml` and ensure that Kerberos information is valid. NNA requires a keytab with `nn` user principal if you are using Kerberos. Just like a real NameNode.
 3. Modify `security.properties` and set up LDAP authentication, SSL, and authorization.
