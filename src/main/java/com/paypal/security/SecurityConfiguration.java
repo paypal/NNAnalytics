@@ -46,6 +46,7 @@ public class SecurityConfiguration {
   private static final String LDAP_RESPONSE_TIMEOUT_DEFAULT = "1000";
   private static final String NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT = "900000";
   private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
+  private static final String NNA_SUPPORT_BOOTSTRAP_OVERRIDES = "true";
 
   /** Constructor. Fetches configuration from ClassLoader stream. */
   public SecurityConfiguration() {
@@ -248,5 +249,10 @@ public class SecurityConfiguration {
 
   public String getHistoricalPassword() {
     return properties.getProperty("nna.historical.password", "root");
+  }
+
+  public boolean allowBootstrapConfigurationOverrides() {
+    return Boolean.parseBoolean(
+        properties.getProperty("nna.support.bootstrap.overrides", NNA_SUPPORT_BOOTSTRAP_OVERRIDES));
   }
 }

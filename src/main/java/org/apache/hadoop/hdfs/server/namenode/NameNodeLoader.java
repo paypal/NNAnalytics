@@ -337,38 +337,11 @@ public class NameNodeLoader {
         conf.addResource("hdfs-site.xml");
       }
     }
+    handleConfigurationOverrides(conf, nnaConf);
     final long start = System.currentTimeMillis();
 
     GSet<INode, INodeWithAdditionalFields> gsetMap;
     if (preloadedInodes == null) {
-      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
-      conf.setBoolean(DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
-
-      LOG.info("Setting: {} to: {} ", DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, (-1));
-      conf.setInt(DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, -1);
-
-      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
-      conf.setBoolean(DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
-
-      String baseDir = nnaConf.getBaseDir();
-      LOG.info("Setting: {} to: {}/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir);
-      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, new URI(baseDir + "/dfs/name").getPath());
-
-      String nameserviceId = DFSUtil.getOnlyNameServiceIdOrNull(conf);
-      nameserviceId =
-          (nameserviceId == null) ? conf.get(DFSConfigKeys.DFS_NAMESERVICE_ID) : nameserviceId;
-      if (nameserviceId == null || nameserviceId.isEmpty()) {
-        /* Hack for 2.4.0 support. Attempt to override with internal nameservices. */
-        nameserviceId = conf.get("dfs.internal.nameservices");
-
-        LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_NAMESERVICE_ID, nameserviceId);
-        conf.set(DFSConfigKeys.DFS_NAMESERVICE_ID, nameserviceId);
-      }
-
-      /* Hack for 2.4.0 support. Unset external attribute provider. No Ranger support. */
-      LOG.info("Unsetting: dfs.namenode.inode.attributes.provider.class");
-      conf.unset("dfs.namenode.inode.attributes.provider.class");
-
       UserGroupInformation.setConfiguration(conf);
       reloadKeytab();
 
@@ -436,6 +409,44 @@ public class NameNodeLoader {
     long end = System.currentTimeMillis();
     LOG.info("NameNodeLoader bootstrap'd in: {} ms.", (end - start));
     inited.set(true);
+  }
+
+  private void handleConfigurationOverrides(Configuration conf, SecurityConfiguration nnaConf)
+      throws URISyntaxException {
+    if (nnaConf.allowBootstrapConfigurationOverrides()) {
+      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
+      conf.setBoolean(DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
+
+      LOG.info("Setting: {} to: {} ", DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, (-1));
+      conf.setInt(DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, -1);
+
+      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
+      conf.setBoolean(DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
+
+      String baseDir = nnaConf.getBaseDir();
+      LOG.info("Setting: {} to: {}/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir);
+      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, new URI(baseDir + "/dfs/name").getPath());
+
+      String nameserviceId = DFSUtil.getOnlyNameServiceIdOrNull(conf);
+      nameserviceId =
+          (nameserviceId == null) ? conf.get(DFSConfigKeys.DFS_NAMESERVICE_ID) : nameserviceId;
+      if (nameserviceId == null || nameserviceId.isEmpty()) {
+        /* Hack for 2.4.0 support. Attempt to override with internal nameservices. */
+        nameserviceId = conf.get("dfs.internal.nameservices");
+
+        LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_NAMESERVICE_ID, nameserviceId);
+        conf.set(DFSConfigKeys.DFS_NAMESERVICE_ID, nameserviceId);
+      }
+
+      /* Hack for 2.4.0 support. Unset external attribute provider. No Ranger support. */
+      LOG.info("Unsetting: dfs.namenode.inode.attributes.provider.class");
+      conf.unset("dfs.namenode.inode.attributes.provider.class");
+    } else {
+      LOG.warn(
+          "Not performing defensive configuration overrides; using configuration as-is.\n"
+              + "This instance may be acting upon your active cluster unless configured properly.\n"
+              + "Please run with 'nna.support.bootstrap.overrides=true' if you did not intend this.");
+    }
   }
 
   private void writeNumberFieldIfDefined(JsonGenerator json, String key, Long value)
