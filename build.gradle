@@ -50,7 +50,7 @@ ext {
 }
 
 versioning {
-    full = { scmInfo -> ("${scmInfo.lastTag}" == "null" ? "1.2." : "${scmInfo.lastTag}.") + hadoopVersion }
+    full = { scmInfo -> ("${scmInfo.tag}" == "null" ? "${scmInfo.lastTag}." : "${scmInfo.tag}.") + hadoopVersion }
     dirty = { version -> "${version}" }
 }
 
