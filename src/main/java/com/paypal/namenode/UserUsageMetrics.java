@@ -22,8 +22,8 @@ package com.paypal.namenode;
 import com.google.gson.Gson;
 import com.paypal.security.SecurityContext;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class is used for analytical purposes as a way to guage how many users are
@@ -38,9 +38,23 @@ public class UserUsageMetrics {
 
     private final Map<String, UserUsageMetricsUser> users;
 
+    private final Map<String, AtomicInteger> uniqueUserLoginCount;
+    private final Map<String, AtomicInteger> uniqueIpLoginCount;
+    private final Map<String, AtomicInteger> uniqueUserLogoutCount;
+    private final Map<String, AtomicInteger> uniqueIpLogoutCount;
+    private final Map<String, AtomicInteger> uniqueUserQueryCount;
+    private final Map<String, AtomicInteger> uniqueIpQueryCount;
+
     public UserUsageMetrics() {
 
         users = new HashMap<>();
+
+        uniqueUserLoginCount = new HashMap<>();
+        uniqueIpLoginCount = new HashMap<>();
+        uniqueUserLogoutCount = new HashMap<>();
+        uniqueIpLogoutCount = new HashMap<>();
+        uniqueUserQueryCount = new HashMap<>();
+        uniqueIpQueryCount = new HashMap<>();
 
     }
 
@@ -50,12 +64,18 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public Integer UserLoggedIn(SecurityContext secContext, String ipAddress) {
+    public void UserLoggedIn(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
         users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
-        return users.get(userName).LoggedIn(ipAddress);
+        users.get(userName).LoggedIn(ipAddress);
+
+        uniqueUserLoginCount.putIfAbsent(userName, new AtomicInteger(0));
+        uniqueUserLoginCount.get(userName).incrementAndGet();
+
+        uniqueIpLoginCount.putIfAbsent(userName, new AtomicInteger(0));
+        uniqueIpLoginCount.get(userName).incrementAndGet();
 
     }
 
@@ -65,12 +85,18 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public Integer UserLoggedOut(SecurityContext secContext, String ipAddress) {
+    public void UserLoggedOut(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
         users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
-        return users.get(userName).LoggedOut(ipAddress);
+        users.get(userName).LoggedOut(ipAddress);
+
+        uniqueUserLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
+        uniqueUserLogoutCount.get(userName).incrementAndGet();
+
+        uniqueIpLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
+        uniqueIpLogoutCount.get(userName).incrementAndGet();
 
     }
 
@@ -80,26 +106,48 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public Integer UserMadeQuery(SecurityContext secContext, String ipAddress) {
+    public void UserMadeQuery(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
         users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
-        return users.get(userName).Queried(ipAddress);
+        users.get(userName).Queried(ipAddress);
+
+        uniqueUserQueryCount.putIfAbsent(userName, new AtomicInteger(0));
+        uniqueUserQueryCount.get(userName).incrementAndGet();
+
+        uniqueIpQueryCount.putIfAbsent(ipAddress, new AtomicInteger(0));
+        uniqueIpQueryCount.get(ipAddress).incrementAndGet();
 
     }
 
     /**
-     * Return a JSON encoded string of tracked class properties
+     * Return a JSON encoded string of user metrics to be used on the front-end
      *
      * @return String
      */
-    public String GetUserMetrics() {
+    public String GetUserMetricsJson() {
 
-        Map<String, Map> userMetrics = new HashMap<>();
-        userMetrics.put("users", this.users);
+        Map<String, Map> returnValues = new HashMap<>();
 
-        return new Gson().toJson(userMetrics);
+        List<UserUsageMetricsUser> usersList = new ArrayList<>();
+        for(UserUsageMetricsUser user : users.values()) {
+            user.RefreshUserMetrics();
+            usersList.add(user);
+        }
+
+        Map<String, List> userMap = new HashMap<>();
+        userMap.put("users", usersList);
+
+        returnValues.put("data", userMap);
+        returnValues.put("uniqueUserLoginCount", uniqueUserLoginCount);
+        returnValues.put("uniqueIpLoginCount", uniqueIpLoginCount);
+        returnValues.put("uniqueUserLogoutCount", uniqueUserLogoutCount);
+        returnValues.put("uniqueIpLogoutCount", uniqueIpLogoutCount);
+        returnValues.put("uniqueUserQueryCount", uniqueUserQueryCount);
+        returnValues.put("uniqueIpQueryCount", uniqueIpQueryCount);
+
+        return new Gson().toJson(returnValues);
 
     }
 

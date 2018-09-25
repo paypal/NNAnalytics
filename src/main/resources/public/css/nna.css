@@ -94,6 +94,19 @@ tbody.collapse.in {
   width:80% !important;
   max-width:500px;
 }
+
+/* User Metrics */
+#userMetrics {
+
+}
+#userMetrics #userDataTable .details-control {
+    text-align: center;
+}
+#userMetrics #userDataTable .child-row {
+    background: #eee;
+}
+
+
 @media (max-width: 767px) {
   .list-group td:first-child {
     width: 75% !important;

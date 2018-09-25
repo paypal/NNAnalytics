@@ -19,6 +19,7 @@
 
 package com.paypal.namenode;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,32 +27,87 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class UserUsageMetricsUser {
 
     private final String userName;
-    private final Map<String, AtomicInteger> queries;
-    private final Map<String, AtomicInteger> logins;
-    private final Map<String, AtomicInteger> logouts;
+    private final Map<String, AtomicInteger> totalQueryCountsByIp;
+    private final Map<String, AtomicInteger> totalLoginCountsByIp;
+    private final Map<String, AtomicInteger> totalLogoutCountsByIp;
+    private final AtomicInteger totalQueryCount;
+    private final AtomicInteger totalLoginCount;
+    private final AtomicInteger totalLogoutCount;
+    private final ArrayList<Map> userMetrics;
 
     public UserUsageMetricsUser(String userName) {
-
+        this.userMetrics = new ArrayList<>();
         this.userName = userName;
-        this.queries = new HashMap<>();
-        this.logins = new HashMap<>();
-        this.logouts = new HashMap<>();
-
+        this.totalQueryCountsByIp = new HashMap<>();
+        this.totalLoginCountsByIp = new HashMap<>();
+        this.totalLogoutCountsByIp = new HashMap<>();
+        this.totalQueryCount = new AtomicInteger(0);
+        this.totalLoginCount = new AtomicInteger(0);
+        this.totalLogoutCount = new AtomicInteger(0);
     }
 
-    public Integer LoggedIn(String ipAddress) {
-        logins.putIfAbsent(ipAddress, new AtomicInteger(0));
-        return logins.get(ipAddress).incrementAndGet();
+    public void LoggedIn(String ipAddress) {
+        totalLoginCountsByIp.putIfAbsent(ipAddress, new AtomicInteger(0));
+        totalLoginCountsByIp.get(ipAddress).incrementAndGet();
+        totalLoginCount.incrementAndGet();
     }
 
-    public Integer LoggedOut(String ipAddress) {
-        logouts.putIfAbsent(ipAddress, new AtomicInteger(0));
-        return logouts.get(ipAddress).incrementAndGet();
+    public void LoggedOut(String ipAddress) {
+        totalLogoutCountsByIp.putIfAbsent(ipAddress, new AtomicInteger(0));
+        totalLogoutCountsByIp.get(ipAddress).incrementAndGet();
+        totalLogoutCount.incrementAndGet();
     }
 
-    public Integer Queried(String ipAddress) {
-        queries.putIfAbsent(ipAddress, new AtomicInteger(0));
-        return queries.get(ipAddress).incrementAndGet();
+    public void Queried(String ipAddress) {
+        totalQueryCountsByIp.putIfAbsent(ipAddress, new AtomicInteger(0));
+        totalQueryCountsByIp.get(ipAddress).incrementAndGet();
+        totalQueryCount.incrementAndGet();
+    }
+
+    public AtomicInteger GetTotalQueryCount() {
+        return totalQueryCount;
+    }
+
+    public AtomicInteger GetTotalLoginCount() {
+        return totalLoginCount;
+    }
+
+    public AtomicInteger GetTotalLogoutCount() {
+        return totalLogoutCount;
+    }
+
+    /**
+     * Refresh the userMetrics ArrayList with the most recent data.
+     */
+    public void RefreshUserMetrics() {
+        userMetrics.clear();
+
+        // set up the array metricsByIp
+        ArrayList<Map> metricsByIp = new ArrayList<>();
+        // now we need to build the hashmap with the individual ips as keys
+        HashMap<String, Map> ipMap = new HashMap<>();
+
+        for(String ip : totalQueryCountsByIp.keySet()) {
+            ipMap.putIfAbsent(ip, new HashMap<>());
+            ipMap.get(ip).putIfAbsent("ip", ip);
+            ipMap.get(ip).putIfAbsent("queryCount", totalQueryCountsByIp.getOrDefault(ip, new AtomicInteger(0)));
+        }
+
+        for(String ip : totalLoginCountsByIp.keySet()) {
+            ipMap.putIfAbsent(ip, new HashMap<>());
+            ipMap.get(ip).putIfAbsent("ip", ip);
+            ipMap.get(ip).putIfAbsent("loginCount", totalLoginCountsByIp.getOrDefault(ip, new AtomicInteger(0)));
+        }
+
+        for(String ip : totalLogoutCountsByIp.keySet()) {
+            ipMap.putIfAbsent(ip, new HashMap<>());
+            ipMap.get(ip).putIfAbsent("ip", ip);
+            ipMap.get(ip).putIfAbsent("logoutCount", totalLogoutCountsByIp.getOrDefault(ip, new AtomicInteger(0)));
+        }
+
+        metricsByIp.addAll(ipMap.values());
+
+        userMetrics.addAll(metricsByIp);
     }
 
 }

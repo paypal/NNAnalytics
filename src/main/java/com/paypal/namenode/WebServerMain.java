@@ -544,7 +544,7 @@ public class WebServerMain {
         (req, res) -> {
             res.header("Access-Control-Allow-Origin", "*");
             res.header("Content-Type", "application/json; charset=UTF-8");
-            res.body(userUsageMetrics.GetUserMetrics());
+            res.body(userUsageMetrics.GetUserMetricsJson());
             return res;
         });
 

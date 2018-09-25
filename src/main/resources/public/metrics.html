@@ -1,0 +1,153 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/nna.utility.js"></script>
+    <script type="text/javascript">checkIfAuthenticated();</script>
+    <head>
+        <!-- Bootstrap core CSS -->
+        <link href="./css/bootstrap.min.css" rel="stylesheet">
+        <!-- Sweetalert core CSS -->
+        <link href="./css/sweetalert.css" rel="stylesheet">
+        <!-- Custom styles for this template -->
+        <link href="./css/nna.css" rel="stylesheet">
+        <link href="./css/datatables.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container">
+            <div id="navbar"></div>
+            <!-- Main component for a primary marketing message or call to action -->
+            <div class="jumbotron">
+                <h1>User Metrics</h1>
+            </div>
+            <div id="userMetrics">
+                <table id="userDataTable" class="table table-bordered" style="width: 100%;">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Username</th>
+                        <th>IP Address</th>
+                        <th>Login Count</th>
+                        <th>Logout Count</th>
+                        <th>Query Count</th>
+                    </tr>
+                    </thead>
+                </table>
+            </div>
+        </div> <!-- /container -->
+        <!-- Bootstrap core JavaScript
+        ================================================== -->
+        <!-- Placed at the end of the document so the pages load faster -->
+        <script src="./js/bootstrap.min.js"></script>
+        <script src="./js/sweetalert.min.js"></script>
+        <script src="./js/Chart.bundle.min.js"></script>
+        <script src="./js/cycle.js"></script>
+        <script src="./js/datatables.min.js"></script>
+        <script type="text/javascript">
+            $(document).ready(function() {
+                $('#navbar').load('navbar.html', function() {
+                    checkIfAdmin();
+                });
+            });
+        </script>
+        <script type="text/javascript">$(document).ready(function(){  $("head").append("header.html");});</script>
+        <script type="text/javascript">getClusterName();</script>
+        <script>
+        function format ( d ) {
+            // `d` is the original data object for the row
+            let children = [];
+            for (let i = 0; i < d.userMetrics.length; i++) {
+                let child =  '';
+                child += '<tr class="child-row table-condensed">';
+                child += '<td></td>';
+                child += '<td></td>';
+                if(d.userMetrics[i].ip) {
+                    child += '<td>' + d.userMetrics[i].ip + '</td>';
+                } else {
+                    child += '<td>0</td>';
+                }
+                if(d.userMetrics[i].loginCount) {
+                    child += '<td>' + d.userMetrics[i].loginCount.value + '</td>';
+                } else {
+                    child += '<td>0</td>';
+                }
+                if(d.userMetrics[i].logoutCount) {
+                    child += '<td>' + d.userMetrics[i].logoutCount.value + '</td>';
+                } else {
+                    child += '<td>0</td>';
+                }
+                if(d.userMetrics[i].queryCount) {
+                    child += '<td>' + d.userMetrics[i].queryCount.value + '</td>';
+                } else {
+                    child += '<td>0</td>';
+                }
+                child += '</tr>';
+                children.push($(child));
+            }
+            return children
+        }
+        $(document).ready(function() {
+            $(document).on('click', 'td.details-control', function () {
+                $(this).find('.glyphicon').toggleClass('glyphicon-plus glyphicon-minus');
+                let tr = $(this).closest('tr');
+                let row = table.row( tr );
+                if ( row.child.isShown() ) {
+                    // This row is already open - close it
+                    row.child.hide();
+                    tr.removeClass('shown');
+                } else {
+                    // Open this row
+                    row.child($(format(row.data()))).show();
+                    tr.addClass('shown');
+                }
+            });
+            let table = $('#userDataTable').DataTable( {
+                "ajax": {
+                    "url": "/metrics",
+                    "type": "GET",
+                    "dataSrc": 'data.users'
+                },
+                "order": [[1, "desc"]],
+                "columns": [
+                    {
+                        "className":      'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": '<span class="glyphicon glyphicon-plus"></span>'
+                    },
+                    { "data": "userName" },
+                    {
+                        "className":      'ipAddress',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+                    { "data": "totalLoginCount.value" },
+                    { "data": "totalLogoutCount.value" },
+                    { "data": "totalQueryCount.value" }
+                ]
+            } );
+        });
+    </script>
+    </body>
+</html>
+
