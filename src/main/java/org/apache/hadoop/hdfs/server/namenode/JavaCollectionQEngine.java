@@ -30,7 +30,6 @@ import static com.googlecode.cqengine.query.QueryFactory.lessThan;
 import static com.googlecode.cqengine.query.QueryFactory.lessThanOrEqualTo;
 import static com.googlecode.cqengine.query.QueryFactory.not;
 import static com.googlecode.cqengine.query.QueryFactory.startsWith;
-import static com.googlecode.cqengine.stream.StreamFactory.streamOf;
 
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.IndexedCollection;
@@ -299,7 +298,7 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
                   and(queries.get(0), queries.get(1), queries.subList(2, queries.size())));
           break;
       }
-      return streamOf(result).collect(Collectors.toSet());
+      return result.stream().collect(Collectors.toSet());
     } finally {
       long end = System.currentTimeMillis();
       LOG.info(
