@@ -124,6 +124,14 @@ public class TestNNAnalytics {
   }
 
   @Test
+  public void testUserMetrics() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/metrics");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("userMetrics"));
+  }
+
+  @Test
   public void testTokens() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/token");
     HttpResponse res = client.execute(hostPort, get);
