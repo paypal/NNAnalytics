@@ -533,8 +533,8 @@ public class WebServerMain {
           secContext.handleAuthorization(req, res);
           if (!"POST".equals(req.raw().getMethod())) {
             runningQueries.add(Helper.createQuery(req.raw(), secContext.getUserName()));
+            userUsageMetrics.userMadeQuery(secContext, req.ip());
           }
-          userUsageMetrics.UserMadeQuery(secContext, req.ip());
         });
 
     /* METRICS endpoint is meant to return information on the users and the
