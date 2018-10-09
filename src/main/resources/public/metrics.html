@@ -76,27 +76,30 @@
             // `d` is the original data object for the row
             let children = [];
             for (let i = 0; i < d.userMetrics.length; i++) {
+
+                // console.log(Object.keys(d.userMetrics[i])[0]);
+                let ip = Object.keys(d.userMetrics[i])[0];
+                let childObj = d.userMetrics[i][ip];
+
                 let child =  '';
                 child += '<tr class="child-row table-condensed">';
                 child += '<td></td>';
                 child += '<td></td>';
-                if(d.userMetrics[i].ip) {
-                    child += '<td>' + d.userMetrics[i].ip + '</td>';
+
+                child += '<td>' + Object.keys(d.userMetrics[i])[0] + '</td>';
+
+                if(childObj.loginCount) {
+                    child += '<td>' + childObj.loginCount + '</td>';
                 } else {
                     child += '<td>0</td>';
                 }
-                if(d.userMetrics[i].loginCount) {
-                    child += '<td>' + d.userMetrics[i].loginCount.value + '</td>';
+                if(childObj.logoutCount) {
+                    child += '<td>' + childObj.logoutCount + '</td>';
                 } else {
                     child += '<td>0</td>';
                 }
-                if(d.userMetrics[i].logoutCount) {
-                    child += '<td>' + d.userMetrics[i].logoutCount.value + '</td>';
-                } else {
-                    child += '<td>0</td>';
-                }
-                if(d.userMetrics[i].queryCount) {
-                    child += '<td>' + d.userMetrics[i].queryCount.value + '</td>';
+                if(childObj.queryCount) {
+                    child += '<td>' + childObj.queryCount + '</td>';
                 } else {
                     child += '<td>0</td>';
                 }
@@ -124,7 +127,9 @@
                 "ajax": {
                     "url": "/metrics",
                     "type": "GET",
-                    "dataSrc": 'data.users'
+                    "dataSrc": function(json) {
+                        return json.data.users
+                    }
                 },
                 "order": [[1, "desc"]],
                 "columns": [
@@ -141,9 +146,9 @@
                         "data":           null,
                         "defaultContent": ''
                     },
-                    { "data": "totalLoginCount.value" },
-                    { "data": "totalLogoutCount.value" },
-                    { "data": "totalQueryCount.value" }
+                    { "data": "totalLoginCount" },
+                    { "data": "totalLogoutCount" },
+                    { "data": "totalQueryCount" }
                 ]
             } );
         });
