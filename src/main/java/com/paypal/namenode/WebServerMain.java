@@ -142,7 +142,7 @@ public class WebServerMain {
   private final List<BaseQuery> runningQueries = Collections.synchronizedList(new LinkedList<>());
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
   private final SecurityContext secContext = new SecurityContext();
-  private final UserUsageMetrics userUsageMetrics = new UserUsageMetrics();
+  private final UsageMetrics usageMetrics = new UsageMetrics();
 
   private final ExecutorService operationService = Executors.newFixedThreadPool(1);
   private final ExecutorService internalService = Executors.newFixedThreadPool(2);
@@ -297,7 +297,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           secContext.login(req, res);
-          userUsageMetrics.userLoggedIn(secContext, req.ip());
+          usageMetrics.userLoggedIn(secContext, req.ip());
           return res;
         });
 
@@ -308,7 +308,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           secContext.logout(req, res);
-          userUsageMetrics.userLoggedOut(secContext, req.ip());
+          usageMetrics.userLoggedOut(secContext, req.ip());
           return res;
         });
 
@@ -533,7 +533,7 @@ public class WebServerMain {
           secContext.handleAuthorization(req, res);
           if (!"POST".equals(req.raw().getMethod())) {
             runningQueries.add(Helper.createQuery(req.raw(), secContext.getUserName()));
-            userUsageMetrics.userMadeQuery(secContext, req.ip());
+            usageMetrics.userMadeQuery(secContext, req.ip());
           }
         });
 
@@ -544,7 +544,7 @@ public class WebServerMain {
         (req, res) -> {
             res.header("Access-Control-Allow-Origin", "*");
             res.header("Content-Type", "application/json; charset=UTF-8");
-            res.body(userUsageMetrics.getUserMetricsJson());
+            res.body(usageMetrics.getUserMetricsJson());
             return res;
         });
 

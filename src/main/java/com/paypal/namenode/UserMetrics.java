@@ -23,75 +23,74 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UserUsageMetricsUser {
+public class UserMetrics {
 
     private final String userName;
-    private final Map<String, Integer> totalQueryCountsByIp;
-    private final Map<String, Integer> totalLoginCountsByIp;
-    private final Map<String, Integer> totalLogoutCountsByIp;
-    private Integer totalQueryCount;
-    private Integer totalLoginCount;
-    private Integer totalLogoutCount;
-    private ArrayList<Map<String,Map<String,Integer>>> userMetrics;
+    private final Map<String, Long> totalQueryCountsByIp;
+    private final Map<String, Long> totalLoginCountsByIp;
+    private final Map<String, Long> totalLogoutCountsByIp;
 
-    public UserUsageMetricsUser(String userName) {
-        this.userMetrics = new ArrayList<>();
+    public UserMetrics(String userName) {
         this.userName = userName;
         this.totalQueryCountsByIp = new HashMap<>();
         this.totalLoginCountsByIp = new HashMap<>();
         this.totalLogoutCountsByIp = new HashMap<>();
-        this.totalQueryCount = 0;
-        this.totalLoginCount = 0;
-        this.totalLogoutCount = 0;
     }
 
     public void loggedIn(String ipAddress) {
-        int count = totalLoginCountsByIp.getOrDefault(ipAddress, 0);
+        long count = totalLoginCountsByIp.getOrDefault(ipAddress,0L);
         totalLoginCountsByIp.put(ipAddress, count + 1);
-        totalLoginCount = totalLoginCount + 1;
+
     }
 
     public void loggedOut(String ipAddress) {
-        int count = totalLogoutCountsByIp.getOrDefault(ipAddress, 0);
+        long count = totalLogoutCountsByIp.getOrDefault(ipAddress, 0L);
         totalLogoutCountsByIp.put(ipAddress, count + 1);
-        totalLogoutCount = totalLogoutCount + 1;
     }
 
     public void queried(String ipAddress) {
-        int count = totalQueryCountsByIp.getOrDefault(ipAddress, 0);
+        long count = totalQueryCountsByIp.getOrDefault(ipAddress,  0L);
         totalQueryCountsByIp.put(ipAddress, count + 1);
-        totalQueryCount = totalQueryCount + 1;
     }
 
     /**
-     * Refresh the userMetrics ArrayList with the most recent data.
+     * Format the UserMetrics for JSON.
      */
-    public void refreshUserMetrics() {
-        userMetrics.clear();
+    public HashMap<String, Object> formatForJson() {
+        HashMap<String, Object> jsonFormattedUser = new HashMap<>();
+        jsonFormattedUser.put("totalQueryCount", totalQueryCountsByIp.values().stream().mapToLong(l -> l).sum());
+        jsonFormattedUser.put("totalLoginCount", totalLoginCountsByIp.values().stream().mapToLong(l -> l).sum());
+        jsonFormattedUser.put("totalLogoutCount", totalLogoutCountsByIp.values().stream().mapToLong(l -> l).sum());
+        jsonFormattedUser.put("userName", userName);
 
-        HashMap<String, Map<String, Integer>> ipMap = new HashMap<>();
+        ArrayList<Map<String,Map<String,Long>>> ipList = new ArrayList<>();
+
+        HashMap<String, Map<String, Long>> ipMap = new HashMap<>();
 
         for(String ip : totalQueryCountsByIp.keySet()) {
             ipMap.putIfAbsent(ip, new HashMap<>());
-            ipMap.get(ip).putIfAbsent("queryCount", totalQueryCountsByIp.getOrDefault(ip, 0));
+            ipMap.get(ip).putIfAbsent("queryCount", totalQueryCountsByIp.getOrDefault(ip, 0L));
         }
 
         for(String ip : totalLoginCountsByIp.keySet()) {
             ipMap.putIfAbsent(ip, new HashMap<>());
-            ipMap.get(ip).putIfAbsent("loginCount", totalLoginCountsByIp.getOrDefault(ip, 0));
+            ipMap.get(ip).putIfAbsent("loginCount", totalLoginCountsByIp.getOrDefault(ip, 0L));
         }
 
         for(String ip : totalLogoutCountsByIp.keySet()) {
             ipMap.putIfAbsent(ip, new HashMap<>());
-            ipMap.get(ip).putIfAbsent("logoutCount", totalLogoutCountsByIp.getOrDefault(ip, 0));
+            ipMap.get(ip).putIfAbsent("logoutCount", totalLogoutCountsByIp.getOrDefault(ip, 0L));
         }
 
         ipMap.keySet().forEach(key -> {
-            Map<String,Map<String,Integer>> ipMetricMap = new HashMap<>();
+            Map<String,Map<String,Long>> ipMetricMap = new HashMap<>();
             ipMetricMap.put(key, ipMap.get(key));
-            userMetrics.add(ipMetricMap);
+            ipList.add(ipMetricMap);
         });
 
+        jsonFormattedUser.put("ips", ipList);
+
+        return jsonFormattedUser;
     }
 
 }

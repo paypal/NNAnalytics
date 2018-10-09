@@ -75,18 +75,18 @@
         function format ( d ) {
             // `d` is the original data object for the row
             let children = [];
-            for (let i = 0; i < d.userMetrics.length; i++) {
+            for (let i = 0; i < d.ips.length; i++) {
 
-                // console.log(Object.keys(d.userMetrics[i])[0]);
-                let ip = Object.keys(d.userMetrics[i])[0];
-                let childObj = d.userMetrics[i][ip];
+                // console.log(Object.keys(d.UserMetrics[i])[0]);
+                let ip = Object.keys(d.ips[i])[0];
+                let childObj = d.ips[i][ip];
 
                 let child =  '';
                 child += '<tr class="child-row table-condensed">';
                 child += '<td></td>';
                 child += '<td></td>';
 
-                child += '<td>' + Object.keys(d.userMetrics[i])[0] + '</td>';
+                child += '<td>' + Object.keys(d.ips[i])[0] + '</td>';
 
                 if(childObj.loginCount) {
                     child += '<td>' + childObj.loginCount + '</td>';
@@ -128,7 +128,8 @@
                     "url": "/metrics",
                     "type": "GET",
                     "dataSrc": function(json) {
-                        return json.data.users
+                        console.log(json);
+                        return json.users
                     }
                 },
                 "order": [[1, "desc"]],

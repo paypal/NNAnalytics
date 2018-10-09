@@ -30,13 +30,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * using and querying NNAnalytics. It contains public methods to store users and IP
  * addresses logging in and out and the number of queries they made.
  *
- * Although UserUsageMetrics will function when NNAnalytics authentication is disabled,
+ * Although UsageMetrics will function when NNAnalytics authentication is disabled,
  * its purpose is intended to be used on authenticated instances where we
  * have access to more basic information on a user.
  */
-public class UserUsageMetrics {
+public class UsageMetrics {
 
-    private final Map<String, UserUsageMetricsUser> users;
+    private final Map<String, UserMetrics> users;
 
     private final Map<String, AtomicInteger> uniqueUserLoginCount;
     private final Map<String, AtomicInteger> uniqueIpLoginCount;
@@ -45,8 +45,7 @@ public class UserUsageMetrics {
     private final Map<String, AtomicInteger> uniqueUserQueryCount;
     private final Map<String, AtomicInteger> uniqueIpQueryCount;
 
-    public UserUsageMetrics() {
-
+    public UsageMetrics() {
         users = new HashMap<>();
 
         uniqueUserLoginCount = new HashMap<>();
@@ -55,7 +54,6 @@ public class UserUsageMetrics {
         uniqueIpLogoutCount = new HashMap<>();
         uniqueUserQueryCount = new HashMap<>();
         uniqueIpQueryCount = new HashMap<>();
-
     }
 
     /**
@@ -65,10 +63,9 @@ public class UserUsageMetrics {
      * @param ipAddress String
      */
     public synchronized void userLoggedIn(SecurityContext secContext, String ipAddress) {
-
         String userName = secContext.getUserName();
 
-        users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
+        users.putIfAbsent(userName, new UserMetrics(userName));
         users.get(userName).loggedIn(ipAddress);
 
         uniqueUserLoginCount.putIfAbsent(userName, new AtomicInteger(0));
@@ -76,7 +73,6 @@ public class UserUsageMetrics {
 
         uniqueIpLoginCount.putIfAbsent(userName, new AtomicInteger(0));
         uniqueIpLoginCount.get(userName).incrementAndGet();
-
     }
 
     /**
@@ -86,10 +82,9 @@ public class UserUsageMetrics {
      * @param ipAddress String
      */
     public synchronized void userLoggedOut(SecurityContext secContext, String ipAddress) {
-
         String userName = secContext.getUserName();
 
-        users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
+        users.putIfAbsent(userName, new UserMetrics(userName));
         users.get(userName).loggedOut(ipAddress);
 
         uniqueUserLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
@@ -97,7 +92,6 @@ public class UserUsageMetrics {
 
         uniqueIpLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
         uniqueIpLogoutCount.get(userName).incrementAndGet();
-
     }
 
     /**
@@ -107,10 +101,9 @@ public class UserUsageMetrics {
      * @param ipAddress String
      */
     public synchronized void userMadeQuery(SecurityContext secContext, String ipAddress) {
-
         String userName = secContext.getUserName();
 
-        users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
+        users.putIfAbsent(userName, new UserMetrics(userName));
         users.get(userName).queried(ipAddress);
 
         uniqueUserQueryCount.putIfAbsent(userName, new AtomicInteger(0));
@@ -118,7 +111,6 @@ public class UserUsageMetrics {
 
         uniqueIpQueryCount.putIfAbsent(ipAddress, new AtomicInteger(0));
         uniqueIpQueryCount.get(ipAddress).incrementAndGet();
-
     }
 
     /**
@@ -127,28 +119,15 @@ public class UserUsageMetrics {
      * @return String
      */
     public synchronized String getUserMetricsJson() {
-
-        Map<String, Map> returnValues = new HashMap<>();
-
-        List<UserUsageMetricsUser> usersList = new ArrayList<>();
-        for(UserUsageMetricsUser user : users.values()) {
-            user.refreshUserMetrics();
-            usersList.add(user);
+        ArrayList<Map> userList = new ArrayList<>();
+        for(UserMetrics user : users.values()) {
+            userList.add(user.formatForJson());
         }
 
-        Map<String, List> userMap = new HashMap<>();
-        userMap.put("users", usersList);
-
-        returnValues.put("data", userMap);
-        returnValues.put("uniqueUserLoginCount", uniqueUserLoginCount);
-        returnValues.put("uniqueIpLoginCount", uniqueIpLoginCount);
-        returnValues.put("uniqueUserLogoutCount", uniqueUserLogoutCount);
-        returnValues.put("uniqueIpLogoutCount", uniqueIpLogoutCount);
-        returnValues.put("uniqueUserQueryCount", uniqueUserQueryCount);
-        returnValues.put("uniqueIpQueryCount", uniqueIpQueryCount);
+        Map<String, Object> returnValues = new HashMap<>();
+        returnValues.put("users", userList);
 
         return new Gson().toJson(returnValues);
-
     }
 
 }
