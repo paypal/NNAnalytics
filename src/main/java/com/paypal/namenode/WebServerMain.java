@@ -297,7 +297,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           secContext.login(req, res);
-          userUsageMetrics.UserLoggedIn(secContext, req.ip());
+          userUsageMetrics.userLoggedIn(secContext, req.ip());
           return res;
         });
 
@@ -308,7 +308,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           secContext.logout(req, res);
-          userUsageMetrics.UserLoggedOut(secContext, req.ip());
+          userUsageMetrics.userLoggedOut(secContext, req.ip());
           return res;
         });
 
@@ -544,7 +544,7 @@ public class WebServerMain {
         (req, res) -> {
             res.header("Access-Control-Allow-Origin", "*");
             res.header("Content-Type", "application/json; charset=UTF-8");
-            res.body(userUsageMetrics.GetUserMetricsJson());
+            res.body(userUsageMetrics.getUserMetricsJson());
             return res;
         });
 

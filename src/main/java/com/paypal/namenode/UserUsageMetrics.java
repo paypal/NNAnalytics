@@ -64,12 +64,12 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public void UserLoggedIn(SecurityContext secContext, String ipAddress) {
+    public void userLoggedIn(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
         users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
-        users.get(userName).LoggedIn(ipAddress);
+        users.get(userName).loggedIn(ipAddress);
 
         uniqueUserLoginCount.putIfAbsent(userName, new AtomicInteger(0));
         uniqueUserLoginCount.get(userName).incrementAndGet();
@@ -85,12 +85,12 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public void UserLoggedOut(SecurityContext secContext, String ipAddress) {
+    public void userLoggedOut(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
         users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
-        users.get(userName).LoggedOut(ipAddress);
+        users.get(userName).loggedOut(ipAddress);
 
         uniqueUserLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
         uniqueUserLogoutCount.get(userName).incrementAndGet();
@@ -106,12 +106,12 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public void UserMadeQuery(SecurityContext secContext, String ipAddress) {
+    public void userMadeQuery(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
         users.putIfAbsent(userName, new UserUsageMetricsUser(userName));
-        users.get(userName).Queried(ipAddress);
+        users.get(userName).queried(ipAddress);
 
         uniqueUserQueryCount.putIfAbsent(userName, new AtomicInteger(0));
         uniqueUserQueryCount.get(userName).incrementAndGet();
@@ -126,13 +126,13 @@ public class UserUsageMetrics {
      *
      * @return String
      */
-    public String GetUserMetricsJson() {
+    public String getUserMetricsJson() {
 
         Map<String, Map> returnValues = new HashMap<>();
 
         List<UserUsageMetricsUser> usersList = new ArrayList<>();
         for(UserUsageMetricsUser user : users.values()) {
-            user.RefreshUserMetrics();
+            user.refreshUserMetrics();
             usersList.add(user);
         }
 

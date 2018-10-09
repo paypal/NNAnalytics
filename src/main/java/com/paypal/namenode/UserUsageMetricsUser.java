@@ -46,19 +46,19 @@ public class UserUsageMetricsUser {
         this.totalLogoutCount = new AtomicInteger(0);
     }
 
-    public void LoggedIn(String ipAddress) {
+    public void loggedIn(String ipAddress) {
         totalLoginCountsByIp.putIfAbsent(ipAddress, new AtomicInteger(0));
         totalLoginCountsByIp.get(ipAddress).incrementAndGet();
         totalLoginCount.incrementAndGet();
     }
 
-    public void LoggedOut(String ipAddress) {
+    public void loggedOut(String ipAddress) {
         totalLogoutCountsByIp.putIfAbsent(ipAddress, new AtomicInteger(0));
         totalLogoutCountsByIp.get(ipAddress).incrementAndGet();
         totalLogoutCount.incrementAndGet();
     }
 
-    public void Queried(String ipAddress) {
+    public void queried(String ipAddress) {
         totalQueryCountsByIp.putIfAbsent(ipAddress, new AtomicInteger(0));
         totalQueryCountsByIp.get(ipAddress).incrementAndGet();
         totalQueryCount.incrementAndGet();
@@ -79,7 +79,7 @@ public class UserUsageMetricsUser {
     /**
      * Refresh the userMetrics ArrayList with the most recent data.
      */
-    public void RefreshUserMetrics() {
+    public void refreshUserMetrics() {
         userMetrics.clear();
 
         // set up the array metricsByIp
