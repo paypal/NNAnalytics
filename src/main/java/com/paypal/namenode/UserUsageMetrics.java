@@ -64,7 +64,7 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public void userLoggedIn(SecurityContext secContext, String ipAddress) {
+    public synchronized void userLoggedIn(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
@@ -85,7 +85,7 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public void userLoggedOut(SecurityContext secContext, String ipAddress) {
+    public synchronized void userLoggedOut(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
@@ -106,7 +106,7 @@ public class UserUsageMetrics {
      * @param secContext SecurityContext
      * @param ipAddress String
      */
-    public void userMadeQuery(SecurityContext secContext, String ipAddress) {
+    public synchronized void userMadeQuery(SecurityContext secContext, String ipAddress) {
 
         String userName = secContext.getUserName();
 
@@ -126,7 +126,7 @@ public class UserUsageMetrics {
      *
      * @return String
      */
-    public String getUserMetricsJson() {
+    public synchronized String getUserMetricsJson() {
 
         Map<String, Map> returnValues = new HashMap<>();
 
