@@ -32,7 +32,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import com.paypal.namenode.WebServerMain;
-import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
@@ -43,13 +42,9 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
-import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
-import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -58,40 +53,13 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestNNAnalytics {
+public abstract class TestNNAnalyticsBase {
 
-  private static HttpHost hostPort;
-  private static HttpClient client;
-  private static WebServerMain nna;
-
-  /** Long running execution that will launch an NNA instance with a non-updating namespace. */
-  public static void main(String[] args) throws Exception {
-    beforeClass();
-    while (true) {
-      // Let the server run.
-    }
-  }
-
-  @BeforeClass
-  public static void beforeClass() throws Exception {
-    GSetGenerator gSetGenerator = new GSetGenerator();
-    gSetGenerator.clear();
-    GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new WebServerMain();
-    SecurityConfiguration conf = new SecurityConfiguration();
-    conf.set("ldap.enable", "false");
-    conf.set("authorization.enable", "false");
-    conf.set("nna.historical", "false");
-    conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
-    nna.init(conf, gset);
-    hostPort = new HttpHost("localhost", 4567);
-  }
+  protected static HttpHost hostPort;
+  protected static HttpClient client;
+  protected static WebServerMain nna;
 
   @AfterClass
   public static void tearDown() {

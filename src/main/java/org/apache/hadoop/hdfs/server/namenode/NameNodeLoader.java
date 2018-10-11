@@ -58,6 +58,7 @@ import org.apache.hadoop.security.token.delegation.TokenExtractor;
 import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
 import org.apache.hadoop.util.GSetSeperatorWrapper;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 import org.slf4j.Logger;
@@ -69,8 +70,8 @@ public class NameNodeLoader {
 
   private final VersionInterface versionLoader;
   private final SuggestionsEngine suggestionsEngine;
-  private final QueryEngine queryEngine;
 
+  private QueryEngine queryEngine = null;
   private AtomicBoolean inited = new AtomicBoolean(false);
   private AtomicBoolean historical = new AtomicBoolean(false);
   private Configuration conf = null;
@@ -85,7 +86,6 @@ public class NameNodeLoader {
   public NameNodeLoader() {
     versionLoader = new VersionContext();
     suggestionsEngine = new SuggestionsEngine();
-    queryEngine = new JavaCollectionQEngine();
   }
 
   public TokenExtractor getTokenExtractor() {
@@ -321,12 +321,14 @@ public class NameNodeLoader {
       GSet<INode, INodeWithAdditionalFields> preloadedInodes,
       Configuration preloadedHadoopConf,
       SecurityConfiguration nnaConf)
-      throws IOException, NoSuchFieldException, IllegalAccessException, URISyntaxException {
+      throws IOException, NoSuchFieldException, IllegalAccessException, URISyntaxException,
+          ClassNotFoundException {
     /*
      * Configuration standard is: /etc/hadoop/conf.
      * Goal is to let configuration tell us where the FsImage and EditLogs are for loading.
      */
 
+    queryEngine = initializeQueryEngine(nnaConf);
     suggestionsEngine.start(nnaConf);
     if (conf == null) {
       if (preloadedHadoopConf != null) {
@@ -408,6 +410,16 @@ public class NameNodeLoader {
     long end = System.currentTimeMillis();
     LOG.info("NameNodeLoader bootstrap'd in: {} ms.", (end - start));
     inited.set(true);
+  }
+
+  @SuppressWarnings("unchecked")
+  private QueryEngine initializeQueryEngine(SecurityConfiguration nnaConf)
+      throws ClassNotFoundException {
+    String queryEngineClassString = nnaConf.getQueryEngineImplementation();
+    LOG.info("Starting with QueryEngine implementation: {}", queryEngineClassString);
+    Class<QueryEngine> queryEngineClass =
+        (Class<QueryEngine>) Class.forName(queryEngineClassString);
+    return ReflectionUtils.newInstance(queryEngineClass, null);
   }
 
   private void handleConfigurationOverrides(Configuration conf, SecurityConfiguration nnaConf)
