@@ -25,6 +25,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
+import org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.junit.BeforeClass;
@@ -53,8 +54,7 @@ public class TestNNAWithStreamEngine extends TestNNAnalyticsBase {
     conf.set("authorization.enable", "false");
     conf.set("nna.historical", "false");
     conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
-    conf.set(
-        "nna.query.engine.impl", "org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine");
+    conf.set("nna.query.engine.impl", JavaStreamQueryEngine.class.getCanonicalName());
     nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);
   }
