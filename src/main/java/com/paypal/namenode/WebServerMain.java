@@ -324,7 +324,7 @@ public class WebServerMain {
           if (queryEngine instanceof JavaCollectionQEngine) {
             return ((JavaCollectionQEngine) queryEngine).sql(req.raw(), res.raw());
           }
-          res.status(404);
+          res.status(HttpStatus.SC_NOT_FOUND);
           res.body("QueryEngine does not support SQL syntax.");
           return res;
         });

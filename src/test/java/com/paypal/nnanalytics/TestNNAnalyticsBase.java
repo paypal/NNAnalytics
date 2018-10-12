@@ -63,10 +63,14 @@ import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.queries.Transforms;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.eclipse.jetty.http.HttpStatus;
 import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -1069,6 +1073,20 @@ public abstract class TestNNAnalyticsBase {
     }
     System.out.println("Total # of completed query check for benchmarking: " + count);
     System.out.println("Total time taken in milliseconds: " + timeTaken);
+  }
+
+  @Test
+  public void testSQL() throws IOException {
+    HttpPost post = new HttpPost("http://localhost:4567/sql");
+    List<NameValuePair> postParams = new ArrayList<>();
+    postParams.add(new BasicNameValuePair("sqlStatement", "SELECT * FROM files"));
+    post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
+    HttpResponse res = client.execute(hostPort, post);
+    if (res.getStatusLine().getStatusCode() != HttpStatus.NOT_FOUND_404) {
+      List<String> text = IOUtils.readLines(res.getEntity().getContent());
+      assertThat(text.size(), is(555000));
+      assertThat(res.getStatusLine().getStatusCode(), is(HttpStatus.OK_200));
+    }
   }
 
   private static HashMap<INodeSet, HashMap<Find, ArrayList<FindField>>> getSetFilterFindConfig() {
