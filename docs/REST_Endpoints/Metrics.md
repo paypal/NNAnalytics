@@ -2,7 +2,7 @@
 
 `/metrics` is a GET only call that only CACHE users and higher can access.
 
-Response code is 200 and a JSON dump containing metrics information. JSON contains total login, logout and query counts as well as a breakdown by ip addresses used.
+Response code is 200 and a JSON dump containing metrics information. JSON contains an array of users with their total login, logout and query counts as well as a breakdown by ip addresses used.
 
 ```json
 {
