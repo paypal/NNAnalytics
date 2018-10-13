@@ -128,7 +128,7 @@ public class TestNNAnalytics {
     HttpGet get = new HttpGet("http://localhost:4567/metrics");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
-    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("userMetrics"));
+    assertThat(IOUtils.toString(res.getEntity().getContent()), containsString("users"));
   }
 
   @Test
