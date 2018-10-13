@@ -21,6 +21,7 @@ package com.paypal.nnanalytics;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.StringContains.containsString;
 
 import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
@@ -135,5 +136,25 @@ public class TestAuthorization {
     HttpResponse res = client.execute(hostPort, get);
     System.out.println(IOUtils.toString(res.getEntity().getContent()));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testUsageMetricsWithMultipleUsers() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/refresh?proxy=hdfsR");
+    HttpResponse res = client.execute(hostPort, get);
+    System.out.println(IOUtils.toString(res.getEntity().getContent()));
+
+    HttpGet get2 = new HttpGet("http://localhost:4567/refresh?proxy=hdfsW");
+    HttpResponse res2 = client.execute(hostPort, get2);
+    System.out.println(IOUtils.toString(res2.getEntity().getContent()));
+
+    HttpGet get3 = new HttpGet("http://localhost:4567/refresh?proxy=hdfs");
+    HttpResponse res3 = client.execute(hostPort, get3);
+
+    String jsonString = IOUtils.toString(res3.getEntity().getContent());
+
+    assertThat(jsonString, containsString("hdfs"));
+    assertThat(jsonString, containsString("hdfsR"));
+    assertThat(jsonString, containsString("hdfsW"));
   }
 }
