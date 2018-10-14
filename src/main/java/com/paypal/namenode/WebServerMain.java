@@ -538,16 +538,15 @@ public class WebServerMain {
         });
 
     /* METRICS endpoint is meant to return information on the users and the
-     amount of queries they are making */
+    amount of queries they are making */
     get(
         "/metrics",
         (req, res) -> {
-            res.header("Access-Control-Allow-Origin", "*");
-            res.header("Content-Type", "application/json; charset=UTF-8");
-            res.body(usageMetrics.getUserMetricsJson());
-            return res;
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "application/json; charset=UTF-8");
+          res.body(usageMetrics.getUserMetricsJson());
+          return res;
         });
-
 
     /* HISTOGRAMS endpoint is meant to showcase the different types of histograms available in the "&type="
     parameter in JSON form. */

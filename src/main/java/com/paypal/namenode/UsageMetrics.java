@@ -21,113 +21,111 @@ package com.paypal.namenode;
 
 import com.google.gson.Gson;
 import com.paypal.security.SecurityContext;
-
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * This class is used for analytical purposes as a way to guage how many users are
- * using and querying NNAnalytics. It contains public methods to store users and IP
- * addresses logging in and out and the number of queries they made.
+ * This class is used for analytical purposes as a way to guage how many users are using and
+ * querying NNAnalytics. It contains public methods to store users and IP addresses logging in and
+ * out and the number of queries they made.
  *
- * Although UsageMetrics will function when NNAnalytics authentication is disabled,
- * its purpose is intended to be used on authenticated instances where we
- * have access to more basic information on a user.
+ * <p>Although UsageMetrics will function when NNAnalytics authentication is disabled, its purpose
+ * is intended to be used on authenticated instances where we have access to more basic information
+ * on a user.
  */
 public class UsageMetrics {
 
-    private final Map<String, UserMetrics> users;
+  private final Map<String, UserMetrics> users;
 
-    private final Map<String, AtomicInteger> uniqueUserLoginCount;
-    private final Map<String, AtomicInteger> uniqueIpLoginCount;
-    private final Map<String, AtomicInteger> uniqueUserLogoutCount;
-    private final Map<String, AtomicInteger> uniqueIpLogoutCount;
-    private final Map<String, AtomicInteger> uniqueUserQueryCount;
-    private final Map<String, AtomicInteger> uniqueIpQueryCount;
+  private final Map<String, AtomicInteger> uniqueUserLoginCount;
+  private final Map<String, AtomicInteger> uniqueIpLoginCount;
+  private final Map<String, AtomicInteger> uniqueUserLogoutCount;
+  private final Map<String, AtomicInteger> uniqueIpLogoutCount;
+  private final Map<String, AtomicInteger> uniqueUserQueryCount;
+  private final Map<String, AtomicInteger> uniqueIpQueryCount;
 
-    public UsageMetrics() {
-        users = new HashMap<>();
+  public UsageMetrics() {
+    users = new HashMap<>();
 
-        uniqueUserLoginCount = new HashMap<>();
-        uniqueIpLoginCount = new HashMap<>();
-        uniqueUserLogoutCount = new HashMap<>();
-        uniqueIpLogoutCount = new HashMap<>();
-        uniqueUserQueryCount = new HashMap<>();
-        uniqueIpQueryCount = new HashMap<>();
+    uniqueUserLoginCount = new HashMap<>();
+    uniqueIpLoginCount = new HashMap<>();
+    uniqueUserLogoutCount = new HashMap<>();
+    uniqueIpLogoutCount = new HashMap<>();
+    uniqueUserQueryCount = new HashMap<>();
+    uniqueIpQueryCount = new HashMap<>();
+  }
+
+  /**
+   * Called when a user logs in to NNAnalytics
+   *
+   * @param secContext SecurityContext
+   * @param ipAddress String
+   */
+  public synchronized void userLoggedIn(SecurityContext secContext, String ipAddress) {
+    String userName = secContext.getUserName();
+
+    users.putIfAbsent(userName, new UserMetrics(userName));
+    users.get(userName).loggedIn(ipAddress);
+
+    uniqueUserLoginCount.putIfAbsent(userName, new AtomicInteger(0));
+    uniqueUserLoginCount.get(userName).incrementAndGet();
+
+    uniqueIpLoginCount.putIfAbsent(userName, new AtomicInteger(0));
+    uniqueIpLoginCount.get(userName).incrementAndGet();
+  }
+
+  /**
+   * Called when a user logs out of NNAnalytics
+   *
+   * @param secContext SecurityContext
+   * @param ipAddress String
+   */
+  public synchronized void userLoggedOut(SecurityContext secContext, String ipAddress) {
+    String userName = secContext.getUserName();
+
+    users.putIfAbsent(userName, new UserMetrics(userName));
+    users.get(userName).loggedOut(ipAddress);
+
+    uniqueUserLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
+    uniqueUserLogoutCount.get(userName).incrementAndGet();
+
+    uniqueIpLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
+    uniqueIpLogoutCount.get(userName).incrementAndGet();
+  }
+
+  /**
+   * Called when a user makes a query
+   *
+   * @param secContext SecurityContext
+   * @param ipAddress String
+   */
+  public synchronized void userMadeQuery(SecurityContext secContext, String ipAddress) {
+    String userName = secContext.getUserName();
+
+    users.putIfAbsent(userName, new UserMetrics(userName));
+    users.get(userName).queried(ipAddress);
+
+    uniqueUserQueryCount.putIfAbsent(userName, new AtomicInteger(0));
+    uniqueUserQueryCount.get(userName).incrementAndGet();
+
+    uniqueIpQueryCount.putIfAbsent(ipAddress, new AtomicInteger(0));
+    uniqueIpQueryCount.get(ipAddress).incrementAndGet();
+  }
+
+  /**
+   * Return a JSON encoded string of user metrics to be used on the front-end
+   *
+   * @return String
+   */
+  public synchronized String getUserMetricsJson() {
+    ArrayList<Map> userList = new ArrayList<>();
+    for (UserMetrics user : users.values()) {
+      userList.add(user.formatForJson());
     }
 
-    /**
-     * Called when a user logs in to NNAnalytics
-     *
-     * @param secContext SecurityContext
-     * @param ipAddress String
-     */
-    public synchronized void userLoggedIn(SecurityContext secContext, String ipAddress) {
-        String userName = secContext.getUserName();
+    Map<String, Object> returnValues = new HashMap<>();
+    returnValues.put("users", userList);
 
-        users.putIfAbsent(userName, new UserMetrics(userName));
-        users.get(userName).loggedIn(ipAddress);
-
-        uniqueUserLoginCount.putIfAbsent(userName, new AtomicInteger(0));
-        uniqueUserLoginCount.get(userName).incrementAndGet();
-
-        uniqueIpLoginCount.putIfAbsent(userName, new AtomicInteger(0));
-        uniqueIpLoginCount.get(userName).incrementAndGet();
-    }
-
-    /**
-     * Called when a user logs out of NNAnalytics
-     *
-     * @param secContext SecurityContext
-     * @param ipAddress String
-     */
-    public synchronized void userLoggedOut(SecurityContext secContext, String ipAddress) {
-        String userName = secContext.getUserName();
-
-        users.putIfAbsent(userName, new UserMetrics(userName));
-        users.get(userName).loggedOut(ipAddress);
-
-        uniqueUserLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
-        uniqueUserLogoutCount.get(userName).incrementAndGet();
-
-        uniqueIpLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
-        uniqueIpLogoutCount.get(userName).incrementAndGet();
-    }
-
-    /**
-     * Called when a user makes a query
-     *
-     * @param secContext SecurityContext
-     * @param ipAddress String
-     */
-    public synchronized void userMadeQuery(SecurityContext secContext, String ipAddress) {
-        String userName = secContext.getUserName();
-
-        users.putIfAbsent(userName, new UserMetrics(userName));
-        users.get(userName).queried(ipAddress);
-
-        uniqueUserQueryCount.putIfAbsent(userName, new AtomicInteger(0));
-        uniqueUserQueryCount.get(userName).incrementAndGet();
-
-        uniqueIpQueryCount.putIfAbsent(ipAddress, new AtomicInteger(0));
-        uniqueIpQueryCount.get(ipAddress).incrementAndGet();
-    }
-
-    /**
-     * Return a JSON encoded string of user metrics to be used on the front-end
-     *
-     * @return String
-     */
-    public synchronized String getUserMetricsJson() {
-        ArrayList<Map> userList = new ArrayList<>();
-        for(UserMetrics user : users.values()) {
-            userList.add(user.formatForJson());
-        }
-
-        Map<String, Object> returnValues = new HashMap<>();
-        returnValues.put("users", userList);
-
-        return new Gson().toJson(returnValues);
-    }
-
+    return new Gson().toJson(returnValues);
+  }
 }

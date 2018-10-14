@@ -52,7 +52,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import com.google.gson.Gson;
 
 public class TestLdapAuth {
 
@@ -225,43 +224,73 @@ public class TestLdapAuth {
     JsonParser jsonParser = new JsonParser();
 
     JsonElement jsonTree1 = jsonParser.parse(jsonMetrics1);
-    int loginCount1 = jsonTree1.getAsJsonObject().get("users")
-            .getAsJsonArray().get(0)
-            .getAsJsonObject().get("ips")
-            .getAsJsonArray().get(0)
-            .getAsJsonObject().get("127.0.0.1")
-            .getAsJsonObject().get("loginCount")
+    int loginCount1 =
+        jsonTree1
+            .getAsJsonObject()
+            .get("users")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("ips")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("127.0.0.1")
+            .getAsJsonObject()
+            .get("loginCount")
             .getAsInt();
 
-    int logoutCount1 = jsonTree1.getAsJsonObject().get("users")
-            .getAsJsonArray().get(0)
-            .getAsJsonObject().get("ips")
-            .getAsJsonArray().get(0)
-            .getAsJsonObject().get("127.0.0.1")
-            .getAsJsonObject().get("logoutCount")
+    int logoutCount1 =
+        jsonTree1
+            .getAsJsonObject()
+            .get("users")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("ips")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("127.0.0.1")
+            .getAsJsonObject()
+            .get("logoutCount")
             .getAsInt();
 
     JsonElement jsonTree2 = jsonParser.parse(jsonMetrics2);
-    int loginCount2 = jsonTree2.getAsJsonObject().get("users")
-            .getAsJsonArray().get(0)
-            .getAsJsonObject().get("ips")
-            .getAsJsonArray().get(0)
-            .getAsJsonObject().get("127.0.0.1")
-            .getAsJsonObject().get("loginCount")
+    int loginCount2 =
+        jsonTree2
+            .getAsJsonObject()
+            .get("users")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("ips")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("127.0.0.1")
+            .getAsJsonObject()
+            .get("loginCount")
             .getAsInt();
 
-    int logoutCount2 = jsonTree2.getAsJsonObject().get("users")
-            .getAsJsonArray().get(0)
-            .getAsJsonObject().get("ips")
-            .getAsJsonArray().get(0)
-            .getAsJsonObject().get("127.0.0.1")
-            .getAsJsonObject().get("logoutCount")
+    int logoutCount2 =
+        jsonTree2
+            .getAsJsonObject()
+            .get("users")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("ips")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("127.0.0.1")
+            .getAsJsonObject()
+            .get("logoutCount")
             .getAsInt();
 
     // assert that the login and logout counts have increased by 1
     assertThat(loginCount2, is(loginCount1 + 1));
     assertThat(logoutCount2, is(logoutCount1 + 1));
-
   }
-
 }
