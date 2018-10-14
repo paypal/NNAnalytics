@@ -30,6 +30,11 @@ public class UserMetrics {
   private final Map<String, Long> totalLoginCountsByIp;
   private final Map<String, Long> totalLogoutCountsByIp;
 
+  /**
+   * Constructor for a User object. Can instantiate many user objects.
+   *
+   * @param userName the username of the user
+   */
   public UserMetrics(String userName) {
     this.userName = userName;
     this.totalQueryCountsByIp = new HashMap<>();
@@ -52,7 +57,11 @@ public class UserMetrics {
     totalQueryCountsByIp.put(ipAddress, count + 1);
   }
 
-  /** Format the UserMetrics for JSON. */
+  /**
+   * Builds a HashMap of this users metrics to be formatted into JSON.
+   *
+   * @return HashMap
+   */
   public HashMap<String, Object> formatForJson() {
     HashMap<String, Object> jsonFormattedUser = new HashMap<>();
     jsonFormattedUser.put(

@@ -21,7 +21,9 @@ package com.paypal.namenode;
 
 import com.google.gson.Gson;
 import com.paypal.security.SecurityContext;
-import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -44,6 +46,9 @@ public class UsageMetrics {
   private final Map<String, AtomicInteger> uniqueUserQueryCount;
   private final Map<String, AtomicInteger> uniqueIpQueryCount;
 
+  /**
+   * Constructor: Should only be called one time during initialization.
+   */
   public UsageMetrics() {
     users = new HashMap<>();
 
@@ -56,7 +61,7 @@ public class UsageMetrics {
   }
 
   /**
-   * Called when a user logs in to NNAnalytics
+   * Called when a user logs in to NNAnalytics.
    *
    * @param secContext SecurityContext
    * @param ipAddress String
@@ -75,7 +80,7 @@ public class UsageMetrics {
   }
 
   /**
-   * Called when a user logs out of NNAnalytics
+   * Called when a user logs out of NNAnalytics.
    *
    * @param secContext SecurityContext
    * @param ipAddress String
@@ -94,7 +99,7 @@ public class UsageMetrics {
   }
 
   /**
-   * Called when a user makes a query
+   * Called when a user makes a query.
    *
    * @param secContext SecurityContext
    * @param ipAddress String
@@ -113,7 +118,7 @@ public class UsageMetrics {
   }
 
   /**
-   * Return a JSON encoded string of user metrics to be used on the front-end
+   * Return a JSON encoded string of user metrics to be used on the front-end.
    *
    * @return String
    */
