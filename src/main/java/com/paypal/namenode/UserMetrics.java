@@ -72,8 +72,6 @@ public class UserMetrics {
         "totalLogoutCount", totalLogoutCountsByIp.values().stream().mapToLong(l -> l).sum());
     jsonFormattedUser.put("userName", userName);
 
-    ArrayList<Map<String, Map<String, Long>>> ipList = new ArrayList<>();
-
     HashMap<String, Map<String, Long>> ipMap = new HashMap<>();
 
     for (String ip : totalQueryCountsByIp.keySet()) {
@@ -90,6 +88,8 @@ public class UserMetrics {
       ipMap.putIfAbsent(ip, new HashMap<>());
       ipMap.get(ip).putIfAbsent("logoutCount", totalLogoutCountsByIp.getOrDefault(ip, 0L));
     }
+
+    ArrayList<Map<String, Map<String, Long>>> ipList = new ArrayList<>();
 
     ipMap
         .keySet()
