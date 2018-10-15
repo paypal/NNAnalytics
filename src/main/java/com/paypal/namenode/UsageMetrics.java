@@ -46,9 +46,7 @@ public class UsageMetrics {
   private final Map<String, AtomicInteger> uniqueUserQueryCount;
   private final Map<String, AtomicInteger> uniqueIpQueryCount;
 
-  /**
-   * Constructor: Should only be called one time during initialization.
-   */
+  /** Constructor: Should only be called one time during initialization. */
   public UsageMetrics() {
     users = new HashMap<>();
 
