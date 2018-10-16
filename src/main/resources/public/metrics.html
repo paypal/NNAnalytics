@@ -38,6 +38,7 @@
             <!-- Main component for a primary marketing message or call to action -->
             <div class="jumbotron">
                 <h1>User Metrics</h1>
+                <div id="connection"></div>
             </div>
             <div id="userMetrics">
                 <table id="userDataTable" class="table table-bordered" style="width: 100%;">
@@ -125,7 +126,7 @@
             });
             let table = $('#userDataTable').DataTable( {
                 "ajax": {
-                    "url": "/metrics",
+                    "url": "./metrics",
                     "type": "GET",
                     "dataSrc": function(json) {
                         console.log(json);
