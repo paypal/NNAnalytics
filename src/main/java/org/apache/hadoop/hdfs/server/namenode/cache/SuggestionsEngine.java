@@ -368,6 +368,8 @@ public class SuggestionsEngine {
     final long s2 = System.currentTimeMillis();
 
     cachedLogins.putAll(nameNodeLoader.getTokenExtractor().getTokenLastLogins());
+    users.forEach(u -> cachedLogins.putIfAbsent(u, -1L));
+
     cachedUsers.clear();
     cachedUsers.addAll(users);
     cachedValues.put("timeTaken", timeTaken);

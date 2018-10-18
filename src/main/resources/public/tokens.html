@@ -74,10 +74,6 @@
 <script type="text/javascript">getClusterName();</script>
 
 <script>
-    var limit = getUrlParameter("limit");
-    if(limit == null || limit.length == 0) {
-        limit = 2000;
-    }
     $.ajax({
             type: 'GET',
             url: "./token",
@@ -89,8 +85,12 @@
                 console.log("success");
                 var tokenMap = new Object();
                 for (var user in users) {
-                    var date = new Date(users[user]).toISOString().slice(0, 10);
-                    tokenMap[user] = date;
+                    if(users[user] > 0) {
+                        var date = new Date(users[user]).toISOString().slice(0, 10);
+                        tokenMap[user] = date;
+                    } else {
+                        tokenMap[user] = "N/A";
+                    }
                 }
 
                 $("#loaderDiv").hide();
