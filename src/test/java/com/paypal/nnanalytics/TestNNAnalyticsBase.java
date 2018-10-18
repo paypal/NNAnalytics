@@ -20,6 +20,8 @@
 package com.paypal.nnanalytics;
 
 import static org.apache.hadoop.hdfs.server.namenode.Constants.UNSECURED_ENDPOINTS;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
@@ -32,66 +34,55 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import com.paypal.namenode.WebServerMain;
-import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Filter;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Find;
+import org.apache.hadoop.hdfs.server.namenode.Constants.FindField;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
+import org.apache.hadoop.hdfs.server.namenode.Constants.INodeSet;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
-import org.apache.hadoop.util.GSet;
+import org.apache.hadoop.hdfs.server.namenode.queries.Transforms;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.eclipse.jetty.http.HttpStatus;
+import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestNNAnalytics {
+public abstract class TestNNAnalyticsBase {
 
-  private static HttpHost hostPort;
+  protected static HttpHost hostPort;
+  protected static WebServerMain nna;
   private static HttpClient client;
-  private static WebServerMain nna;
-
-  /** Long running execution that will launch an NNA instance with a non-updating namespace. */
-  public static void main(String[] args) throws Exception {
-    beforeClass();
-    while (true) {
-      // Let the server run.
-    }
-  }
-
-  @BeforeClass
-  public static void beforeClass() throws Exception {
-    GSetGenerator gSetGenerator = new GSetGenerator();
-    gSetGenerator.clear();
-    GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new WebServerMain();
-    SecurityConfiguration conf = new SecurityConfiguration();
-    conf.set("ldap.enable", "false");
-    conf.set("authorization.enable", "false");
-    conf.set("nna.historical", "false");
-    conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
-    nna.init(conf, gset);
-    hostPort = new HttpHost("localhost", 4567);
-  }
+  private static int count = 0;
+  private static long timeTaken = 0;
 
   @AfterClass
   public static void tearDown() {
@@ -103,6 +94,8 @@ public class TestNNAnalytics {
   @Before
   public void before() {
     client = new DefaultHttpClient();
+    count = 0;
+    timeTaken = 0;
   }
 
   @Test
@@ -957,6 +950,71 @@ public class TestNNAnalytics {
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
+  @Test
+  public void testTransformReplicationFactor() {
+    Map<String, Function<INode, Long>> transformMap =
+        Transforms.getAttributeTransforms("fileReplica:gte:2", "fileReplica", "1", nna.getLoader());
+    assertThat(transformMap.size(), is(CoreMatchers.not(0)));
+    Function<INode, Long> fileReplicaTransform = transformMap.get("fileReplica");
+    assertThat(fileReplicaTransform, is(notNullValue()));
+    for (INode node : nna.getLoader().getINodeSet("files")) {
+      Long transformedFileReplica = fileReplicaTransform.apply(node);
+      assertThat(transformedFileReplica, is(1L));
+    }
+  }
+
+  @Test
+  public void testTransformDiskspaceConsumedByReplFactor() {
+    Map<String, Function<INode, Long>> transformMap =
+        Transforms.getAttributeTransforms("fileReplica:gte:2", "fileReplica", "1", nna.getLoader());
+    assertThat(transformMap.size(), is(CoreMatchers.not(0)));
+    Function<INode, Long> fileReplicaTransform = transformMap.get("diskspaceConsumed");
+    assertThat(fileReplicaTransform, is(notNullValue()));
+    Collection<INode> files = nna.getLoader().getINodeSet("files");
+    long diskspaceConsumed =
+        files
+            .stream()
+            .mapToLong(node -> node.asFile().getFileReplication() * node.asFile().computeFileSize())
+            .sum();
+    long transformedDiskspaceConsumed = files.stream().mapToLong(fileReplicaTransform::apply).sum();
+    assertThat(transformedDiskspaceConsumed < diskspaceConsumed, is(true));
+  }
+
+  @Test
+  public void testTransformDiskspaceConsumedByUser() {
+    Map<String, Function<INode, Long>> transformMap =
+        Transforms.getAttributeTransforms("user:eq:hdfs", "fileReplica", "1", nna.getLoader());
+    assertThat(transformMap.size(), is(CoreMatchers.not(0)));
+    Function<INode, Long> fileReplicaTransform = transformMap.get("diskspaceConsumed");
+    assertThat(fileReplicaTransform, is(notNullValue()));
+    Collection<INode> files = nna.getLoader().getINodeSet("files");
+    long diskspaceConsumed =
+        files
+            .stream()
+            .mapToLong(node -> node.asFile().getFileReplication() * node.asFile().computeFileSize())
+            .sum();
+    long transformedDiskspaceConsumed = files.stream().mapToLong(fileReplicaTransform::apply).sum();
+    assertThat(transformedDiskspaceConsumed < diskspaceConsumed, is(true));
+  }
+
+  @Test
+  public void testTransformDiskspaceConsumedByBeingWritten() {
+    Map<String, Function<INode, Long>> transformMap =
+        Transforms.getAttributeTransforms(
+            "isUnderConstruction:eq:true", "fileReplica", "1", nna.getLoader());
+    assertThat(transformMap.size(), is(CoreMatchers.not(0)));
+    Function<INode, Long> fileReplicaTransform = transformMap.get("diskspaceConsumed");
+    assertThat(fileReplicaTransform, is(notNullValue()));
+    Collection<INode> files = nna.getLoader().getINodeSet("files");
+    long diskspaceConsumed =
+        files
+            .stream()
+            .mapToLong(node -> node.asFile().getFileReplication() * node.asFile().computeFileSize())
+            .sum();
+    long transformedDiskspaceConsumed = files.stream().mapToLong(fileReplicaTransform::apply).sum();
+    assertThat(transformedDiskspaceConsumed == diskspaceConsumed, is(true));
+  }
+
   private static JsonArray getJsonDataArray(JsonObject json) {
     JsonArray datasets = json.getAsJsonArray("datasets");
     for (JsonElement next : datasets) {
@@ -965,5 +1023,446 @@ public class TestNNAnalytics {
       }
     }
     throw new IllegalStateException("No data found in histogram.");
+  }
+
+  /* FINDER QUERY TESTS */
+
+  @Test
+  public void testFilterAndFindQuery() throws IOException {
+    HashMap<INodeSet, HashMap<Find, ArrayList<FindField>>> config = getSetFilterFindConfig();
+    String[] parameters = new String[5];
+    parameters[0] = "http://localhost:4567/filter?";
+    for (INodeSet setType : INodeSet.values()) {
+      parameters[1] = setType.toString();
+      HashMap<Find, ArrayList<FindField>> findFields = config.get(setType);
+      for (Map.Entry<Find, ArrayList<FindField>> findField : findFields.entrySet()) {
+        parameters[3] = findField.getKey().toString();
+        for (FindField field : findField.getValue()) {
+          parameters[4] = field.toString();
+          String testingURL = buildFindQuery(parameters, false);
+          checkOutput(testingURL);
+        }
+      }
+    }
+    System.out.println("Total # of completed query check for benchmarking: " + count);
+    System.out.println("Total time taken in milliseconds: " + timeTaken);
+  }
+
+  @Test
+  public void testHistogramTypeAndFindQuery() throws IOException {
+    HashMap<INodeSet, HashMap<Histogram, HashMap<Find, ArrayList<FindField>>>> config =
+        getSetHistogramTypeFindConfig();
+    String[] parameters = new String[5];
+    parameters[0] = "http://localhost:4567/histogram?";
+    for (INodeSet setType : INodeSet.values()) {
+      parameters[1] = setType.toString();
+      HashMap<Histogram, HashMap<Find, ArrayList<FindField>>> histFindFields = config.get(setType);
+      for (Map.Entry<Histogram, HashMap<Find, ArrayList<FindField>>> histFindField :
+          histFindFields.entrySet()) {
+        parameters[2] = histFindField.getKey().toString();
+        HashMap<Find, ArrayList<FindField>> findFields = histFindField.getValue();
+        for (Map.Entry<Find, ArrayList<FindField>> findField : findFields.entrySet()) {
+          parameters[3] = findField.getKey().toString();
+          for (FindField field : findField.getValue()) {
+            parameters[4] = field.toString();
+            String requestedURL = buildFindQuery(parameters, true);
+            checkOutput(requestedURL);
+          }
+        }
+      }
+    }
+    System.out.println("Total # of completed query check for benchmarking: " + count);
+    System.out.println("Total time taken in milliseconds: " + timeTaken);
+  }
+
+  @Test
+  public void testSQL() throws IOException {
+    HttpPost post = new HttpPost("http://localhost:4567/sql");
+    List<NameValuePair> postParams = new ArrayList<>();
+    postParams.add(new BasicNameValuePair("sqlStatement", "SELECT * FROM files"));
+    post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
+    HttpResponse res = client.execute(hostPort, post);
+    if (res.getStatusLine().getStatusCode() != HttpStatus.NOT_FOUND_404) {
+      List<String> text = IOUtils.readLines(res.getEntity().getContent());
+      assertThat(text.size(), is(555000));
+      assertThat(res.getStatusLine().getStatusCode(), is(HttpStatus.OK_200));
+    }
+  }
+
+  private static HashMap<INodeSet, HashMap<Find, ArrayList<FindField>>> getSetFilterFindConfig() {
+    HashMap<INodeSet, HashMap<Find, ArrayList<FindField>>> config = new HashMap<>();
+
+    // For 'File' set type
+    HashMap<Find, ArrayList<FindField>> fileFilterFind = new HashMap<>();
+    ArrayList<FindField> fileFind = new ArrayList<>();
+    fileFind.addAll(Constants.FIND_FILE);
+    fileFilterFind.put(Find.max, fileFind);
+    fileFilterFind.put(Find.min, fileFind);
+    config.put(INodeSet.files, fileFilterFind);
+
+    // For 'Dir' set type
+    HashMap<Find, ArrayList<FindField>> dirFilterFind = new HashMap<>();
+    ArrayList<FindField> dirFind = new ArrayList<>();
+    dirFind.addAll(Constants.FIND_DIR);
+    dirFilterFind.put(Find.max, dirFind);
+    dirFilterFind.put(Find.min, dirFind);
+    config.put(INodeSet.dirs, dirFilterFind);
+
+    // For 'All' set type
+    HashMap<Find, ArrayList<FindField>> allFilterFind = new HashMap<>();
+    ArrayList<FindField> allFind = new ArrayList<>();
+    allFind.addAll(Constants.FIND_ALL);
+    allFilterFind.put(Find.max, allFind);
+    allFilterFind.put(Find.min, allFind);
+    config.put(INodeSet.all, allFilterFind);
+
+    return config;
+  }
+
+  private static HashMap<INodeSet, HashMap<Histogram, HashMap<Find, ArrayList<FindField>>>>
+      getSetHistogramTypeFindConfig() {
+    HashMap<INodeSet, HashMap<Histogram, HashMap<Find, ArrayList<FindField>>>> config =
+        new HashMap<>();
+
+    // For 'File' set type
+    HashMap<Histogram, HashMap<Find, ArrayList<FindField>>> fileFindField = new HashMap<>();
+    HashMap<Find, ArrayList<FindField>> findFile = new HashMap<>();
+    ArrayList<FindField> fileFind = new ArrayList<>();
+    fileFind.addAll(Constants.FIND_FILE);
+    findFile.put(Find.max, fileFind);
+    findFile.put(Find.avg, fileFind);
+    findFile.put(Find.min, fileFind);
+    for (Histogram typeFile : Constants.TYPE_FILE) {
+      fileFindField.put(typeFile, findFile);
+    }
+    config.put(INodeSet.files, fileFindField);
+
+    // For 'Dir' set type
+    HashMap<Histogram, HashMap<Find, ArrayList<FindField>>> dirFindField = new HashMap<>();
+    HashMap<Find, ArrayList<FindField>> findDir = new HashMap<>();
+    ArrayList<FindField> dirFind = new ArrayList<>();
+    dirFind.addAll(Constants.FIND_DIR);
+    findDir.put(Find.max, dirFind);
+    findDir.put(Find.avg, fileFind);
+    findDir.put(Find.min, dirFind);
+    for (Histogram typeDir : Constants.TYPE_DIR) {
+      dirFindField.put(typeDir, findDir);
+    }
+    config.put(INodeSet.dirs, dirFindField);
+
+    // For 'All' set type
+    HashMap<Histogram, HashMap<Find, ArrayList<FindField>>> allFindField = new HashMap<>();
+    HashMap<Find, ArrayList<FindField>> findAll = new HashMap<>();
+    ArrayList<FindField> allFind = new ArrayList<>();
+    allFind.addAll(Constants.FIND_ALL);
+    findAll.put(Find.max, allFind);
+    findDir.put(Find.avg, allFind);
+    findAll.put(Find.min, allFind);
+    for (Histogram typeAll : Constants.TYPE_ALL) {
+      allFindField.put(typeAll, findAll);
+    }
+    config.put(INodeSet.all, allFindField);
+
+    return config;
+  }
+
+  private static String buildFindQuery(String[] parameters, boolean isHistogram) {
+    StringBuilder queryBuilder = new StringBuilder();
+    String baseURL = parameters[0];
+    String setType = parameters[1];
+    String histogram = parameters[2];
+    String findOp = parameters[3];
+    String field = parameters[4];
+
+    queryBuilder.append(baseURL).append("set=").append(setType);
+    if (isHistogram && histogram != null && histogram.length() > 0) {
+      queryBuilder.append("&type=").append(histogram);
+    }
+    if (findOp != null && findOp.length() > 0) {
+      queryBuilder.append("&find=").append(findOp);
+    }
+    if (field != null && field.length() > 0) {
+      queryBuilder.append(":").append(field);
+    }
+    if (isHistogram) {
+      queryBuilder.append("&histogramOutput=csv");
+    }
+    String requestedURL = queryBuilder.toString();
+    System.out.println(requestedURL);
+    return requestedURL;
+  }
+
+  private static void checkOutput(String url) throws IOException {
+    HttpGet get = new HttpGet(url);
+    long start = System.currentTimeMillis();
+    HttpResponse res = client.execute(hostPort, get);
+    long end = System.currentTimeMillis();
+    timeTaken += (end - start);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    int statusCode = res.getStatusLine().getStatusCode();
+    if (statusCode == 500) {
+      assertThat(strings, hasItem(CoreMatchers.containsString("not supported")));
+    } else {
+      assertThat(statusCode, is(200));
+    }
+    strings.clear();
+    count++;
+  }
+
+  /* QUERY CHECKER TESTS */
+
+  @Test
+  public void testValidQueryChecker() throws Exception {
+    HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
+        setSumTypeFilterConfig = getValidCombinations();
+    String[] parameters = new String[4];
+    for (INodeSet set : INodeSet.values()) {
+      String setType = set.toString();
+      parameters[0] = setType;
+      HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> sumTypeFilters =
+          setSumTypeFilterConfig.get(set);
+      for (Map.Entry<String, HashMap<String, ArrayList<EnumSet<Filter>>>> sumTypeFilter :
+          sumTypeFilters.entrySet()) {
+        HashMap<String, ArrayList<EnumSet<Filter>>> typeFilters = sumTypeFilter.getValue();
+        String sum = sumTypeFilter.getKey();
+        parameters[1] = sum;
+        for (Map.Entry<String, ArrayList<EnumSet<Filter>>> typeFilter : typeFilters.entrySet()) {
+          String type = typeFilter.getKey();
+          parameters[2] = type;
+          String testingURL = buildQuery(parameters);
+          testQuery(testingURL, true);
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testInvalidQueryChecker() throws Exception {
+    HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
+        setSumTypeFilterConfig = getInvalidCombinations();
+    String[] parameters = new String[4];
+    for (INodeSet set : INodeSet.values()) {
+      String setType = set.toString();
+      parameters[0] = setType;
+      HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> sumTypeFilters =
+          setSumTypeFilterConfig.get(set);
+      for (Map.Entry<String, HashMap<String, ArrayList<EnumSet<Filter>>>> sumTypeFilter :
+          sumTypeFilters.entrySet()) {
+        HashMap<String, ArrayList<EnumSet<Filter>>> typeFilters = sumTypeFilter.getValue();
+        String sum = sumTypeFilter.getKey();
+        parameters[1] = sum;
+        for (Map.Entry<String, ArrayList<EnumSet<Filter>>> typeFilter : typeFilters.entrySet()) {
+          String type = typeFilter.getKey();
+          parameters[2] = type;
+          String testingURL = buildQuery(parameters);
+          testQuery(testingURL, false);
+        }
+      }
+    }
+  }
+
+  private static HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
+      getInvalidCombinations() {
+    HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
+        invalidCombination = new HashMap<>();
+    // For 'File' set Type
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> fileSumTypeFilterCombo =
+        new HashMap<>();
+    EnumSet<Sum> diffFilesDirs = Constants.getDifference(Constants.SUM_DIR, Constants.SUM_FILE);
+    // For Each value in 'SUM_FILE'
+    for (Sum sum : diffFilesDirs) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      EnumSet<Filter> onlyDir = Constants.getDifference(Constants.FILTER_DIR, Constants.FILTER_ALL);
+      // For each value in 'TYPE_FILE' and 'TYPE_ALL'
+      for (Histogram typeFile : Constants.TYPE_FILE) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        filterCombo.add(onlyDir);
+
+        typeFilterCombo.put(typeFile.toString(), filterCombo);
+      }
+
+      for (Histogram typeAll : Constants.TYPE_ALL) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        filterCombo.add(onlyDir);
+
+        typeFilterCombo.put(typeAll.toString(), filterCombo);
+      }
+
+      fileSumTypeFilterCombo.put(sum.toString(), typeFilterCombo);
+    }
+
+    // For 'Dir' set type
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> dirSumTypeFilterCombo =
+        new HashMap<>();
+    EnumSet<Sum> diffDirsFiles = Constants.getDifference(Constants.SUM_FILE, Constants.SUM_DIR);
+    // For Each value in 'SUM_FILE'
+    for (Sum sum : diffDirsFiles) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      EnumSet<Filter> onlyFile =
+          Constants.getDifference(Constants.FILTER_FILE, Constants.FILTER_ALL);
+      // For each value in 'TYPE_ALL' and 'TYPE_FILE'
+      for (Histogram typeAll : Constants.TYPE_ALL) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        // For each value in 'FILTER_FILE'
+        filterCombo.add(onlyFile);
+        typeFilterCombo.put(typeAll.toString(), filterCombo);
+      }
+
+      for (Histogram typeFile : Constants.TYPE_FILE) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        // For each value in 'FILTER_FILE'
+        filterCombo.add(onlyFile);
+        typeFilterCombo.put(typeFile.toString(), filterCombo);
+      }
+
+      dirSumTypeFilterCombo.put(sum.toString(), typeFilterCombo);
+    }
+
+    // For 'All' set type
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> allSumTypeFilterCombo =
+        new HashMap<>();
+    EnumSet<Sum> sumFiles = Constants.getDifference(Constants.SUM_FILE, Constants.SUM_ALL);
+    // For Each value in 'SUM_FILE'
+    for (Sum sum : sumFiles) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      EnumSet<Filter> onlyFile =
+          Constants.getDifference(Constants.FILTER_FILE, Constants.FILTER_ALL);
+      EnumSet<Filter> onlyDir = Constants.getDifference(Constants.FILTER_DIR, Constants.FILTER_ALL);
+      // For each value in 'TYPE_FILE'
+
+      for (Histogram typeFile : Constants.TYPE_FILE) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        // For each value in 'FILTER_FILE' and 'FILTER_DIR'
+        filterCombo.add(onlyDir);
+        filterCombo.add(onlyFile);
+
+        typeFilterCombo.put(typeFile.toString(), filterCombo);
+      }
+
+      allSumTypeFilterCombo.put(sum.toString(), typeFilterCombo);
+    }
+
+    // Combine all of them
+    invalidCombination.put(INodeSet.files, fileSumTypeFilterCombo);
+    invalidCombination.put(INodeSet.dirs, dirSumTypeFilterCombo);
+    invalidCombination.put(INodeSet.all, allSumTypeFilterCombo);
+
+    return invalidCombination;
+  }
+
+  private static HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
+      getValidCombinations() {
+    HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
+        validCombination = new HashMap<>();
+    // For 'File' set Type
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> fileSumTypeFilterCombo =
+        new HashMap<>();
+    // For Each value in 'SUM_FILE'
+    for (Sum sum : Constants.SUM_FILE) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      // For each value in 'TYPE_FILE' and 'TYPE_ALL'
+      for (Histogram typeFile : Constants.TYPE_FILE) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        // For each value in 'FILTER_FILE' and 'FILTER_ALL'
+        filterCombo.add(Constants.FILTER_FILE);
+
+        typeFilterCombo.put(typeFile.toString(), filterCombo);
+      }
+
+      for (Histogram typeAll : Constants.TYPE_ALL) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        // For each value in 'FILTER_FILE' and 'FILTER_ALL'
+        filterCombo.add(Constants.FILTER_FILE);
+
+        typeFilterCombo.put(typeAll.toString(), filterCombo);
+      }
+
+      fileSumTypeFilterCombo.put(sum.toString(), typeFilterCombo);
+    }
+
+    // For 'Dir' set type
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> dirSumTypeFilterCombo =
+        new HashMap<>();
+    // For Each value in 'SUM_ALL'
+    for (Sum sum : Constants.SUM_DIR) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      // For each value in 'TYPE_ALL'
+      for (Histogram typeAll : Constants.TYPE_DIR) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        // For each value in 'FILTER_DIR' and 'FILTER_ALL'
+        filterCombo.add(Constants.FILTER_DIR);
+
+        typeFilterCombo.put(typeAll.toString(), filterCombo);
+      }
+
+      dirSumTypeFilterCombo.put(sum.toString(), typeFilterCombo);
+    }
+
+    // For 'All' set type
+    HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>> allSumTypeFilterCombo =
+        new HashMap<>();
+    // For Each value in 'SUM_ALL'
+    for (Sum sum : Constants.SUM_ALL) {
+      HashMap<String, ArrayList<EnumSet<Filter>>> typeFilterCombo = new HashMap<>();
+      // For each value in 'TYPE_ALL'
+
+      for (Histogram typeAll : Constants.TYPE_ALL) {
+        ArrayList<EnumSet<Filter>> filterCombo = new ArrayList<>();
+        // For each value in 'FILTER_ALL'
+        filterCombo.add(Constants.FILTER_ALL);
+
+        typeFilterCombo.put(typeAll.toString(), filterCombo);
+      }
+
+      allSumTypeFilterCombo.put(sum.toString(), typeFilterCombo);
+    }
+
+    // Combine all of them
+    validCombination.put(INodeSet.files, fileSumTypeFilterCombo);
+    validCombination.put(INodeSet.dirs, dirSumTypeFilterCombo);
+    validCombination.put(INodeSet.all, allSumTypeFilterCombo);
+
+    return validCombination;
+  }
+
+  private static String buildQuery(String[] parameters) {
+    StringBuilder queryBuilder = new StringBuilder();
+    queryBuilder.append("http://localhost:4567/histogram?");
+    String setType = parameters[0];
+    String sum = parameters[1];
+    String type = parameters[2];
+
+    queryBuilder.append("set=").append(setType);
+    // Also add filterOps
+    if (type != null && type.length() > 0) {
+      queryBuilder.append("&type=").append(type);
+    }
+    if (sum != null && sum.length() > 0) {
+      queryBuilder.append("&sum=").append(sum);
+    }
+    String requestedURL = queryBuilder.toString();
+    System.out.println(requestedURL);
+    return requestedURL;
+  }
+
+  private static void testQuery(String requestedURL, boolean isValid) throws Exception {
+    HttpGet get = new HttpGet(requestedURL);
+    long start = System.currentTimeMillis();
+    HttpResponse res = client.execute(hostPort, get);
+    long end = System.currentTimeMillis();
+    timeTaken += (end - start);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    if (isValid) {
+      int statusCode = res.getStatusLine().getStatusCode();
+      if (statusCode == 500) {
+        assertThat(strings, hasItem(CoreMatchers.containsString("not supported")));
+      } else {
+        assertThat(statusCode, is(200));
+      }
+    } else {
+      assertThat(res.getStatusLine().getStatusCode(), is(400));
+    }
+    strings.clear();
+    count++;
   }
 }

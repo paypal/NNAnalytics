@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +48,8 @@ public class SecurityConfiguration {
   private static final String NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT = "900000";
   private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
   private static final String NNA_SUPPORT_BOOTSTRAP_OVERRIDES = "true";
+  private static final String NNA_QUERY_ENGINE_DEFAULT =
+      JavaStreamQueryEngine.class.getCanonicalName();
 
   /** Constructor. Fetches configuration from ClassLoader stream. */
   public SecurityConfiguration() {
@@ -254,5 +257,9 @@ public class SecurityConfiguration {
   public boolean allowBootstrapConfigurationOverrides() {
     return Boolean.parseBoolean(
         properties.getProperty("nna.support.bootstrap.overrides", NNA_SUPPORT_BOOTSTRAP_OVERRIDES));
+  }
+
+  public String getQueryEngineImplementation() {
+    return properties.getProperty("nna.query.engine.impl", NNA_QUERY_ENGINE_DEFAULT);
   }
 }
