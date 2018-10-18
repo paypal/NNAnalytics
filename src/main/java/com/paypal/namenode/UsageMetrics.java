@@ -24,7 +24,6 @@ import com.paypal.security.SecurityContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class is used for analytical purposes as a way to guage how many users are using and
@@ -39,23 +38,9 @@ public class UsageMetrics {
 
   private final Map<String, UserMetrics> users;
 
-  private final Map<String, AtomicInteger> uniqueUserLoginCount;
-  private final Map<String, AtomicInteger> uniqueIpLoginCount;
-  private final Map<String, AtomicInteger> uniqueUserLogoutCount;
-  private final Map<String, AtomicInteger> uniqueIpLogoutCount;
-  private final Map<String, AtomicInteger> uniqueUserQueryCount;
-  private final Map<String, AtomicInteger> uniqueIpQueryCount;
-
   /** Constructor: Should only be called one time during initialization. */
   public UsageMetrics() {
     users = new HashMap<>();
-
-    uniqueUserLoginCount = new HashMap<>();
-    uniqueIpLoginCount = new HashMap<>();
-    uniqueUserLogoutCount = new HashMap<>();
-    uniqueIpLogoutCount = new HashMap<>();
-    uniqueUserQueryCount = new HashMap<>();
-    uniqueIpQueryCount = new HashMap<>();
   }
 
   /**
@@ -69,12 +54,6 @@ public class UsageMetrics {
 
     users.putIfAbsent(userName, new UserMetrics(userName));
     users.get(userName).loggedIn(ipAddress);
-
-    uniqueUserLoginCount.putIfAbsent(userName, new AtomicInteger(0));
-    uniqueUserLoginCount.get(userName).incrementAndGet();
-
-    uniqueIpLoginCount.putIfAbsent(userName, new AtomicInteger(0));
-    uniqueIpLoginCount.get(userName).incrementAndGet();
   }
 
   /**
@@ -88,12 +67,6 @@ public class UsageMetrics {
 
     users.putIfAbsent(userName, new UserMetrics(userName));
     users.get(userName).loggedOut(ipAddress);
-
-    uniqueUserLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
-    uniqueUserLogoutCount.get(userName).incrementAndGet();
-
-    uniqueIpLogoutCount.putIfAbsent(userName, new AtomicInteger(0));
-    uniqueIpLogoutCount.get(userName).incrementAndGet();
   }
 
   /**
@@ -108,11 +81,6 @@ public class UsageMetrics {
     users.putIfAbsent(userName, new UserMetrics(userName));
     users.get(userName).queried(ipAddress);
 
-    uniqueUserQueryCount.putIfAbsent(userName, new AtomicInteger(0));
-    uniqueUserQueryCount.get(userName).incrementAndGet();
-
-    uniqueIpQueryCount.putIfAbsent(ipAddress, new AtomicInteger(0));
-    uniqueIpQueryCount.get(ipAddress).incrementAndGet();
   }
 
   /**
