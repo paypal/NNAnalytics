@@ -24,6 +24,7 @@ import com.paypal.security.SecurityContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import spark.Request;
 
 /**
  * This class is used for analytical purposes as a way to guage how many users are using and
@@ -47,40 +48,58 @@ public class UsageMetrics {
    * Called when a user logs in to NNAnalytics.
    *
    * @param secContext SecurityContext
-   * @param ipAddress String
+   * @param request String
    */
-  public synchronized void userLoggedIn(SecurityContext secContext, String ipAddress) {
+  public synchronized void userLoggedIn(SecurityContext secContext, Request request) {
     String userName = secContext.getUserName();
 
     users.putIfAbsent(userName, new UserMetrics(userName));
-    users.get(userName).loggedIn(ipAddress);
+    users.get(userName).loggedIn(getIpFromRequest(request));
   }
 
   /**
    * Called when a user logs out of NNAnalytics.
    *
    * @param secContext SecurityContext
-   * @param ipAddress String
+   * @param request String
    */
-  public synchronized void userLoggedOut(SecurityContext secContext, String ipAddress) {
+  public synchronized void userLoggedOut(SecurityContext secContext, Request request) {
     String userName = secContext.getUserName();
 
     users.putIfAbsent(userName, new UserMetrics(userName));
-    users.get(userName).loggedOut(ipAddress);
+    users.get(userName).loggedOut(getIpFromRequest(request));
   }
 
   /**
    * Called when a user makes a query.
    *
    * @param secContext SecurityContext
-   * @param ipAddress String
+   * @param request String
    */
-  public synchronized void userMadeQuery(SecurityContext secContext, String ipAddress) {
+  public synchronized void userMadeQuery(SecurityContext secContext, Request request) {
     String userName = secContext.getUserName();
 
     users.putIfAbsent(userName, new UserMetrics(userName));
-    users.get(userName).queried(ipAddress);
+    users.get(userName).queried(getIpFromRequest(request));
+  }
 
+  /**
+   * Get the appropriate IP from the spark Request object. Returns first value found in the
+   * following order: "X-Real-IP" header > "X-Forwarded-For" header > request remote address
+   *
+   * @param request the spark Request object
+   * @return String
+   */
+  private String getIpFromRequest(Request request) {
+    String realIp = request.headers("X-Real-IP");
+    if (realIp != null && !realIp.isEmpty()) {
+      return realIp;
+    }
+    String forwardedFor = request.headers("X-Forwarded-For");
+    if (forwardedFor != null && !forwardedFor.isEmpty()) {
+      return forwardedFor.split(",")[0];
+    }
+    return request.ip();
   }
 
   /**

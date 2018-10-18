@@ -297,7 +297,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           secContext.login(req, res);
-          usageMetrics.userLoggedIn(secContext, req.ip());
+          usageMetrics.userLoggedIn(secContext, req);
           return res;
         });
 
@@ -308,7 +308,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           secContext.logout(req, res);
-          usageMetrics.userLoggedOut(secContext, req.ip());
+          usageMetrics.userLoggedOut(secContext, req);
           return res;
         });
 
@@ -533,7 +533,7 @@ public class WebServerMain {
           secContext.handleAuthorization(req, res);
           if (!"POST".equals(req.raw().getMethod())) {
             runningQueries.add(Helper.createQuery(req.raw(), secContext.getUserName()));
-            usageMetrics.userMadeQuery(secContext, req.ip());
+            usageMetrics.userMadeQuery(secContext, req);
           }
         });
 
