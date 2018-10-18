@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,7 @@ public class SecurityConfiguration {
   private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
   private static final String NNA_SUPPORT_BOOTSTRAP_OVERRIDES = "true";
   private static final String NNA_QUERY_ENGINE_DEFAULT =
-      "org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine";
+      JavaStreamQueryEngine.class.getCanonicalName();
 
   /** Constructor. Fetches configuration from ClassLoader stream. */
   public SecurityConfiguration() {

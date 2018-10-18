@@ -47,3 +47,4 @@ Definitions of configuration NNA-specific properties:
 * `nna.readonly.users=<comma-seperated list of usernames>` - An * enables all users as READERs.
 * `nna.cache.users=<comma-seperated list of usernames>` - An * enables all users as CACHE users.
 * `nna.localonly.users=<comma-seperated list of username:password pairs>` - Local-only accounts; recommended for any applications that intend to use NNA API.
+* `nna.query.engine.impl=<string>` - The full canonical class name of the QueryEngine implementation to use. Current existing implementations are `org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine` (recommended and the default) and `org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine` (currently experimental).
