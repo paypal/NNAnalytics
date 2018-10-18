@@ -2,6 +2,8 @@
 
 `/metrics` is a GET only call that only CACHE users and higher can access.
 
+If you are accessing NNA behind a proxy (NGINX, for example), be sure to enable support for the X-Forwarded-For header like so: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`
+
 Response code is 200 and a JSON dump containing metrics information. JSON contains an array of users with their total login, logout and query counts as well as a breakdown by ip addresses used.
 
 ```json
