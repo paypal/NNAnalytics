@@ -23,6 +23,8 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.paypal.namenode.WebServerMain;
 import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
@@ -180,5 +182,115 @@ public class TestLdapAuth {
         IOUtils.toString(res3.getEntity().getContent()),
         containsString("Authentication required."));
     assertThat(res3.getStatusLine().getStatusCode(), is(401));
+  }
+
+  @Test
+  public void testUsageMetricsAfterLoginLogout() throws IOException {
+
+    // lets login first and get the metrics JSON
+    HttpPost loginPost1 = new HttpPost("http://localhost:4567/login");
+    List<NameValuePair> postParams = new ArrayList<>();
+    postParams.add(new BasicNameValuePair("username", "hdfs"));
+    postParams.add(new BasicNameValuePair("password", "hdfs"));
+    loginPost1.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
+    HttpResponse loginResponse = client.execute(hostPort, loginPost1);
+    System.out.println(IOUtils.toString(loginResponse.getEntity().getContent()));
+
+    HttpGet getMetrics1 = new HttpGet("http://localhost:4567/metrics");
+    HttpResponse responseMetrics1 = client.execute(hostPort, getMetrics1);
+    String jsonMetrics1 = IOUtils.toString(responseMetrics1.getEntity().getContent());
+
+    // then logout
+    Header tokenHeader = loginResponse.getFirstHeader("Set-Cookie");
+    HttpPost logoutPost = new HttpPost("http://localhost:4567/logout");
+    logoutPost.addHeader("Cookie", tokenHeader.getValue());
+    HttpResponse logoutResponse = client.execute(hostPort, logoutPost);
+    System.out.println(IOUtils.toString(logoutResponse.getEntity().getContent()));
+
+    // then login again and get the new JSON
+    HttpPost loginPost2 = new HttpPost("http://localhost:4567/login");
+    List<NameValuePair> postParams2 = new ArrayList<>();
+    postParams2.add(new BasicNameValuePair("username", "hdfs"));
+    postParams2.add(new BasicNameValuePair("password", "hdfs"));
+    loginPost2.setEntity(new UrlEncodedFormEntity(postParams2, "UTF-8"));
+    HttpResponse loginResponse2 = client.execute(hostPort, loginPost2);
+    System.out.println(IOUtils.toString(loginResponse2.getEntity().getContent()));
+
+    HttpGet getMetrics2 = new HttpGet("http://localhost:4567/metrics");
+    HttpResponse responseMetrics2 = client.execute(hostPort, getMetrics2);
+    String jsonMetrics2 = IOUtils.toString(responseMetrics2.getEntity().getContent());
+
+    // parse the JSON tree to get login and logout counts
+    JsonParser jsonParser = new JsonParser();
+
+    JsonElement jsonTree1 = jsonParser.parse(jsonMetrics1);
+    int loginCount1 =
+        jsonTree1
+            .getAsJsonObject()
+            .get("users")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("ips")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("127.0.0.1")
+            .getAsJsonObject()
+            .get("loginCount")
+            .getAsInt();
+
+    int logoutCount1 =
+        jsonTree1
+            .getAsJsonObject()
+            .get("users")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("ips")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("127.0.0.1")
+            .getAsJsonObject()
+            .get("logoutCount")
+            .getAsInt();
+
+    JsonElement jsonTree2 = jsonParser.parse(jsonMetrics2);
+    int loginCount2 =
+        jsonTree2
+            .getAsJsonObject()
+            .get("users")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("ips")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("127.0.0.1")
+            .getAsJsonObject()
+            .get("loginCount")
+            .getAsInt();
+
+    int logoutCount2 =
+        jsonTree2
+            .getAsJsonObject()
+            .get("users")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("ips")
+            .getAsJsonArray()
+            .get(0)
+            .getAsJsonObject()
+            .get("127.0.0.1")
+            .getAsJsonObject()
+            .get("logoutCount")
+            .getAsInt();
+
+    // assert that the login and logout counts have increased by 1
+    assertThat(loginCount2, is(loginCount1 + 1));
+    assertThat(logoutCount2, is(logoutCount1 + 1));
   }
 }

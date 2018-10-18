@@ -76,6 +76,7 @@ license {
                         "**/cycle.js",
                         "**/jquery*",
                         "**/sweetalert*",
+                        "**/datatables*",
                         "**/npm.js",
                         "**/*.blank.xml",
                         "**/*.md" ].toSet()

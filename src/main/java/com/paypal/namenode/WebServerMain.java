@@ -142,6 +142,7 @@ public class WebServerMain {
   private final List<BaseQuery> runningQueries = Collections.synchronizedList(new LinkedList<>());
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
   private final SecurityContext secContext = new SecurityContext();
+  private final UsageMetrics usageMetrics = new UsageMetrics();
 
   private final ExecutorService operationService = Executors.newFixedThreadPool(1);
   private final ExecutorService internalService = Executors.newFixedThreadPool(2);
@@ -296,6 +297,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           secContext.login(req, res);
+          usageMetrics.userLoggedIn(secContext, req);
           return res;
         });
 
@@ -306,6 +308,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "text/plain");
           secContext.logout(req, res);
+          usageMetrics.userLoggedOut(secContext, req);
           return res;
         });
 
@@ -530,7 +533,19 @@ public class WebServerMain {
           secContext.handleAuthorization(req, res);
           if (!"POST".equals(req.raw().getMethod())) {
             runningQueries.add(Helper.createQuery(req.raw(), secContext.getUserName()));
+            usageMetrics.userMadeQuery(secContext, req);
           }
+        });
+
+    /* METRICS endpoint is meant to return information on the users and the
+    amount of queries they are making */
+    get(
+        "/metrics",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "application/json; charset=UTF-8");
+          res.body(usageMetrics.getUserMetricsJson());
+          return res;
         });
 
     /* HISTOGRAMS endpoint is meant to showcase the different types of histograms available in the "&type="

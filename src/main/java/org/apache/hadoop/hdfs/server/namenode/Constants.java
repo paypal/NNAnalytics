@@ -267,7 +267,8 @@ public interface Constants {
     addDirectory,
     removeDirectory,
     quotas,
-    fileAge
+    fileAge,
+    metrics
   }
 
   EnumSet<Endpoint> UNSECURED_ENDPOINTS =
@@ -323,7 +324,8 @@ public interface Constants {
           Endpoint.drop,
           Endpoint.truncate,
           Endpoint.addDirectory,
-          Endpoint.removeDirectory);
+          Endpoint.removeDirectory,
+          Endpoint.metrics);
 
   EnumSet<Filter> FILTER_FILE =
       EnumSet.of(
