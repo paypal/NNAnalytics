@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -369,6 +370,7 @@ public class SuggestionsEngine {
 
     cachedLogins.putAll(nameNodeLoader.getTokenExtractor().getTokenLastLogins());
     users.forEach(u -> cachedLogins.putIfAbsent(u, -1L));
+    cachedLogins.keySet().removeIf(u -> !fileUsers.contains(u) && !dirUsers.contains(u));
 
     cachedUsers.clear();
     cachedUsers.addAll(users);
