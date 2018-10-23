@@ -62,6 +62,7 @@ public class TokenExtractor {
       return new HashMap<String, Long>() {
         {
           put("hdfs", System.currentTimeMillis());
+          put("n/a", -1L);
         }
       };
     }

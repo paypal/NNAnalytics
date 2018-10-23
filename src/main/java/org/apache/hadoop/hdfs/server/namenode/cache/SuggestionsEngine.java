@@ -368,6 +368,9 @@ public class SuggestionsEngine {
     final long s2 = System.currentTimeMillis();
 
     cachedLogins.putAll(nameNodeLoader.getTokenExtractor().getTokenLastLogins());
+    users.forEach(u -> cachedLogins.putIfAbsent(u, -1L));
+    cachedLogins.keySet().removeIf(u -> !fileUsers.contains(u) && !dirUsers.contains(u));
+
     cachedUsers.clear();
     cachedUsers.addAll(users);
     cachedValues.put("timeTaken", timeTaken);
