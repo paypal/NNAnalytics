@@ -40,6 +40,7 @@ import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.util.VirtualINodeTree;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -614,60 +615,79 @@ public class SuggestionsEngine {
   }
 
   /**
+   * Get all users' analysis from cache as a JSON String.
+   *
+   * @return the cached user dump as a JSON string
+   */
+  public String getAllSuggestionsAsJson() {
+    Map<String, Map<String, Long>> allUsersSuggestions = new HashMap<>();
+    for(String user : cachedUsers) {
+      Map<String, Long> userMap = getUserMapFromCachedMaps(user);
+      allUsersSuggestions.put(user, userMap);
+    }
+    return Histograms.toJson(allUsersSuggestions);
+  }
+
+  /**
    * Get user analysis from cache as a JSON String.
    *
    * @param user the user to look for from cache
    * @return the cached user dump as a JSON string
    */
   public String getSuggestionsAsJson(String user) {
+    Map<String, Long> userMap = getUserMapFromCachedMaps(user);
+    return Histograms.toJson(userMap);
+  }
+
+  private Map<String, Long> getUserMapFromCachedMaps(String user) {
+    Map<String, Long> userMap = new HashMap<>(cachedValues);
     if (user == null || user.isEmpty()) {
-      return Histograms.toJson(cachedValues);
-    } else {
-      Map<String, Long> userMap = new HashMap<>(cachedValues);
-      userMap.put("diskspace", getCachedMap("diskspaceUsers").getOrDefault(user, 0L));
-      userMap.put("diskspace24h", getCachedMap("diskspace24hUsers").getOrDefault(user, 0L));
-      userMap.put("numFiles", getCachedMap("numFilesUsers").getOrDefault(user, 0L));
-      userMap.put("numFiles24h", getCachedMap("numFiles24hUsers").getOrDefault(user, 0L));
-      userMap.put("numDirs", getCachedMap("numDirsUsers").getOrDefault(user, 0L));
-      userMap.put("emptyFiles", getCachedMap("emptyFilesUsers").getOrDefault(user, 0L));
-      userMap.put("emptyFiles24h", getCachedMap("emptyFiles24hUsers").getOrDefault(user, 0L));
-      userMap.put("emptyFiles1yr", getCachedMap("emptyFiles1yrUsers").getOrDefault(user, 0L));
-      userMap.put("emptyFilesMem", getCachedMap("emptyFilesMemUsers").getOrDefault(user, 0L));
-      userMap.put("emptyFiles24hMem", getCachedMap("emptyFiles24hMemUsers").getOrDefault(user, 0L));
-      userMap.put("emptyDirs", getCachedMap("emptyDirsUsers").getOrDefault(user, 0L));
-      userMap.put("emptyDirs24h", getCachedMap("emptyDirs24hUsers").getOrDefault(user, 0L));
-      userMap.put("emptyDirs1yr", getCachedMap("emptyDirs1yrUsers").getOrDefault(user, 0L));
-      userMap.put("emptyDirsMem", getCachedMap("emptyDirsMemUsers").getOrDefault(user, 0L));
-      userMap.put("emptyDirs24hMem", getCachedMap("emptyDirs24hMemUsers").getOrDefault(user, 0L));
-      userMap.put("tinyFiles", getCachedMap("tinyFilesUsers").getOrDefault(user, 0L));
-      userMap.put("tinyFiles24h", getCachedMap("tinyFiles24hUsers").getOrDefault(user, 0L));
-      userMap.put("tinyFiles1yr", getCachedMap("tinyFiles1yrUsers").getOrDefault(user, 0L));
-      userMap.put("tinyFilesMem", getCachedMap("tinyFilesMemUsers").getOrDefault(user, 0L));
-      userMap.put("tinyFiles24hMem", getCachedMap("tinyFiles24hMemUsers").getOrDefault(user, 0L));
-      userMap.put("tinyFilesDs", getCachedMap("tinyFilesDsUsers").getOrDefault(user, 0L));
-      userMap.put("tinyFiles24hDs", getCachedMap("tinyFiles24hDsUsers").getOrDefault(user, 0L));
-      userMap.put("smallFiles", getCachedMap("smallFilesUsers").getOrDefault(user, 0L));
-      userMap.put("smallFiles24h", getCachedMap("smallFiles24hUsers").getOrDefault(user, 0L));
-      userMap.put("smallFiles1yr", getCachedMap("smallFiles1yrUsers").getOrDefault(user, 0L));
-      userMap.put("smallFilesMem", getCachedMap("smallFilesMemUsers").getOrDefault(user, 0L));
-      userMap.put("smallFiles24hMem", getCachedMap("smallFiles24hMemUsers").getOrDefault(user, 0L));
-      userMap.put("smallFilesDs", getCachedMap("smallFilesDsUsers").getOrDefault(user, 0L));
-      userMap.put("smallFiles24hDs", getCachedMap("smallFiles24hDsUsers").getOrDefault(user, 0L));
-      userMap.put("mediumFiles", getCachedMap("mediumFilesUsers").getOrDefault(user, 0L));
-      userMap.put("largeFiles", getCachedMap("largeFilesUsers").getOrDefault(user, 0L));
-      userMap.put("oldFiles1yr", getCachedMap("oldFiles1yrUsers").getOrDefault(user, 0L));
-      userMap.put("oldFiles1yrDs", getCachedMap("oldFiles1yrDsUsers").getOrDefault(user, 0L));
-      userMap.put("oldFiles2yr", getCachedMap("oldFiles2yrUsers").getOrDefault(user, 0L));
-      userMap.put("oldFiles2yrDs", getCachedMap("oldFiles2yrDsUsers").getOrDefault(user, 0L));
-      userMap.put("nsQuotaCount", getCachedMap("nsQuotaCountsUsers").getOrDefault(user, 0L));
-      userMap.put("dsQuotaCount", getCachedMap("dsQuotaCountsUsers").getOrDefault(user, 0L));
-      userMap.put(
-          "nsQuotaThreshCount", getCachedMap("nsQuotaThreshCountsUsers").getOrDefault(user, 0L));
-      userMap.put(
-          "dsQuotaThreshCount", getCachedMap("dsQuotaThreshCountsUsers").getOrDefault(user, 0L));
-      userMap.put("lastLogin", cachedLogins.getOrDefault(user, 0L));
-      return Histograms.toJson(userMap);
+      return userMap;
     }
+
+    userMap.put("diskspace", getCachedMap("diskspaceUsers").getOrDefault(user, 0L));
+    userMap.put("diskspace24h", getCachedMap("diskspace24hUsers").getOrDefault(user, 0L));
+    userMap.put("numFiles", getCachedMap("numFilesUsers").getOrDefault(user, 0L));
+    userMap.put("numFiles24h", getCachedMap("numFiles24hUsers").getOrDefault(user, 0L));
+    userMap.put("numDirs", getCachedMap("numDirsUsers").getOrDefault(user, 0L));
+    userMap.put("emptyFiles", getCachedMap("emptyFilesUsers").getOrDefault(user, 0L));
+    userMap.put("emptyFiles24h", getCachedMap("emptyFiles24hUsers").getOrDefault(user, 0L));
+    userMap.put("emptyFiles1yr", getCachedMap("emptyFiles1yrUsers").getOrDefault(user, 0L));
+    userMap.put("emptyFilesMem", getCachedMap("emptyFilesMemUsers").getOrDefault(user, 0L));
+    userMap.put("emptyFiles24hMem", getCachedMap("emptyFiles24hMemUsers").getOrDefault(user, 0L));
+    userMap.put("emptyDirs", getCachedMap("emptyDirsUsers").getOrDefault(user, 0L));
+    userMap.put("emptyDirs24h", getCachedMap("emptyDirs24hUsers").getOrDefault(user, 0L));
+    userMap.put("emptyDirs1yr", getCachedMap("emptyDirs1yrUsers").getOrDefault(user, 0L));
+    userMap.put("emptyDirsMem", getCachedMap("emptyDirsMemUsers").getOrDefault(user, 0L));
+    userMap.put("emptyDirs24hMem", getCachedMap("emptyDirs24hMemUsers").getOrDefault(user, 0L));
+    userMap.put("tinyFiles", getCachedMap("tinyFilesUsers").getOrDefault(user, 0L));
+    userMap.put("tinyFiles24h", getCachedMap("tinyFiles24hUsers").getOrDefault(user, 0L));
+    userMap.put("tinyFiles1yr", getCachedMap("tinyFiles1yrUsers").getOrDefault(user, 0L));
+    userMap.put("tinyFilesMem", getCachedMap("tinyFilesMemUsers").getOrDefault(user, 0L));
+    userMap.put("tinyFiles24hMem", getCachedMap("tinyFiles24hMemUsers").getOrDefault(user, 0L));
+    userMap.put("tinyFilesDs", getCachedMap("tinyFilesDsUsers").getOrDefault(user, 0L));
+    userMap.put("tinyFiles24hDs", getCachedMap("tinyFiles24hDsUsers").getOrDefault(user, 0L));
+    userMap.put("smallFiles", getCachedMap("smallFilesUsers").getOrDefault(user, 0L));
+    userMap.put("smallFiles24h", getCachedMap("smallFiles24hUsers").getOrDefault(user, 0L));
+    userMap.put("smallFiles1yr", getCachedMap("smallFiles1yrUsers").getOrDefault(user, 0L));
+    userMap.put("smallFilesMem", getCachedMap("smallFilesMemUsers").getOrDefault(user, 0L));
+    userMap.put("smallFiles24hMem", getCachedMap("smallFiles24hMemUsers").getOrDefault(user, 0L));
+    userMap.put("smallFilesDs", getCachedMap("smallFilesDsUsers").getOrDefault(user, 0L));
+    userMap.put("smallFiles24hDs", getCachedMap("smallFiles24hDsUsers").getOrDefault(user, 0L));
+    userMap.put("mediumFiles", getCachedMap("mediumFilesUsers").getOrDefault(user, 0L));
+    userMap.put("largeFiles", getCachedMap("largeFilesUsers").getOrDefault(user, 0L));
+    userMap.put("oldFiles1yr", getCachedMap("oldFiles1yrUsers").getOrDefault(user, 0L));
+    userMap.put("oldFiles1yrDs", getCachedMap("oldFiles1yrDsUsers").getOrDefault(user, 0L));
+    userMap.put("oldFiles2yr", getCachedMap("oldFiles2yrUsers").getOrDefault(user, 0L));
+    userMap.put("oldFiles2yrDs", getCachedMap("oldFiles2yrDsUsers").getOrDefault(user, 0L));
+    userMap.put("nsQuotaCount", getCachedMap("nsQuotaCountsUsers").getOrDefault(user, 0L));
+    userMap.put("dsQuotaCount", getCachedMap("dsQuotaCountsUsers").getOrDefault(user, 0L));
+    userMap.put(
+        "nsQuotaThreshCount", getCachedMap("nsQuotaThreshCountsUsers").getOrDefault(user, 0L));
+    userMap.put(
+        "dsQuotaThreshCount", getCachedMap("dsQuotaThreshCountsUsers").getOrDefault(user, 0L));
+    userMap.put("lastLogin", cachedLogins.getOrDefault(user, -1L));
+    return userMap;
   }
 
   /**

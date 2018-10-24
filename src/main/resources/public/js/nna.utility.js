@@ -33,6 +33,23 @@ function nFormatter(num, digits) {
     return num.toFixed(digits).replace(rx, "$1");
 }
 
+function dataTablesNFormatter(num, digits) {
+    var si = [
+        { value: 1E18, symbol: "EB" },
+        { value: 1E15, symbol: "PB" },
+        { value: 1E12, symbol: "TB" },
+        { value: 1E9,  symbol: "GB" },
+        { value: 1E6,  symbol: "MB" },
+        { value: 1E3,  symbol: "kB" }
+    ], rx = /\.0+$|(\.[0-9]*[1-9])0+$/, i;
+    for (i = 0; i < si.length; i++) {
+        if (num >= si[i].value) {
+        return (num / si[i].value).toFixed(digits).replace(rx, "$1") + si[i].symbol;
+        }
+    }
+    return num.toFixed(digits).replace(rx, "$1");
+}
+
 function getPercentage(num1,num2) {
     var a = Number(num1);
     var b = Number(num2);

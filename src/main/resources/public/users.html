@@ -1,0 +1,134 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/nna.utility.js"></script>
+    <script type="text/javascript">checkIfAuthenticated();</script>
+    <head>
+        <!-- Bootstrap core CSS -->
+        <link href="./css/bootstrap.min.css" rel="stylesheet">
+        <!-- Sweetalert core CSS -->
+        <link href="./css/sweetalert.css" rel="stylesheet">
+        <!-- Custom styles for this template -->
+        <link href="./css/nna.css" rel="stylesheet">
+        <link href="./css/datatables.min.css" rel="stylesheet">
+        <link href="./css/buttons.datatables.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container">
+            <div id="navbar"></div>
+            <!-- Main component for a primary marketing message or call to action -->
+            <div class="jumbotron">
+                <h1>User Information</h1>
+                <div id="connection"></div>
+            </div>
+            <div id="userMetrics">
+                <table id="userDataTable" class="table table-bordered" style="width: 100%;">
+                    <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Last Token</th>
+                        <th>Dir Count</th>
+                        <th>File Count</th>
+                        <th>Space Used</th>
+                    </tr>
+                    </thead>
+                </table>
+            </div>
+        </div> <!-- /container -->
+        <!-- Bootstrap core JavaScript
+        ================================================== -->
+        <!-- Placed at the end of the document so the pages load faster -->
+        <script src="./js/bootstrap.min.js"></script>
+        <script src="./js/sweetalert.min.js"></script>
+        <script src="./js/Chart.bundle.min.js"></script>
+        <script src="./js/cycle.js"></script>
+        <script src="./js/datatables.min.js"></script>
+        <script src="./js/dataTables.buttons.min.js"></script>
+        <script src="./js/jszip.min.js"></script>
+        <script src="./js/buttons.html5.min.js"></script>
+        <script type="text/javascript">
+            function flattenObject(obj) {
+                var array = [];
+                $.each(obj, function (key, value) {
+                    var innerArray = [];
+                    innerArray.push(key);
+                    var lastLogin;
+                    if(value.lastLogin == null || value.lastLogin <= 0) {
+                        lastLogin = "N/A";
+                    } else {
+                        lastLogin = new Date(lastLogin).toISOString().slice(0, 10);
+                    }
+                    innerArray.push(lastLogin);
+                    innerArray.push(value.numDirs);
+                    innerArray.push(value.numFiles);
+                    innerArray.push(numberWithCommas(value.diskspace));
+                    array.push(innerArray);
+                });
+                return array
+            }
+
+            const numberWithCommas = (x) => {
+              return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            }
+
+            $(document).ready(function() {
+                $('#navbar').load('navbar.html', function() {
+                    checkIfAdmin();
+                });
+                let table = $('#userDataTable').DataTable( {
+                    "ajax": {
+                        "url": "./suggestions?all",
+                        "type": "GET",
+                        "dataSrc": function(json) {
+                            console.log(json);
+                            return flattenObject(json);
+                        }
+                    },
+                    "iDisplayLength": 100,
+                    "aLengthMenu": [[10, 50, 100, -1], [10, 50, 100, "All"]],
+                    "order": [[1, "desc"]],
+                    "dom": 'Bfrtipl',
+                    "buttons": [
+                        'copyHtml5', 'csvHtml5', 'excelHtml5' 
+                    ],
+                    "columns": [
+                        { title: "Username",
+                          "render": function(data, type, row, meta) {
+                                data = "<a target='_blank' href='./suggestion.html?username="+data+"'>" + data + "</a>";
+                                return data;
+                            }
+                        },
+                        { title: "Last Token" },
+                        { title: "Dir Count" },
+                        { title: "File Count" },
+                        { title: "Space Used" }
+                    ]
+                });
+                table.draw();
+            });
+        </script>
+        <script type="text/javascript">$(document).ready(function(){  $("head").append("header.html");});</script>
+        <script type="text/javascript">getClusterName();</script>
+    </body>
+</html>
+

@@ -159,7 +159,7 @@ function getOlderPercentage(user) {
             percentage["numBadFiles"] = numBadFiles;
             percentage["numBadDirs"] = emptyDirs1yr;
             percentage["numFilesDirs"] = numFilesDirs;
-            if(lastLogin == null || lastLogin == 0) {
+            if(lastLogin == null || lastLogin <= 0) {
                 percentage["lastLogin"] = "N/A";
             } else {
                 percentage["lastLogin"] = new Date(lastLogin).toISOString().slice(0, 10);

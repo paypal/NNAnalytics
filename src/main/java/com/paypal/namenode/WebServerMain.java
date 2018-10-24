@@ -1561,8 +1561,13 @@ public class WebServerMain {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
-          String username = req.queryMap("username").value();
-          return nameNodeLoader.getSuggestionsEngine().getSuggestionsAsJson(username);
+          boolean allJson = req.queryMap().toMap().containsKey("all");
+          if(allJson) {
+            return nameNodeLoader.getSuggestionsEngine().getAllSuggestionsAsJson();
+          } else {
+            String username = req.queryMap("username").value();
+            return nameNodeLoader.getSuggestionsEngine().getSuggestionsAsJson(username);
+          }
         });
 
     /* DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by NNA. */
