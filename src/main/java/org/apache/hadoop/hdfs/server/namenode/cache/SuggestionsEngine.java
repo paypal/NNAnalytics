@@ -40,7 +40,6 @@ import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.util.VirtualINodeTree;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -621,7 +620,7 @@ public class SuggestionsEngine {
    */
   public String getAllSuggestionsAsJson() {
     Map<String, Map<String, Long>> allUsersSuggestions = new HashMap<>();
-    for(String user : cachedUsers) {
+    for (String user : cachedUsers) {
       Map<String, Long> userMap = getUserMapFromCachedMaps(user);
       allUsersSuggestions.put(user, userMap);
     }

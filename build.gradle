@@ -77,6 +77,10 @@ license {
                         "**/jquery*",
                         "**/sweetalert*",
                         "**/datatables*",
+                        "**/jszip.min.js",
+                        "**/dataTables.buttons.min.js",
+                        "**/buttons.html5.min.js",
+                        "**/css/*datatables*",
                         "**/npm.js",
                         "**/*.blank.xml",
                         "**/*.md" ].toSet()

@@ -1562,7 +1562,7 @@ public class WebServerMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
           boolean allJson = req.queryMap().toMap().containsKey("all");
-          if(allJson) {
+          if (allJson) {
             return nameNodeLoader.getSuggestionsEngine().getAllSuggestionsAsJson();
           } else {
             String username = req.queryMap("username").value();
