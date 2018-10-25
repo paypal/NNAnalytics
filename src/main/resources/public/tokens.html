@@ -94,11 +94,13 @@
                 }
 
                 $("#loaderDiv").hide();
-                var html = "<table style='max-width:100%; width:100%'><tr><th>Username:</th><th>Last Login:</th>";
+                var html = "<table id='tokenTable' style='max-width:100%; width:100%'><tr><th>Username:</th><th>Last Login:</th>";
                 for(var user in tokenMap) {
-                    html += "<tr><td>" + user + "</td><td>" + tokenMap[user] + "</td></tr>";
+                    html += "<tr><td><a target='_blank' href='./suggestion.html?username="+user+"'>" + user + "</a></td><td>" + tokenMap[user] + "</td></tr>";
                 }
                 $('#tokenMap').html(html + "</table>");
+                $('tr:nth-child(even)').css("background", "#fff");
+                $('tr:nth-child(odd)').css("background", "#eee");
             },
             error: function(response) {
                 $("#loaderDiv").hide();

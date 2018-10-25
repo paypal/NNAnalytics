@@ -160,6 +160,13 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testAllSuggestions() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/suggestions?all");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testSuggestionsUser() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/suggestions?user=hdfs");
     HttpResponse res = client.execute(hostPort, get);
