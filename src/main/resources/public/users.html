@@ -76,7 +76,7 @@
                     if(value.lastLogin == null || value.lastLogin <= 0) {
                         lastLogin = "N/A";
                     } else {
-                        lastLogin = new Date(lastLogin).toISOString().slice(0, 10);
+                        lastLogin = new Date(value.lastLogin).toISOString().slice(0, 10);
                     }
                     innerArray.push(lastLogin);
                     innerArray.push(value.numDirs);
