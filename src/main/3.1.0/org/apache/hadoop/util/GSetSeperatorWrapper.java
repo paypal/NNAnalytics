@@ -20,6 +20,7 @@
 package org.apache.hadoop.util;
 
 import com.google.common.collect.Iterators;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import org.apache.hadoop.hdfs.server.namenode.INode;
@@ -85,6 +86,11 @@ public class GSetSeperatorWrapper implements GSet<INode, INodeWithAdditionalFiel
   public void clear() {
     fileSet.clear();
     dirSet.clear();
+  }
+
+  @Override
+  public Collection<INodeWithAdditionalFields> values() {
+    return CollectionsView.combine(fileSet.values(), dirSet.values());
   }
 
   @NotNull

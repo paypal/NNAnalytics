@@ -33,7 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.hadoop.hdfs.protocol.Block;
-import org.apache.hadoop.hdfs.server.blockmanagement.BlockInfo;
+import org.apache.hadoop.hdfs.server.blockmanagement.BlockInfoContiguous;
+import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
 import org.apache.hadoop.hdfs.server.common.GenerationStamp;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
 import org.apache.hadoop.util.GSet;
@@ -69,9 +70,9 @@ public class GSetGenerator extends GSetGeneratorBase {
           new INodeDirectory(dirId, ("dir" + j).getBytes(CHARSET), status, mAndAtime);
       boolean childAdded = parent.addChild(dir);
       if (rand.nextBoolean()) {
-        dir.setQuota(9000L, 9999999999L);
+        dir.setQuota(BlockStoragePolicySuite.createDefaultSuite(), 9000L, 9999999999L, null);
         dir.getDirectoryWithQuotaFeature()
-            .setSpaceConsumed(rand.nextLong(5000L), rand.nextLong(9999999991L));
+            .setSpaceConsumed(rand.nextLong(5000L), rand.nextLong(9999999991L), null);
       }
       if (childAdded) {
         generateFilesForDirectory(gset, dir, filesPerDir);
@@ -96,13 +97,12 @@ public class GSetGenerator extends GSetGeneratorBase {
       long mAndAtime = now - rand.nextLong(TimeUnit.DAYS.toMillis(365)); // 1 year
       short replFact = (rand.nextBoolean()) ? (short) 3 : (short) (rand.nextInt(10) + 1);
       int numOfBlocks = rand.nextInt(4);
-      BlockInfo[] blks = new BlockInfo[numOfBlocks];
+      BlockInfoContiguous[] blks = new BlockInfoContiguous[numOfBlocks];
       for (int k = 0; k < numOfBlocks; k++) {
         boolean isLastBlock = (k + 1 >= numOfBlocks);
         int blockSize = (isLastBlock) ? rand.nextInt(DEFAULT_BLOCK_SIZE) + 1 : DEFAULT_BLOCK_SIZE;
-        Block blk =
-            new Block(fileId * 10 + k, blockSize, GenerationStamp.GRANDFATHER_GENERATION_STAMP);
-        blks[k] = new BlockInfo(blk, replFact);
+        Block blk = new Block(fileId * 10 + k, blockSize, GenerationStamp.LAST_RESERVED_STAMP);
+        blks[k] = new BlockInfoContiguous(blk, replFact);
       }
       INodeFile file =
           new INodeFile(
@@ -116,8 +116,8 @@ public class GSetGenerator extends GSetGeneratorBase {
               DEFAULT_BLOCK_SIZE);
       byte policyID = policyIDs[rand.nextInt(policyIDs.length)];
       file.setStoragePolicyID(policyID, Snapshot.CURRENT_STATE_ID);
-      for (BlockInfo blk : blks) {
-        blk.setBlockCollection(file);
+      for (BlockInfoContiguous blk : blks) {
+        blk.setBlockCollectionId(file.getId());
       }
       boolean added = parent.addChild(file);
       if (added) {

@@ -37,6 +37,7 @@ import org.apache.hadoop.hdfs.server.namenode.queries.StorageTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
 import org.apache.hadoop.hdfs.util.Canceler;
 import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.security.AccessControlException;
 
 public class VersionContext implements VersionInterface {
 
@@ -66,12 +67,12 @@ public class VersionContext implements VersionInterface {
       nodeDetails.put(
           "storagePolicy",
           BlockStoragePolicySuite.createDefaultSuite().getPolicy(node.getStoragePolicyID()));
-      nodeDetails.put("nsQuota", node.getQuotaCounts().get(Quota.NAMESPACE));
-      nodeDetails.put("dsQuota", node.getQuotaCounts().get(Quota.DISKSPACE));
+      nodeDetails.put("nsQuota", node.getQuotaCounts().getNameSpace());
+      nodeDetails.put("dsQuota", node.getQuotaCounts().getStorageSpace());
       XAttrFeature xattrs = node.getXAttrFeature();
       nodeDetails.put("xAttrs", ((xattrs == null) ? "NONE" : xattrs.getXAttrs()));
       AclFeature aclFeature = node.getAclFeature();
-      nodeDetails.put("acls", ((aclFeature == null) ? "NONE" : aclFeature.getEntries()));
+      nodeDetails.put("aclsCount", ((aclFeature == null) ? "NONE" : aclFeature.getEntriesSize()));
       if (node.isFile()) {
         nodeDetails.put("type", "file");
         INodeFile file = node.asFile();
@@ -111,11 +112,56 @@ public class VersionContext implements VersionInterface {
       case "dirNumChildren":
         return x -> ((long) x.asDirectory().getChildrenList(Snapshot.CURRENT_STATE_ID).size());
       case "dirSubTreeSize":
-        return x -> x.computeContentSummary().getSpaceConsumed();
+        return x -> {
+          FSDirectory fsd = namesystem.dir;
+          ContentSummaryComputationContext cscc =
+              new ContentSummaryComputationContext(
+                  fsd,
+                  fsd.getFSNamesystem(),
+                  fsd.getContentCountLimit(),
+                  fsd.getContentSleepMicroSec());
+          try {
+            return x.computeContentSummary(Snapshot.CURRENT_STATE_ID, cscc)
+                .getCounts()
+                .getStoragespace();
+          } catch (AccessControlException e) {
+            throw new RuntimeException(e);
+          }
+        };
       case "dirSubTreeNumFiles":
-        return x -> x.computeContentSummary().getFileCount();
+        return x -> {
+          FSDirectory fsd = namesystem.dir;
+          ContentSummaryComputationContext cscc =
+              new ContentSummaryComputationContext(
+                  fsd,
+                  fsd.getFSNamesystem(),
+                  fsd.getContentCountLimit(),
+                  fsd.getContentSleepMicroSec());
+          try {
+            return x.computeContentSummary(Snapshot.CURRENT_STATE_ID, cscc)
+                .getCounts()
+                .getFileCount();
+          } catch (AccessControlException e) {
+            throw new RuntimeException(e);
+          }
+        };
       case "dirSubTreeNumDirs":
-        return x -> x.computeContentSummary().getDirectoryCount();
+        return x -> {
+          FSDirectory fsd = namesystem.dir;
+          ContentSummaryComputationContext cscc =
+              new ContentSummaryComputationContext(
+                  fsd,
+                  fsd.getFSNamesystem(),
+                  fsd.getContentCountLimit(),
+                  fsd.getContentSleepMicroSec());
+          try {
+            return x.computeContentSummary(Snapshot.CURRENT_STATE_ID, cscc)
+                .getCounts()
+                .getDirectoryCount();
+          } catch (AccessControlException e) {
+            throw new RuntimeException(e);
+          }
+        };
       case "storageType":
         return x -> ((long) x.getStoragePolicyID());
       default:
@@ -127,10 +173,7 @@ public class VersionContext implements VersionInterface {
   public Function<INode, Boolean> getFilterFunctionToBooleanForINode(String filter) {
     switch (filter) {
       case "hasQuota":
-        return node -> {
-          Quota.Counts qc = node.getQuotaCounts();
-          return qc.get(Quota.NAMESPACE) != -1 || qc.get(Quota.DISKSPACE) != -1;
-        };
+        return node -> node.asDirectory().isWithQuota();
       default:
         return null;
     }
@@ -181,7 +224,7 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public void saveNamespace() throws IOException {
-    namesystem.saveNamespace();
+    namesystem.saveNamespace(0, 0);
   }
 
   @Override // VersionInterface
@@ -191,21 +234,21 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public Long getNsQuota(INode node) {
-    return node.getQuotaCounts().get(Quota.NAMESPACE);
+    return node.getQuotaCounts().getNameSpace();
   }
 
   @Override // VersionInterface
   public Long getNsQuotaUsed(INode node) {
-    return node.computeQuotaUsage().get(Quota.NAMESPACE);
+    return node.computeQuotaUsage(BlockStoragePolicySuite.createDefaultSuite()).getNameSpace();
   }
 
   @Override // VersionInterface
   public Long getDsQuota(INode node) {
-    return node.getQuotaCounts().get(Quota.DISKSPACE);
+    return node.getQuotaCounts().getStorageSpace();
   }
 
   @Override // VersionInterface
   public Long getDsQuotaUsed(INode node) {
-    return node.computeQuotaUsage().get(Quota.DISKSPACE);
+    return node.computeQuotaUsage(BlockStoragePolicySuite.createDefaultSuite()).getStorageSpace();
   }
 }
