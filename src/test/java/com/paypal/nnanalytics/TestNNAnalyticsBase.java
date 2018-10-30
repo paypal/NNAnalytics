@@ -211,6 +211,13 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testAllQuotas() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/quotas?all");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testDsQuotas() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/quotas?sum=dsQuotaRatioUsed");
     HttpResponse res = client.execute(hostPort, get);
@@ -304,7 +311,7 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
-  public void testHasQouta() throws IOException {
+  public void testHasQuota() throws IOException {
     HttpGet get =
         new HttpGet("http://localhost:4567/filter?set=dirs&filters=hasQuota:eq:true&sum=count");
     HttpResponse res = client.execute(hostPort, get);
@@ -315,7 +322,7 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
-  public void testHasQoutaList() throws IOException {
+  public void testHasQuotaList() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/filter?set=dirs&filters=hasQuota:eq:true");
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());

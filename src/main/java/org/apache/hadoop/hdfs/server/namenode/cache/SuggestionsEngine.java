@@ -539,6 +539,20 @@ public class SuggestionsEngine {
   }
 
   /**
+   * Get all quota information from cache as a JSON String.
+   *
+   * @return quota info returned as JSON string
+   */
+  public String getAllQuotasAsJson() {
+    Map<String, Map<String, Map<String, Long>>> allQuotaRatios = new HashMap<>();
+    Map<String, Map<String, Long>> nsQuotas = cachedUserNsQuotas;
+    Map<String, Map<String, Long>> dsQuotas = cachedUserDsQuotas;
+    allQuotaRatios.put("nsQuotas", nsQuotas);
+    allQuotaRatios.put("dsQuotas", dsQuotas);
+    return Histograms.toJson(allQuotaRatios);
+  }
+
+  /**
    * Get quota information from cache as a JSON String.
    *
    * @param user optional; username to get quota info for
