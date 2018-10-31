@@ -1627,9 +1627,14 @@ public class WebServerMain {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
-          String user = req.queryMap("user").value();
-          String sum = req.queryMap("sum").value();
-          return nameNodeLoader.getSuggestionsEngine().getQuotaAsJson(user, sum);
+          boolean allJson = req.queryMap().toMap().containsKey("all");
+          if (allJson) {
+            return nameNodeLoader.getSuggestionsEngine().getAllQuotasAsJson();
+          } else {
+            String user = req.queryMap("user").value();
+            String sum = req.queryMap("sum").value();
+            return nameNodeLoader.getSuggestionsEngine().getQuotaAsJson(user, sum);
+          }
         });
 
     /* USERS endpoint is an admin-level endpoint meant to dump the cached set of detected users by NNA. */
