@@ -112,8 +112,18 @@
                     var innerArray = [];
                     innerArray.push(path);
                     innerArray.push(user);
-                    innerArray.push(dsQuotas[user][path]);
-                    innerArray.push(nsQuotas[user][path]);
+                    var dsQuota = dsQuotas[user][path];
+                    if(dsQuota != null) {
+                        innerArray.push(dsQuotas[user][path]);
+                    } else {
+                        innerArray.push(-1);
+                    }
+                    var nsQuota = nsQuotas[user][path];
+                    if(nsQuota != null) {
+                        innerArray.push(nsQuotas[user][path]);
+                    } else {
+                        innerArray.push(-1);
+                    }
                     array.push(innerArray);
                 }
             }
