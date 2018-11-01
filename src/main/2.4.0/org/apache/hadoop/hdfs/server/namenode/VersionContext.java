@@ -24,8 +24,8 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -52,7 +52,7 @@ public class VersionContext implements VersionInterface {
         writer.flush();
         return;
       }
-      Map<String, Object> nodeDetails = new HashMap<>();
+      Map<String, Object> nodeDetails = new TreeMap<>();
       INode node = namesystem.getFSDirectory().getINode(path);
       nodeDetails.put("path", node.getFullPathName());
       nodeDetails.put("permisssions", node.getPermissionStatus().toString());
