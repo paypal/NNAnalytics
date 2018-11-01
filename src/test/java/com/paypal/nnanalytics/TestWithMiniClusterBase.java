@@ -276,7 +276,7 @@ public abstract class TestWithMiniClusterBase {
       if (repFactor != 0) {
         fileSystem.setReplication(filePath, repFactor);
       }
-      int weeksAgo = RANDOM.nextInt(10);
+      int weeksAgo = RANDOM.nextInt(60);
       long timeStamp = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(weeksAgo * 7);
       if (weeksAgo != 0) {
         fileSystem.setTimes(filePath, timeStamp, timeStamp);

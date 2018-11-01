@@ -40,6 +40,9 @@
             <div class="jumbotron">
                 <h1>User Information</h1>
                 <div id="connection"></div>
+                <p>
+                    View and compare users on their cluster usage.<br />
+                </p>
             </div>
             <div id="userMetrics">
                 <table id="userDataTable" class="table table-bordered" style="width: 100%;">
@@ -50,6 +53,7 @@
                         <th>Dir Count</th>
                         <th>File Count</th>
                         <th>Space Used</th>
+                        <th>% Old Files</th>
                     </tr>
                     </thead>
                 </table>
@@ -82,6 +86,7 @@
                     innerArray.push(value.numDirs);
                     innerArray.push(value.numFiles);
                     innerArray.push(numberWithCommas(value.diskspace));
+                    innerArray.push(getPercentage(value.oldFiles1yr,value.numFiles));
                     array.push(innerArray);
                 });
                 return array
@@ -106,7 +111,7 @@
                     },
                     "iDisplayLength": 100,
                     "aLengthMenu": [[10, 50, 100, -1], [10, 50, 100, "All"]],
-                    "order": [[1, "desc"]],
+                    "order": [[1, "desc"], [4, "desc"], [5, "desc"]],
                     "dom": 'Bfrtipl',
                     "buttons": [
                         'copyHtml5', 'csvHtml5', 'excelHtml5' 
@@ -121,7 +126,11 @@
                         { title: "Last Token" },
                         { title: "Dir Count" },
                         { title: "File Count" },
-                        { title: "Space Used" }
+                        { title: "Space Used" },
+                        { title: "% Old Files" }
+                    ],
+                    "columnDefs": [
+                        { width: "10%", targets: [1,5] }
                     ]
                 });
                 table.draw();
