@@ -25,10 +25,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
 import org.apache.hadoop.io.IOUtils;
 
@@ -50,52 +52,45 @@ public class VersionContext implements VersionInterface {
         writer.flush();
         return;
       }
+      Map<String, Object> nodeDetails = new TreeMap<>();
       INode node = namesystem.getFSDirectory().getINode(path);
-      writer.write("Full Path: " + node.getFullPathName() + "\n");
-      writer.write("Permissions: " + node.getPermissionStatus().toString() + "\n");
-      writer.write("Access Time: " + new Date(node.getAccessTime()) + "\n");
-      writer.write("Mod Time: " + new Date(node.getModificationTime()) + "\n");
-      writer.write("ID: " + node.getId() + "\n");
-      writer.write("Parent: " + node.getParentString() + "\n");
-      writer.write("Namespace Quota: " + node.getQuotaCounts().get(Quota.NAMESPACE) + "\n");
-      writer.write("Diskspace Quota: " + node.getQuotaCounts().get(Quota.DISKSPACE) + "\n");
+      nodeDetails.put("path", node.getFullPathName());
+      nodeDetails.put("permisssions", node.getPermissionStatus().toString());
+      nodeDetails.put("accessTime", new Date(node.getAccessTime()));
+      nodeDetails.put("modTime", new Date(node.getModificationTime()));
+      nodeDetails.put("nodeId", node.getId());
+      nodeDetails.put("nsQuota", node.getQuotaCounts().get(Quota.NAMESPACE));
+      nodeDetails.put("dsQuota", node.getQuotaCounts().get(Quota.DISKSPACE));
       AclFeature aclFeature = node.getAclFeature();
-      writer.write("ACLs: " + ((aclFeature == null) ? "NONE" : aclFeature.getEntries()) + "\n");
+      nodeDetails.put("acls", ((aclFeature == null) ? "NONE" : aclFeature.getEntries()));
       if (node.isFile()) {
+        nodeDetails.put("type", "file");
         INodeFile file = node.asFile();
-        writer.write("Under Construction?: " + file.isUnderConstruction() + "\n");
-        writer.write("Under Snapshot?: " + file.isWithSnapshot() + "\n");
-        writer.write("File Size: " + file.computeFileSize() + "\n");
-        writer.write(
-            "File Size w/o UC Block: " + file.computeFileSizeNotIncludingLastUcBlock() + "\n");
-        writer.write("Replication Factor: " + file.getFileReplication() + "\n");
-        writer.write("Number of Blocks: " + file.getBlocks().length + "\n");
-        writer.write(
-            "Blocks:\n"
-                + Arrays.stream(file.getBlocks())
-                    .map(
-                        k ->
-                            k.getBlockName()
-                                + "_"
-                                + k.getGenerationStamp()
-                                + " "
-                                + k.getNumBytes()
-                                + "\n")
-                    .collect(Collectors.toList()));
+        nodeDetails.put("underConstruction", file.isUnderConstruction());
+        nodeDetails.put("isWithSnapshot", file.isWithSnapshot());
+        nodeDetails.put("fileSize", file.computeFileSize());
+        nodeDetails.put("replicationFactor", file.getFileReplication());
+        nodeDetails.put("numBlocks", file.getBlocks().length);
+        nodeDetails.put(
+            "blocks",
+            Arrays.stream(file.getBlocks())
+                .map(k -> k.getBlockName() + "_" + k.getGenerationStamp() + " " + k.getNumBytes())
+                .collect(Collectors.toList()));
       } else {
+        nodeDetails.put("type", "directory");
         INodeDirectory dir = node.asDirectory();
-        writer.write("Has Quotas?: " + dir.isWithQuota() + "\n");
-        writer.write("Is Snapshottable?: " + dir.isSnapshottable() + "\n");
-        writer.write("Under Snapshot?: " + dir.isWithSnapshot() + "\n");
-        writer.write("Number of Children: " + dir.getChildrenNum(Snapshot.CURRENT_STATE_ID) + "\n");
-        writer.write(
-            "Children:\n"
-                + StreamSupport.stream(
-                        dir.getChildrenList(Snapshot.CURRENT_STATE_ID).spliterator(), false)
-                    .map(child -> child.getFullPathName() + "\n")
-                    .collect(Collectors.toList()));
-        writer.flush();
+        nodeDetails.put("snapshottable", dir.isSnapshottable());
+        nodeDetails.put("isWithSnapshot", dir.isWithSnapshot());
+        nodeDetails.put(
+            "children",
+            StreamSupport.stream(
+                    dir.getChildrenList(Snapshot.CURRENT_STATE_ID).spliterator(), false)
+                .map(INode::getLocalName)
+                .collect(Collectors.toList()));
       }
+      String json = Histograms.toJson(nodeDetails);
+      writer.write(json);
+      writer.flush();
     } finally {
       IOUtils.closeStream(writer);
     }

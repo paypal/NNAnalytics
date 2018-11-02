@@ -681,7 +681,7 @@ public class WebServerMain {
         "/dump",
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
-          res.header("Content-Type", "text/plain");
+          res.header("Content-Type", "application/json; charset=UTF-8");
           if (!nameNodeLoader.isInit()) {
             return "Namesystem is not fully initialized.\n";
           }
