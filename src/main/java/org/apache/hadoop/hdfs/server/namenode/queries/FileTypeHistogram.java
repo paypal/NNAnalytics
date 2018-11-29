@@ -36,7 +36,6 @@ public class FileTypeHistogram {
     AVRO,
     SNAPPY,
     TAR,
-    GZ,
     GZIP,
     LOG,
     TXT,
@@ -52,7 +51,19 @@ public class FileTypeHistogram {
     ZIP,
     DTDONE,
     DONE,
-    JHIST
+    JHIST,
+    PIG_HEADER,
+    PIG_SCHEMA,
+    BATCH,
+    TSV,
+    CSV,
+    BZ2,
+    TODO,
+    HTML,
+    JS,
+    YAML,
+    SPLIT,
+    SPLITMETAINFO
   }
 
   private static final Map<String, String> startsWithMap =
@@ -66,6 +77,8 @@ public class FileTypeHistogram {
   private static final Map<String, String> equalsMap =
       new HashMap<String, String>() {
         {
+          put(".pig_header", Types.PIG_HEADER.name());
+          put(".pig_schema", Types.PIG_SCHEMA.name());
           put("_SUCCESS", Types._SUCCESS.name());
           put("_DONE", Types._DONE.name());
         }
@@ -74,17 +87,23 @@ public class FileTypeHistogram {
   private static final Map<String, String> suffixExtMap =
       new HashMap<String, String>() {
         {
+          put(".batch", Types.BATCH.name());
           put(".txt", Types.TXT.name());
+          put(".tsv", Types.TSV.name());
+          put(".bz2", Types.BZ2.name());
+          put(".csv", Types.CSV.name());
           put(".log", Types.LOG.name());
           put(".avro", Types.AVRO.name());
           put(".snappy", Types.SNAPPY.name());
           put(".parquet", Types.PARQUET.name());
-          put(".gz", Types.GZ.name());
+          put(".gz", Types.GZIP.name());
           put(".tar", Types.TAR.name());
           put(".json", Types.JSON.name());
           put(".xml", Types.XML.name());
-          put(".dat", Types.DAT.name());
           put(".index", Types.INDEX.name());
+          put(".todo", Types.TODO.name());
+          put(".html", Types.HTML.name());
+          put(".js", Types.JS.name());
           put(".orc", Types.ORC.name());
           put(".jar", Types.JAR.name());
           put(".zip", Types.ZIP.name());
@@ -92,7 +111,12 @@ public class FileTypeHistogram {
           put(".dtdone", Types.DTDONE.name());
           put(".done", Types.DONE.name());
           put(".jhist", Types.JHIST.name());
+          put(".dat", Types.DAT.name());
           put(".data", Types.DATA.name());
+          put(".yaml", Types.YAML.name());
+          put(".yml", Types.YAML.name());
+          put(".split", Types.SPLIT.name());
+          put(".splitmetainfo", Types.SPLITMETAINFO.name());
         }
       };
 
