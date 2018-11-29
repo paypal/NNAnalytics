@@ -58,6 +58,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         return node -> node.asFile().computeFileSize() * node.asFile().getFileReplication();
       case "fileReplica":
         return node -> ((long) node.asFile().getFileReplication());
+      case "blockSize":
+        return node -> ((long) node.asFile().getPreferredBlockSize());
       case "numBlocks":
         return node -> ((long) node.asFile().numBlocks());
       case "numReplicas":

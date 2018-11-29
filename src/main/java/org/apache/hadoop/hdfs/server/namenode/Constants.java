@@ -214,6 +214,7 @@ public interface Constants {
     accessTime,
     modTime,
     fileSize,
+    blockSize,
     diskspaceConsumed,
     memoryConsumed
   }
