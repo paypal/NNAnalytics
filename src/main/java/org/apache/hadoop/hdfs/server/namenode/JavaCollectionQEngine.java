@@ -93,6 +93,8 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
           "memoryConsumed", node -> getFilterFunctionToLongForINode("memoryConsumed").apply(node));
   private final SimpleAttribute<INode, Long> fileReplica =
       attribute("fileReplica", node -> getFilterFunctionToLongForINode("fileReplica").apply(node));
+  private final SimpleAttribute<INode, Long> blockSize =
+      attribute("blockSize", node -> getFilterFunctionToLongForINode("blockSize").apply(node));
   private final SimpleAttribute<INode, Long> numBlocks =
       attribute("numBlocks", node -> getFilterFunctionToLongForINode("numBlocks").apply(node));
   private final SimpleAttribute<INode, Long> numReplicas =
@@ -590,6 +592,8 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
         return memoryConsumed;
       case "fileReplica":
         return fileReplica;
+      case "blockSize":
+        return blockSize;
       case "numBlocks":
         return numBlocks;
       case "numReplicas":

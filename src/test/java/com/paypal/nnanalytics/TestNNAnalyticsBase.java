@@ -480,6 +480,36 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testBlockSizeHistogramByUser() throws IOException {
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&filters=blockSize:gt:0&type=user");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testBlockSizeMaxFindHistogramByUser() throws IOException {
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&type=user&find=max:blockSize");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testBlockSizeMinFindHistogramByUser() throws IOException {
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&type=user&find=min:blockSize");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testModTimeHistogram() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/histogram?set=all&type=modTime");
     HttpResponse res = client.execute(hostPort, get);

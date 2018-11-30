@@ -214,6 +214,7 @@ public interface Constants {
     accessTime,
     modTime,
     fileSize,
+    blockSize,
     diskspaceConsumed,
     memoryConsumed
   }
@@ -430,6 +431,7 @@ public interface Constants {
       EnumSet.of(
           FindField.accessTime,
           FindField.modTime,
+          FindField.blockSize,
           FindField.diskspaceConsumed,
           FindField.fileSize,
           FindField.memoryConsumed);
