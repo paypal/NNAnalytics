@@ -481,7 +481,8 @@ public abstract class TestNNAnalyticsBase {
 
   @Test
   public void testBlockSizeHistogramByUser() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/histogram?set=files&filters=blockSize:gt:0&type=user");
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&filters=blockSize:gt:0&type=user");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -490,7 +491,8 @@ public abstract class TestNNAnalyticsBase {
 
   @Test
   public void testBlockSizeMaxFindHistogramByUser() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/histogram?set=files&type=user&find=max:blockSize");
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&type=user&find=max:blockSize");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -499,7 +501,8 @@ public abstract class TestNNAnalyticsBase {
 
   @Test
   public void testBlockSizeMinFindHistogramByUser() throws IOException {
-    HttpGet get = new HttpGet("http://localhost:4567/histogram?set=files&type=user&find=min:blockSize");
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&type=user&find=min:blockSize");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
