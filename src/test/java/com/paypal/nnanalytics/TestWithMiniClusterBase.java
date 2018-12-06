@@ -194,7 +194,7 @@ public abstract class TestWithMiniClusterBase {
     int startingCount = Integer.parseInt(content);
 
     // Trigger file system updates.
-    addDirs(100, 0L);
+    addFiles(100, 0L);
 
     // Ensure NNA sees those updates in query.
     int checkCount;
@@ -281,22 +281,6 @@ public abstract class TestWithMiniClusterBase {
       if (weeksAgo != 0) {
         fileSystem.setTimes(filePath, timeStamp, timeStamp);
       }
-      if (sleepBetweenMs != 0L) {
-        Thread.sleep(sleepBetweenMs);
-      }
-    }
-  }
-
-  private void addDirs(int numOfDirs, long sleepBetweenMs) throws Exception {
-    DistributedFileSystem fileSystem = (DistributedFileSystem) FileSystem.get(CONF);
-    for (int i = 0; i < numOfDirs; i++) {
-      int dirNumber1 = RANDOM.nextInt(10);
-      Path dirPath = new Path("/dir" + dirNumber1);
-      int dirNumber2 = RANDOM.nextInt(10);
-      dirPath = dirPath.suffix("/dir" + dirNumber2);
-      int dirNumber3 = RANDOM.nextInt(10);
-      dirPath = dirPath.suffix("/dir" + dirNumber3);
-      fileSystem.mkdirs(dirPath);
       if (sleepBetweenMs != 0L) {
         Thread.sleep(sleepBetweenMs);
       }
