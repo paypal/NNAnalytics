@@ -24,6 +24,7 @@ import com.paypal.security.SecurityContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import spark.Request;
 
 /**
@@ -48,9 +49,19 @@ public class UsageMetrics {
    * Called when a user logs in to NNAnalytics.
    *
    * @param secContext SecurityContext
-   * @param request String
+   * @param request spark Request object
    */
   public synchronized void userLoggedIn(SecurityContext secContext, Request request) {
+    userLoggedIn(secContext, request.raw());
+  }
+
+  /**
+   * Called when a user logs in to NNAnalytics.
+   *
+   * @param secContext SecurityContext
+   * @param request http Request object
+   */
+  public synchronized void userLoggedIn(SecurityContext secContext, HttpServletRequest request) {
     String userName = secContext.getUserName();
 
     users.putIfAbsent(userName, new UserMetrics(userName));
@@ -61,9 +72,19 @@ public class UsageMetrics {
    * Called when a user logs out of NNAnalytics.
    *
    * @param secContext SecurityContext
-   * @param request String
+   * @param request spark Request object
    */
   public synchronized void userLoggedOut(SecurityContext secContext, Request request) {
+    userLoggedOut(secContext, request.raw());
+  }
+
+  /**
+   * Called when a user logs out of NNAnalytics.
+   *
+   * @param secContext SecurityContext
+   * @param request http Request object
+   */
+  public synchronized void userLoggedOut(SecurityContext secContext, HttpServletRequest request) {
     String userName = secContext.getUserName();
 
     users.putIfAbsent(userName, new UserMetrics(userName));
@@ -74,9 +95,19 @@ public class UsageMetrics {
    * Called when a user makes a query.
    *
    * @param secContext SecurityContext
-   * @param request String
+   * @param request spark Request object
    */
   public synchronized void userMadeQuery(SecurityContext secContext, Request request) {
+    userMadeQuery(secContext, request.raw());
+  }
+
+  /**
+   * Called when a user makes a query.
+   *
+   * @param secContext SecurityContext
+   * @param request http Request object
+   */
+  public synchronized void userMadeQuery(SecurityContext secContext, HttpServletRequest request) {
     String userName = secContext.getUserName();
 
     users.putIfAbsent(userName, new UserMetrics(userName));
@@ -87,19 +118,19 @@ public class UsageMetrics {
    * Get the appropriate IP from the spark Request object. Returns first value found in the
    * following order: "X-Real-IP" header > "X-Forwarded-For" header > request remote address
    *
-   * @param request the spark Request object
+   * @param request http Request object
    * @return String
    */
-  private String getIpFromRequest(Request request) {
-    String realIp = request.headers("X-Real-IP");
+  private String getIpFromRequest(HttpServletRequest request) {
+    String realIp = request.getHeader("X-Real-IP");
     if (realIp != null && !realIp.isEmpty()) {
       return realIp;
     }
-    String forwardedFor = request.headers("X-Forwarded-For");
+    String forwardedFor = request.getHeader("X-Forwarded-For");
     if (forwardedFor != null && !forwardedFor.isEmpty()) {
       return forwardedFor.split(",")[0];
     }
-    return request.ip();
+    return request.getRemoteAddr();
   }
 
   /**

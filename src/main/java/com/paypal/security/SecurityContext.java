@@ -19,10 +19,15 @@
 
 package com.paypal.security;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
@@ -30,6 +35,7 @@ import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.security.authorize.AuthorizationException;
 import org.eclipse.jetty.http.HttpStatus;
 import org.ldaptive.auth.FormatDnResolver;
+import org.pac4j.core.context.J2EContext;
 import org.pac4j.core.credentials.UsernamePasswordCredentials;
 import org.pac4j.core.exception.BadCredentialsException;
 import org.pac4j.core.exception.HttpAction;
@@ -38,7 +44,6 @@ import org.pac4j.core.profile.ProfileManager;
 import org.pac4j.jwt.credentials.authenticator.JwtAuthenticator;
 import org.pac4j.jwt.profile.JwtGenerator;
 import org.pac4j.ldap.credentials.authenticator.LdapAuthenticator;
-import org.pac4j.sparkjava.SparkWebContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
@@ -124,38 +129,49 @@ public class SecurityContext {
    * @param res - The HTTP response.
    */
   public void login(Request req, Response res) throws AuthenticationException, HttpAction {
+    login(req.raw(), res.raw());
+  }
+
+  /**
+   * Begin authenticated web session; set a JWT on response if successful; 401/403 otherwise.
+   *
+   * @param request - The HTTP request.
+   * @param response - The HTTP response.
+   */
+  public void login(HttpServletRequest request, HttpServletResponse response)
+      throws AuthenticationException, HttpAction {
     boolean authenticationEnabled = isAuthenticationEnabled();
     if (!authenticationEnabled) {
-      String reqUsername = req.queryParams("proxy");
+      String reqUsername = request.getParameter("proxy");
       if (reqUsername != null && !reqUsername.isEmpty()) {
         currentUser.set(reqUsername);
       }
       return;
     }
-
-    String username = req.queryMap().get("username").value();
-    String password = req.queryMap().get("password").value();
+    String username = request.getParameter("username");
+    String password = request.getParameter("password");
 
     if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
-      LOG.info("Corrupt login credentials for: {}", req.ip());
+      LOG.info("Corrupt login credentials for: {}", request.getRemoteAddr());
       throw new AuthenticationException("Bad username / password provided.");
     }
 
     // Perform local authentication if found.
-    if (localLogin(req, res, username, password)) {
+    if (localLogin(request, response, username, password)) {
       return;
     }
 
     // Perform LDAP authentication if found.
-    if (ldapLogin(req, res, username, password)) {
+    if (ldapLogin(request, response, username, password)) {
       return;
     }
 
-    LOG.info("Login failed for: {}", req.ip());
+    LOG.info("Login failed for: {}", request.getRemoteAddr());
     throw new AuthenticationException("Authentication required.");
   }
 
-  private boolean ldapLogin(Request req, Response res, String username, String password)
+  private boolean ldapLogin(
+      HttpServletRequest request, HttpServletResponse response, String username, String password)
       throws HttpAction {
     if (ldapAuthenticator != null) {
       RuntimeException authFailedEx = null;
@@ -164,43 +180,44 @@ public class SecurityContext {
         String ldapDnRegexd = ldapBaseDn.replaceAll("%u", username);
         ldapAuthenticator.getLdapAuthenticator().setDnResolver(new FormatDnResolver(ldapDnRegexd));
         UsernamePasswordCredentials credentials =
-            new UsernamePasswordCredentials(username, password, req.ip());
+            new UsernamePasswordCredentials(username, password, request.getRemoteAddr());
         try {
-          ldapAuthenticator.validate(credentials, new SparkWebContext(req, res));
+          ldapAuthenticator.validate(credentials, new J2EContext(request, response));
         } catch (RuntimeException e) {
           authFailedEx = e;
           continue;
         }
-        LOG.info("Login success via [LDAP] for: {} at {}", username, req.ip());
+        LOG.info("Login success via [LDAP] for: {} at {}", username, request.getRemoteAddr());
         CommonProfile profile = credentials.getUserProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
-        res.header("Set-Cookie", "nna-jwt-token=" + generate);
+        response.addHeader("Set-Cookie", "nna-jwt-token=" + generate);
         currentUser.set(username);
         return true;
       }
 
       if (authFailedEx != null) {
-        LOG.info("Login failed via [LDAP] for: {}", req.ip());
+        LOG.info("Login failed via [LDAP] for: {}", request.getRemoteAddr());
         throw authFailedEx;
       }
     }
     return false;
   }
 
-  private boolean localLogin(Request req, Response res, String username, String password)
+  private boolean localLogin(
+      HttpServletRequest request, HttpServletResponse response, String username, String password)
       throws AuthenticationException {
     if (localOnlyUsers.allows(username)) {
       if (localOnlyUsers.authenticate(username, password)) {
-        LOG.info("Login success via [LOCAL] for: {} at {}", username, req.ip());
+        LOG.info("Login success via [LOCAL] for: {} at {}", username, request.getRemoteAddr());
         CommonProfile profile = new CommonProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
-        res.header("Set-Cookie", "nna-jwt-token=" + generate);
+        response.addHeader("Set-Cookie", "nna-jwt-token=" + generate);
         currentUser.set(username);
         return true;
       } else {
-        LOG.info("Login failed via [LOCAL] for: {}", req.ip());
+        LOG.info("Login failed via [LOCAL] for: {}", request.getRemoteAddr());
         throw new BadCredentialsException("Invalid credentials for: " + username);
       }
     }
@@ -213,25 +230,41 @@ public class SecurityContext {
    * @param req the HTTP request
    * @param res the HTTP response
    */
-  public void logout(Request req, Response res) {
+  public void logout(Request req, Response res) throws IOException {
+    logout(req.raw(), res.raw());
+  }
+
+  /**
+   * Perform logout of authenticated web session.
+   *
+   * @param request the HTTP request
+   * @param response the HTTP response
+   */
+  public void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
     boolean authenticationEnabled = isAuthenticationEnabled();
-    ProfileManager<CommonProfile> manager = new ProfileManager<>(new SparkWebContext(req, res));
+    ProfileManager<CommonProfile> manager = new ProfileManager<>(new J2EContext(request, response));
     Optional<CommonProfile> profile = manager.get(false);
     if (authenticationEnabled && profile.isPresent()) {
       manager.logout();
-      HttpSession session = req.raw().getSession();
+      HttpSession session = request.getSession();
       if (session != null) {
         session.invalidate();
       }
-      res.removeCookie("nna-jwt-token");
-      res.header("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.header("Pragma", "no-cache");
-      res.header("Expires", "0");
-      res.status(HttpStatus.OK_200);
-      res.body("You have been logged out.");
+      Cookie cookie = new Cookie("nna-jwt-token", "");
+      cookie.setMaxAge(0);
+      response.addCookie(cookie);
+      response.addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      response.addHeader("Pragma", "no-cache");
+      response.addHeader("Expires", "0");
+      response.setStatus(HttpStatus.OK_200);
+      try (Writer writer = response.getWriter()) {
+        writer.write("You have been logged out.");
+      }
     } else {
-      res.status(HttpStatus.BAD_REQUEST_400);
-      res.body("No login session.");
+      response.setStatus(HttpStatus.BAD_REQUEST_400);
+      try (Writer writer = response.getWriter()) {
+        writer.write("No login session.");
+      }
     }
   }
 
@@ -245,19 +278,32 @@ public class SecurityContext {
    */
   public void handleAuthentication(Request req, Response res)
       throws AuthenticationException, HttpAction {
+    handleAuthentication(req.raw(), res.raw());
+  }
+
+  /**
+   * Ensures that user request has proper authentication token / credentials.
+   *
+   * @param request the HTTP request
+   * @param response the HTTP response
+   * @throws AuthenticationException error with authentication
+   * @throws HttpAction error with HTTP call
+   */
+  public void handleAuthentication(HttpServletRequest request, HttpServletResponse response)
+      throws AuthenticationException, HttpAction {
     if (!init) {
-      LOG.info("Request occurred before initialized from: {}", req.ip());
+      LOG.info("Request occurred before initialized from: {}", request.getRemoteAddr());
       throw new AuthenticationException("Please wait for initialization.");
     }
 
-    boolean isLoginAttempt = req.raw().getRequestURI().startsWith("/" + Endpoint.login.name());
+    boolean isLoginAttempt = request.getRequestURI().startsWith("/" + Endpoint.login.name());
     if (isLoginAttempt) {
       return;
     }
 
     boolean authenticationEnabled = isAuthenticationEnabled();
     if (!authenticationEnabled) {
-      String proxyUsername = req.queryParams("proxy");
+      String proxyUsername = request.getParameter("proxy");
       if (proxyUsername != null && !proxyUsername.isEmpty()) {
         currentUser.set(proxyUsername);
       }
@@ -265,7 +311,7 @@ public class SecurityContext {
     }
 
     // Allow basic authentication for simple applications.
-    String basic = req.headers("Authorization");
+    String basic = request.getHeader("Authorization");
     if (basic != null && basic.startsWith("Basic ")) {
       String b64Credentials = basic.substring("Basic ".length()).trim();
       String nameAndPassword =
@@ -274,20 +320,30 @@ public class SecurityContext {
       String username = split[0];
       String password = split[1];
       // Perform local authentication if found.
-      if (localLogin(req, res, username, password)) {
+      if (localLogin(request, response, username, password)) {
         return;
       }
       // Perform LDAP authentication if found.
-      if (ldapLogin(req, res, username, password)) {
+      if (ldapLogin(request, response, username, password)) {
         return;
       }
-      LOG.info("Login failed via [BASIC] for: {}", req.ip());
+      LOG.info("Login failed via [BASIC] for: {}", request.getRemoteAddr());
       throw new AuthenticationException("Authentication required.");
     }
 
     // JWT authentication for end users whom have logged in.
-    String token = req.cookie("nna-jwt-token");
-    ProfileManager<CommonProfile> manager = new ProfileManager<>(new SparkWebContext(req, res));
+    String token = null;
+    Cookie[] cookies = request.getCookies();
+    if (cookies != null) {
+      for (Cookie cookie : cookies) {
+        if (cookie.getName().equals("nna-jwt-token")) {
+          token = cookie.getValue();
+          break;
+        }
+      }
+    }
+
+    ProfileManager<CommonProfile> manager = new ProfileManager<>(new J2EContext(request, response));
     CommonProfile userProfile;
     if (token != null) {
       try {
@@ -295,20 +351,20 @@ public class SecurityContext {
 
         userProfile.removeAttribute("iat");
         String generate = jwtGenerator.generate(userProfile);
-        res.header("Set-Cookie", "nna-jwt-token=" + generate);
+        response.addHeader("Set-Cookie", "nna-jwt-token=" + generate);
 
         manager.save(true, userProfile, false);
         String profileId = userProfile.getId();
-        LOG.info("Login success via [TOKEN] for: {} at {}", profileId, req.ip());
+        LOG.info("Login success via [TOKEN] for: {} at {}", profileId, request.getRemoteAddr());
         currentUser.set(profileId);
         return;
       } catch (Exception e) {
-        LOG.info("Login failed via [TOKEN] for: {}", req.ip());
+        LOG.info("Login failed via [TOKEN] for: {}", request.getRemoteAddr());
         throw new AuthenticationException(e);
       }
     }
 
-    LOG.info("Login failed via [NULL] for: {}", req.ip());
+    LOG.info("Login failed via [NULL] for: {}", request.getRemoteAddr());
     throw new AuthenticationException("Authentication required.");
   }
 
