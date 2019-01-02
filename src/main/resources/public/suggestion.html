@@ -923,7 +923,7 @@
                 $('#total9').html(nFormatter(numDirs, 2));
                 $('#total10').html(getPercentage(numDirs,totalDirs) +"%");
                 $('#total11').html(nFormatter(diskspace/numDirs));
-                if(lastLogin == 0 || lastLogin == null) {
+                if(lastLogin <= 0 || lastLogin == null) {
                     $('#total12').html("N/A");
                 } else {
                     $('#total12').html(msToDate(lastLogin));
