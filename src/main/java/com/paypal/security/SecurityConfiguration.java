@@ -223,7 +223,7 @@ public class SecurityConfiguration {
         for (String split : splits) {
           String[] usernamePassword = split.split(":");
           String username = usernamePassword[0];
-          String password = usernamePassword[1];
+          String password = (usernamePassword.length == 1) ? "" : usernamePassword[1];
           localOnlyUsers.put(username, password);
         }
       } catch (ArrayIndexOutOfBoundsException e) {
