@@ -136,7 +136,7 @@ public class SecurityContext {
     String username = req.queryMap().get("username").value();
     String password = req.queryMap().get("password").value();
 
-    if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
+    if (username == null || password == null) {
       LOG.info("Corrupt login credentials for: {}", req.ip());
       throw new AuthenticationException("Bad username / password provided.");
     }
@@ -272,7 +272,7 @@ public class SecurityContext {
           new String(Base64.getDecoder().decode(b64Credentials), Charset.defaultCharset());
       String[] split = nameAndPassword.split(":");
       String username = split[0];
-      String password = split[1];
+      String password = (split.length == 1) ? "" : split[1];
       // Perform local authentication if found.
       if (localLogin(req, res, username, password)) {
         return;
