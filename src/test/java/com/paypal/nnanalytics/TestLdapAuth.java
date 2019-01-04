@@ -69,7 +69,7 @@ public class TestLdapAuth {
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
     conf.set("nna.historical", "false");
-    conf.set("nna.localonly.users", "hdfs:hdfs,hdfsW:hdfsW,hdfsR:hdfsR");
+    conf.set("nna.localonly.users", "hdfs:hdfs,hdfsW:hdfsW,hdfsR:hdfsR,testEmpty:");
     conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
     nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);
@@ -114,6 +114,17 @@ public class TestLdapAuth {
   public void testLocalBasicAuthentication() throws IOException {
     // Do local basic auth.
     byte[] encode = Base64.getEncoder().encode("hdfs:hdfs".getBytes());
+    HttpGet get = new HttpGet("http://localhost:4567/info");
+    get.addHeader("Authorization", "Basic " + new String(encode));
+    HttpResponse res2 = client.execute(hostPort, get);
+    System.out.println(IOUtils.toString(res2.getEntity().getContent()));
+    assertThat(res2.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testLocalBasicAuthenticationEmptyPass() throws IOException {
+    // Do local basic auth.
+    byte[] encode = Base64.getEncoder().encode("testEmpty:".getBytes());
     HttpGet get = new HttpGet("http://localhost:4567/info");
     get.addHeader("Authorization", "Basic " + new String(encode));
     HttpResponse res2 = client.execute(hostPort, get);
