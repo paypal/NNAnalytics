@@ -19,12 +19,12 @@
 
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
-import com.paypal.security.SecurityConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.util.MapSerializer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
