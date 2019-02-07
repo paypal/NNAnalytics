@@ -20,8 +20,6 @@
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import com.google.common.collect.Sets;
-import com.paypal.namenode.HsqlDriver;
-import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -38,6 +36,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
+import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
+import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.util.VirtualINodeTree;
 import org.slf4j.Logger;

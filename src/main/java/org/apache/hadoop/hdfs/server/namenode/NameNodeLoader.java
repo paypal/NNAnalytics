@@ -19,9 +19,6 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import com.paypal.namenode.HsqlDriver;
-import com.paypal.namenode.WebServerMain;
-import com.paypal.security.SecurityConfiguration;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
@@ -46,6 +43,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
+import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
+import org.apache.hadoop.hdfs.server.namenode.analytics.WebServerMain;
+import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine;
 import org.apache.hadoop.hdfs.server.namenode.startupprogress.Phase;
 import org.apache.hadoop.hdfs.server.namenode.startupprogress.StartupProgressView;

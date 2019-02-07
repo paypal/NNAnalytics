@@ -34,4 +34,4 @@ export NNA_JVM_OPTIONS="-server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+Us
 -Dnamenode.metrics.logger=INFO,NNMETRICSRFA -Dorg.mortbay.jetty.Request.maxFormContentSize=-1 \
 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
 export NNA_OUT_PATH=/var/log/nn-analytics/nn-analytics.out
-export NNA_MAIN="com.paypal.namenode.WebServerMain"
+export NNA_MAIN="org.apache.hadoop.hdfs.server.namenode.analytics.WebServerMain"

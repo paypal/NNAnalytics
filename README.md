@@ -11,7 +11,7 @@
 
 Run a demo locally and instantly! Just run the following command on a workspace directory:
 ```
-git clone https://github.com/paypal/NNAnalytics.git nna && cd ./nna && ./gradlew -PmainClass=com.paypal.nnanalytics.TestWithMiniClusterWithStreamEngine execute
+git clone https://github.com/paypal/NNAnalytics.git nna && cd ./nna && ./gradlew -PmainClass=org.apache.hadoop.hdfs.server.namenode.analytics.TestWithMiniClusterWithStreamEngine execute
 ```
 Then go to http://localhost:4567 and you will have an NNA instance complete with a mini HA-enabled HDFS instance all updating in real time on your local machine!
 
