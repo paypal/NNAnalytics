@@ -11,6 +11,7 @@ There are several optional parameters available to the histogram query:
 * `&useLock=<boolean>` if you wish to take the FSNamesystem lock as part of your query if you are seeing inconsistencies between histograms. This ensures the INode set will not change underneath mid-query.
 * `&top=<number>` to get only the top number of bins and `&bottom=<number` to get only the bottom number of bins.
 * `&histogramOutput=<csv|json>` to get the output in either CSV or JSON format.
+* `&rawTimestamps=<boolean>` to get the value as a raw number timestamp representation. Only applies if using CSV output format against a histogram query and a find on `modTime` or `accessTime`.
 
 Experimentally, there are parameters for sending out an email of the response: `&emailTo=<toAddress>&emailCc=<ccAddresses>&emailFrom=<fromAddress>&emailHost=<emailServerAddress>&emailConditions=<filter>:<filterOps>`.
 

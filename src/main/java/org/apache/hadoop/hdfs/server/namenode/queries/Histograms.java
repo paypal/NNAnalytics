@@ -97,12 +97,12 @@ public class Histograms {
    * @param find specifies field to be included as date (accessTime or modTime)
    * @return csv string of histogram
    */
-  public static String toCsv(Map<String, Long> histogram, String find) {
+  public static String toCsv(Map<String, Long> histogram, String find, boolean rawTimestamp) {
     long s1 = System.currentTimeMillis();
 
     StringBuilder sb = new StringBuilder();
     for (Map.Entry<String, Long> entry : histogram.entrySet()) {
-      if (find == null || find.length() == 0) {
+      if (rawTimestamp || find == null || find.length() == 0) {
         sb.append(entry.getKey()).append(',').append(entry.getValue().toString()).append('\n');
       } else {
         String[] finds = find.split(":");

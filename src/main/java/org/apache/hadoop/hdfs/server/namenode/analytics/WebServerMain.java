@@ -903,6 +903,8 @@ public class WebServerMain implements ApplicationMain {
             final String outputType = (outputTypeStr != null) ? outputTypeStr : "chart";
             final String type = req.queryMap("type").value();
             final String find = req.queryMap("find").value();
+            final Boolean rawTimestampsBool = req.queryMap("rawTimestamps").booleanValue();
+            final boolean rawTimestamps = rawTimestampsBool != null ? rawTimestampsBool : false;
 
             QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
             Collection<INode> filteredINodes =
@@ -1074,7 +1076,7 @@ public class WebServerMain implements ApplicationMain {
                 return Histograms.toJson(histogram);
               case csv:
                 res.header("Content-Type", "text/plain");
-                return Histograms.toCsv(histogram, find);
+                return Histograms.toCsv(histogram, find, rawTimestamps);
               default:
                 throw new IllegalArgumentException(
                     "Could not determine output type: "
