@@ -134,7 +134,7 @@ import spark.Spark;
  * against the NNA instance while it is updating since all queries are performed as read operations
  * and all filtered results are separate from the set of updating INodes in-memory.
  */
-public class WebServerMain {
+public class WebServerMain implements ApplicationMain {
 
   public static final Logger LOG = LoggerFactory.getLogger(WebServerMain.class.getName());
 
@@ -162,10 +162,10 @@ public class WebServerMain {
    * @throws IllegalAccessException IllegalAccessException
    * @throws NoSuchFieldException NoSuchFieldException
    */
-  public static void main(String[] args)
+  static void main(String[] args)
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
-      WebServerMain main = new WebServerMain();
+      ApplicationMain main = new WebServerMain();
       SecurityConfiguration conf = new SecurityConfiguration();
       main.init(conf);
     } catch (Throwable e) {
@@ -173,15 +173,18 @@ public class WebServerMain {
     }
   }
 
+  @Override // ApplicationMain
   @VisibleForTesting
   public NameNodeLoader getLoader() {
     return nameNodeLoader;
   }
 
+  @Override // ApplicationMain
   public void init(SecurityConfiguration conf) throws Exception {
     init(conf, null);
   }
 
+  @Override // ApplicationMain
   @VisibleForTesting
   public void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
       throws Exception {
@@ -197,6 +200,7 @@ public class WebServerMain {
    * @param preloadedHadoopConf preloaded hadoop configuration (used by tests)
    * @throws Exception errors here will crash NNA
    */
+  @Override // ApplicationMain
   @VisibleForTesting
   public void init(
       SecurityConfiguration conf,
@@ -290,9 +294,9 @@ public class WebServerMain {
     }
 
     /* This is the call to load everything under ./resources/public as HTML resources. */
-    Spark.staticFileLocation("/public");
+    Spark.staticFileLocation("/webapps/nna");
 
-    /* LOGOUT is used to log out of authenticated web sessions. */
+    /* LOGIN is used to log into authenticated web sessions. */
     post(
         "/login",
         (req, res) -> {
@@ -1621,7 +1625,7 @@ public class WebServerMain {
           return res;
         });
 
-    /* USERS endpoint is an admin-level endpoint meant to dump the cached set of detected quotas by NNA. */
+    /* QUOTAS endpoint is an admin-level endpoint meant to dump the cached set of detected quotas by NNA. */
     get(
         "/quotas",
         (req, res) -> {
@@ -1876,6 +1880,7 @@ public class WebServerMain {
    * Shutdown all stateful NNA objects. Should not kill JVM. Goal is that calling `init` again
    * should bring NNA back from persisted state.
    */
+  @Override // ApplicationMain
   @VisibleForTesting
   public void shutdown() {
     try {

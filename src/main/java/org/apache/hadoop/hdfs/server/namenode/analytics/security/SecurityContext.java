@@ -29,11 +29,13 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.ws.rs.core.MultivaluedMap;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
 import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.security.authorize.AuthorizationException;
-import org.eclipse.jetty.http.HttpStatus;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.HttpPost;
 import org.ldaptive.auth.FormatDnResolver;
 import org.pac4j.core.context.J2EContext;
 import org.pac4j.core.credentials.UsernamePasswordCredentials;
@@ -128,8 +130,9 @@ public class SecurityContext {
    * @param req - The HTTP request.
    * @param res - The HTTP response.
    */
-  public void login(Request req, Response res) throws AuthenticationException, HttpAction {
-    login(req.raw(), res.raw());
+  public void login(Request req, Response res)
+      throws AuthenticationException, HttpAction, IOException {
+    login(req.raw(), res.raw(), null);
   }
 
   /**
@@ -137,9 +140,13 @@ public class SecurityContext {
    *
    * @param request - The HTTP request.
    * @param response - The HTTP response.
+   * @param formData - The HTTP POST form data if from Jersey.
    */
-  public void login(HttpServletRequest request, HttpServletResponse response)
-      throws AuthenticationException, HttpAction {
+  public void login(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      MultivaluedMap<String, String> formData)
+      throws AuthenticationException, HttpAction, IOException {
     boolean authenticationEnabled = isAuthenticationEnabled();
     if (!authenticationEnabled) {
       String reqUsername = request.getParameter("proxy");
@@ -148,10 +155,18 @@ public class SecurityContext {
       }
       return;
     }
-    String username = request.getParameter("username");
-    String password = request.getParameter("password");
 
-    if (username == null || password == null) {
+    String username;
+    String password;
+    if (formData == null) {
+      username = request.getParameter("username");
+      password = request.getParameter("password");
+    } else {
+      username = formData.getFirst("username");
+      password = formData.getFirst("password");
+    }
+
+    if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
       LOG.info("Corrupt login credentials for: {}", request.getRemoteAddr());
       throw new AuthenticationException("Bad username / password provided.");
     }
@@ -237,8 +252,8 @@ public class SecurityContext {
   /**
    * Perform logout of authenticated web session.
    *
-   * @param request the HTTP request
-   * @param response the HTTP response
+   * @param request - The HTTP request.
+   * @param response - The HTTP response.
    */
   public void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
     boolean authenticationEnabled = isAuthenticationEnabled();
@@ -256,12 +271,12 @@ public class SecurityContext {
       response.addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       response.addHeader("Pragma", "no-cache");
       response.addHeader("Expires", "0");
-      response.setStatus(HttpStatus.OK_200);
+      response.setStatus(HttpStatus.SC_OK);
       try (Writer writer = response.getWriter()) {
         writer.write("You have been logged out.");
       }
     } else {
-      response.setStatus(HttpStatus.BAD_REQUEST_400);
+      response.setStatus(HttpStatus.SC_BAD_REQUEST);
       try (Writer writer = response.getWriter()) {
         writer.write("No login session.");
       }
@@ -296,8 +311,7 @@ public class SecurityContext {
       throw new AuthenticationException("Please wait for initialization.");
     }
 
-    boolean isLoginAttempt = request.getRequestURI().startsWith("/" + Endpoint.login.name());
-    if (isLoginAttempt) {
+    if (isLoginAttempt(request)) {
       return;
     }
 
@@ -369,6 +383,17 @@ public class SecurityContext {
   }
 
   /**
+   * Utility method for determining whether this HTTP request is attempting to authenticate.
+   *
+   * @param request the http request
+   * @return true or false for representing whether this is a login attempt
+   */
+  public boolean isLoginAttempt(HttpServletRequest request) {
+    return request.getMethod().equals(HttpPost.METHOD_NAME)
+        && request.getRequestURI().startsWith("/" + Endpoint.login.name());
+  }
+
+  /**
    * Checks whether user has authorization to make the call they intend to.
    *
    * @param req the HTTP request
@@ -377,12 +402,24 @@ public class SecurityContext {
    */
   public synchronized void handleAuthorization(Request req, Response res)
       throws AuthorizationException {
+    handleAuthorization(req.raw(), res.raw());
+  }
+
+  /**
+   * Checks whether user has authorization to make the call they intend to.
+   *
+   * @param req the HTTP request
+   * @param res the HTTP resopnse
+   * @throws AuthorizationException user does not have authorization
+   */
+  public synchronized void handleAuthorization(HttpServletRequest req, HttpServletResponse res)
+      throws AuthorizationException {
     boolean authorizationEnabled = securityConfiguration.getAuthorizationEnabled();
     if (!authorizationEnabled) {
       return;
     }
     String user = getUserName();
-    String uri = req.raw().getRequestURI();
+    String uri = req.getRequestURI();
     for (Endpoint unsecured : Constants.UNSECURED_ENDPOINTS) {
       if (uri.startsWith("/" + unsecured.name())) {
         return;

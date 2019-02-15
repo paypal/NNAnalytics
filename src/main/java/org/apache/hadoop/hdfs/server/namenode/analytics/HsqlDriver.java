@@ -215,7 +215,17 @@ public class HsqlDriver {
     return con.prepareStatement(deleteSql);
   }
 
-  String getAllHistory(String startDate, String endDate, String user)
+  /**
+   * Get all history from the embedded HSQL DB.
+   *
+   * @param startDate the start date to fetch from
+   * @param endDate the end date to stop fetching at
+   * @param user the username of data to get
+   * @return JSON String representation of historical data
+   * @throws SQLException if any SQL issues arise
+   * @throws ParseException if parsing database data fails
+   */
+  public String getAllHistory(String startDate, String endDate, String user)
       throws SQLException, ParseException {
     if (con != null) {
       ResultSet result = null;

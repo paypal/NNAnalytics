@@ -36,7 +36,8 @@ import org.apache.hadoop.hdfs.server.namenode.Constants.INodeSet;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Operand;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
 
-class QueryChecker {
+/** Responsible for failing early bad NNA queries. */
+public class QueryChecker {
 
   private static Map<String, EnumSet> filterMap = new HashMap<>();
   private static Map<String, EnumSet> sumMap = new HashMap<>();
@@ -64,7 +65,18 @@ class QueryChecker {
     }
   }
 
-  static void isValidQuery(
+  /**
+   * Determines whether or not this query should work on NNA.
+   *
+   * @param setType inode type, files or dirs
+   * @param filters the set of filters to pass
+   * @param type the histogram type to group by
+   * @param sum the summation type
+   * @param filterOps the set of filter operations
+   * @param find find a min, max, or avg
+   * @throws MalformedURLException if it fails to pass the QueryChecker
+   */
+  public static void isValidQuery(
       String setType, String[] filters, String type, String sum, String[] filterOps, String find)
       throws MalformedURLException {
     errorMessages.clear();
