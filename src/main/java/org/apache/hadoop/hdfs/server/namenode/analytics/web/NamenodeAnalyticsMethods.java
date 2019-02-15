@@ -1420,6 +1420,9 @@ public class NamenodeAnalyticsMethods {
         final String outputType = (outputTypeStr != null) ? outputTypeStr : "chart";
         final String type = request.getParameter("type");
         final String find = request.getParameter("find");
+        final String rawTimestampsStr = request.getParameter("rawTimestamps");
+        final boolean rawTimestamps =
+            rawTimestampsStr != null && Boolean.parseBoolean(rawTimestampsStr);
 
         QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
         Collection<INode> filteredINodes = Helper.performFilters(nnLoader, set, filters, filterOps);
@@ -1584,7 +1587,7 @@ public class NamenodeAnalyticsMethods {
             return Response.ok().type(MediaType.APPLICATION_JSON).build();
           case csv:
             response.setHeader("Content-Type", "text/plain");
-            message = Histograms.toCsv(histogram, find);
+            message = Histograms.toCsv(histogram, find, rawTimestamps);
             writer = response.getWriter();
             writer.write(message);
             writer.flush();

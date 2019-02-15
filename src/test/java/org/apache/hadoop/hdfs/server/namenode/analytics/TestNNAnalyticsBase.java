@@ -426,6 +426,24 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testFindMinAccessTimeHistogramRawTimestampCSV() throws IOException, ParseException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&type=user&find=min:accessTime&histogramOutput=csv&rawTimestamps=true");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> text = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(text.size(), is(1));
+    assertThat(text.get(0).split(",").length, is(2));
+    Long timestamp = Long.parseLong(text.get(0).split(",")[1]);
+    Calendar calendar = Calendar.getInstance();
+    calendar.setTimeInMillis(timestamp);
+    Date date = calendar.getTime();
+    boolean minDateWasBeforeRightNow = date.before(Date.from(Calendar.getInstance().toInstant()));
+    assertThat(minDateWasBeforeRightNow, (is(true)));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testPathFilter() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/filter?set=dirs&filters=path:contains:dir1");
     HttpResponse res = client.execute(hostPort, get);
