@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -219,7 +220,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/credentials")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response credentials() throws IOException {
+  public Response credentials() {
     final SecurityContext securityContext =
         (SecurityContext) context.getAttribute("nna.security.context");
     try {
@@ -242,7 +243,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/endpoints")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response endpoints() throws IOException {
+  public Response endpoints() {
     try {
       before();
       return Response.ok(Helper.toJsonList(Endpoint.values()), MediaType.APPLICATION_JSON).build();
@@ -260,7 +261,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/histograms")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response histograms() throws IOException {
+  public Response histograms() {
     try {
       before();
       return Response.ok(Helper.toJsonList(Histogram.values()), MediaType.APPLICATION_JSON).build();
@@ -279,7 +280,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/histogramOutputs")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response histogramOutputs() throws IOException {
+  public Response histogramOutputs() {
     try {
       before();
       return Response.ok(Helper.toJsonList(HistogramOutput.values()), MediaType.APPLICATION_JSON)
@@ -299,7 +300,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/filters")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response filters() throws IOException {
+  public Response filters() {
     try {
       before();
       return Response.ok(Helper.toJsonList(Filter.values()), MediaType.APPLICATION_JSON).build();
@@ -318,7 +319,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/finds")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response finds() throws IOException {
+  public Response finds() {
     try {
       before();
       return Response.ok(Helper.toJsonList(Find.values()), MediaType.APPLICATION_JSON).build();
@@ -337,7 +338,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/transforms")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response transforms() throws IOException {
+  public Response transforms() {
     try {
       before();
       return Response.ok(Helper.toJsonList(Transform.values()), MediaType.APPLICATION_JSON).build();
@@ -356,7 +357,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/sets")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response sets() throws IOException {
+  public Response sets() {
     try {
       before();
       return Response.ok(Helper.toJsonList(INodeSet.values()), MediaType.APPLICATION_JSON).build();
@@ -376,7 +377,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/filterOps")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response filterOps() throws IOException {
+  public Response filterOps() {
     try {
       before();
       return Response.ok(Helper.toJsonList(FilterOp.values()), MediaType.APPLICATION_JSON).build();
@@ -396,7 +397,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/sums")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response sums() throws IOException {
+  public Response sums() {
     try {
       before();
       return Response.ok(Helper.toJsonList(Sum.values()), MediaType.APPLICATION_JSON).build();
@@ -415,7 +416,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/operations")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response operations() throws IOException {
+  public Response operations() {
     try {
       before();
       return Response.ok(Helper.toJsonList(Operation.values()), MediaType.APPLICATION_JSON).build();
@@ -433,7 +434,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/metrics")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response metrics() throws IOException {
+  public Response metrics() {
     try {
       before();
       final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute("nna.usage.metrics");
@@ -451,7 +452,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/loadingStatus")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response loadingStatus() throws IOException {
+  public Response loadingStatus() {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
     try {
       before();
@@ -471,7 +472,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/threads")
   @Produces({MediaType.TEXT_PLAIN})
-  public Response threads() throws IOException {
+  public Response threads() {
     try {
       before();
       StringWriter writer = new StringWriter();
@@ -544,7 +545,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/system")
   @Produces({MediaType.TEXT_PLAIN})
-  public Response system() throws IOException {
+  public Response system() {
     try {
       before();
       Runtime runtime = Runtime.getRuntime();
@@ -581,6 +582,8 @@ public class NamenodeAnalyticsMethods {
       sb.append("Max Memory (KB): ").append((runtime.maxMemory() / 1024)).append("\n");
 
       return Response.ok(sb.toString(), MediaType.TEXT_PLAIN).build();
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
     } catch (Exception ex) {
       return handleException(ex);
     } finally {
@@ -595,7 +598,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/info")
   @Produces(MediaType.TEXT_PLAIN)
-  public Response info() throws IOException {
+  public Response info() {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
 
     try {
@@ -639,6 +642,8 @@ public class NamenodeAnalyticsMethods {
         sb.append(dir).append("\n");
       }
       return Response.ok(sb.toString(), MediaType.TEXT_PLAIN).build();
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
     } catch (Exception ex) {
       return handleException(ex);
     } finally {
@@ -653,7 +658,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/config")
   @Produces({MediaType.TEXT_PLAIN, MediaType.APPLICATION_XML})
-  public Response config() throws IOException {
+  public Response config() {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
     try {
       before();
@@ -678,7 +683,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/refresh")
   @Produces({MediaType.TEXT_PLAIN})
-  public Response refresh() throws IOException {
+  public Response refresh() {
     final SecurityContext securityContext =
         (SecurityContext) context.getAttribute("nna.security.context");
     try {
@@ -698,7 +703,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/log")
   @Produces({MediaType.TEXT_PLAIN})
-  public Response log() throws IOException {
+  public Response log() {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
     try {
       before();
@@ -716,7 +721,7 @@ public class NamenodeAnalyticsMethods {
   @GET
   @Path("/dump")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response dump() throws IOException {
+  public Response dump() {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
     try {
       before();
@@ -1656,6 +1661,8 @@ public class NamenodeAnalyticsMethods {
         Histogram htEnum = Histogram.valueOf(histType);
         List<Map<String, Long>> histograms = new ArrayList<>(sums.length + finds.length);
 
+        Map<String, Function<INode, Long>> transformMap = Collections.emptyMap();
+
         final long startTime = System.currentTimeMillis();
         for (int i = 0, j = 0; i < sums.length || j < finds.length; ) {
           Map<String, Long> histogram;
@@ -1697,11 +1704,13 @@ public class NamenodeAnalyticsMethods {
                 histogram =
                     nnLoader
                         .getQueryEngine()
-                        .diskspaceConsumedHistogram(filteredINodes, sum, find, null);
+                        .diskspaceConsumedHistogram(filteredINodes, sum, find, transformMap);
                 break;
               case fileReplica:
                 histogram =
-                    nnLoader.getQueryEngine().fileReplicaHistogram(filteredINodes, sum, find, null);
+                    nnLoader
+                        .getQueryEngine()
+                        .fileReplicaHistogram(filteredINodes, sum, find, transformMap);
                 break;
               case storageType:
                 histogram =
@@ -1797,6 +1806,8 @@ public class NamenodeAnalyticsMethods {
       } finally {
         queryLock.writeLock().unlock();
       }
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
     } catch (Exception ex) {
       return handleException(ex);
     } finally {
@@ -1898,29 +1909,32 @@ public class NamenodeAnalyticsMethods {
         runningOperations.put(operationObj.identity(), operationObj);
 
         final int finalSleep = sleep;
-        Callable<Object> callable =
-            Executors.callable(
-                () -> {
+        Callable<Boolean> callable =
+            () -> {
+              try {
+                operationObj.initialize();
+                while (operationObj.hasNext()) {
                   try {
-                    operationObj.initialize();
-                    while (operationObj.hasNext()) {
-                      try {
-                        if (finalSleep >= 100) {
-                          Thread.sleep(finalSleep);
-                        }
-                      } catch (InterruptedException ignored) {
-                        LOG.debug("Operation sleep interrupted due to: ", ignored);
-                      }
-                      operationObj.performOp();
+                    if (finalSleep >= 100) {
+                      Thread.sleep(finalSleep);
                     }
-                    operationObj.close();
-                  } catch (IllegalStateException e) {
-                    operationObj.abort();
-                    LOG.info("Aborted operation due to: ", e);
+                  } catch (InterruptedException ignored) {
+                    LOG.debug("Operation sleep interrupted due to: ", ignored);
                   }
-                  runningOperations.remove(operationObj.identity());
-                });
-        operationService.submit(callable);
+                  operationObj.performOp();
+                }
+                operationObj.close();
+                return Boolean.TRUE;
+              } catch (IllegalStateException e) {
+                operationObj.abort();
+                LOG.info("Aborted operation due to: ", e);
+                return Boolean.FALSE;
+              } finally {
+                runningOperations.remove(operationObj.identity());
+              }
+            };
+        Future<Boolean> submittedOperation = operationService.submit(callable);
+        operationObj.linkFuture(submittedOperation);
 
         PrintWriter writer = response.getWriter();
         writer.write(operationObj.identity());
@@ -1930,6 +1944,8 @@ public class NamenodeAnalyticsMethods {
       } finally {
         queryLock.writeLock().unlock();
       }
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
     } catch (Exception ex) {
       return handleException(ex);
     } finally {
@@ -2045,6 +2061,8 @@ public class NamenodeAnalyticsMethods {
         queryLock.writeLock().unlock();
       }
       return Response.ok().build();
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
     } catch (Exception ex) {
       return handleException(ex);
     } finally {
@@ -2136,6 +2154,8 @@ public class NamenodeAnalyticsMethods {
         queryLock.writeLock().unlock();
       }
       return Response.ok().build();
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
     } catch (Exception ex) {
       return handleException(ex);
     } finally {

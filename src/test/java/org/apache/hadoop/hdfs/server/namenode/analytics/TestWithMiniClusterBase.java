@@ -64,7 +64,7 @@ public abstract class TestWithMiniClusterBase {
   protected static MiniQJMHACluster cluster;
   protected static HttpHost hostPort;
   protected static HttpClient client;
-  protected static WebServerMain nna;
+  protected static ApplicationMain nna;
 
   @AfterClass
   public static void tearDown() throws IOException {

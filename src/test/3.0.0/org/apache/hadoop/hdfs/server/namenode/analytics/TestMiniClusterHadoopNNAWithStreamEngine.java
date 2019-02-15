@@ -39,7 +39,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class TestWithMiniClusterWithStreamEngine extends TestWithMiniClusterBase {
+public class TestMiniClusterHadoopNNAWithStreamEngine extends TestWithMiniClusterBase {
 
   /**
    * Long running execution that will launch an NNA instance backed by a live updating HA-enabled
