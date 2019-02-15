@@ -29,6 +29,11 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -37,6 +42,8 @@ import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
 import org.apache.hadoop.hdfs.server.namenode.analytics.web.NamenodeAnalyticsMethods;
+import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
+import org.apache.hadoop.hdfs.server.namenode.queries.BaseQuery;
 import org.apache.hadoop.http.HttpConfig;
 import org.apache.hadoop.http.HttpServer2;
 import org.apache.hadoop.net.NetUtils;
@@ -57,12 +64,26 @@ public class NameNodeAnalyticsHttpServer {
   public static final String NNA_SECURITY_CONTEXT = "nna.security.context";
   public static final String NNA_USAGE_METRICS = "nna.usage.metrics";
   public static final String NNA_HSQL_DRIVER = "nna.hsql.driver";
+  public static final String NNA_RUNNING_QUERIES = "nna.running.queries";
+  public static final String NNA_RUNNING_OPERATIONS = "nna.running.operations";
+  public static final String NNA_INTERNAL_SERVICE = "nna.internal.service";
+  public static final String NNA_OPERATION_SERVICE = "nna.operation.service";
+  public static final String NNA_QUERY_LOCK = "nna.query.lock";
+  public static final String NNA_SAVING_NAMESPACE = "nna.saving.namespace";
+  public static final String NNA_APP_CONF = "nna.app.conf";
+  public static final String NNA_HADOOP_CONF = "nna.hadoop.conf";
 
   // NNA fields.
   private final NameNodeLoader nnLoader;
   private final SecurityContext secContext;
   private final HsqlDriver hsqlDriver;
   private final UsageMetrics usageMetrics;
+  private final List<BaseQuery> runningQueries;
+  private final Map<String, BaseOperation> runningOperations;
+  private final ExecutorService internalService;
+  private final ExecutorService operationService;
+  private final ReentrantReadWriteLock queryLock;
+  private final AtomicBoolean savingNamespace;
 
   // Jetty Http server.
   private HttpServer2 httpServer;
@@ -86,6 +107,12 @@ public class NameNodeAnalyticsHttpServer {
    * @param nameNodeLoader the NameNodeLoader
    * @param hsqlDriver the HSQL embedded DB driver
    * @param usageMetrics nna user usage metrics
+   * @param runningQueries list of tracking running queries
+   * @param runningOperations list of tracking running operations
+   * @param internalService executor for internal service threads
+   * @param operationService executor for operation service threads
+   * @param queryLock lock around queries
+   * @param savingNamespace lock around namespace operations
    */
   public NameNodeAnalyticsHttpServer(
       Configuration conf,
@@ -94,7 +121,13 @@ public class NameNodeAnalyticsHttpServer {
       SecurityContext securityContext,
       NameNodeLoader nameNodeLoader,
       HsqlDriver hsqlDriver,
-      UsageMetrics usageMetrics) {
+      UsageMetrics usageMetrics,
+      List<BaseQuery> runningQueries,
+      Map<String, BaseOperation> runningOperations,
+      ExecutorService internalService,
+      ExecutorService operationService,
+      ReentrantReadWriteLock queryLock,
+      AtomicBoolean savingNamespace) {
     this.conf = conf;
     this.nnaConf = nnaConf;
     this.bindAddress = bindAddress;
@@ -102,6 +135,12 @@ public class NameNodeAnalyticsHttpServer {
     this.secContext = securityContext;
     this.hsqlDriver = hsqlDriver;
     this.usageMetrics = usageMetrics;
+    this.runningQueries = runningQueries;
+    this.runningOperations = runningOperations;
+    this.internalService = internalService;
+    this.operationService = operationService;
+    this.queryLock = queryLock;
+    this.savingNamespace = savingNamespace;
   }
 
   /**
@@ -146,6 +185,14 @@ public class NameNodeAnalyticsHttpServer {
     httpServer.getWebAppContext().setAttribute(NNA_SECURITY_CONTEXT, secContext);
     httpServer.getWebAppContext().setAttribute(NNA_USAGE_METRICS, usageMetrics);
     httpServer.getWebAppContext().setAttribute(NNA_HSQL_DRIVER, hsqlDriver);
+    httpServer.getWebAppContext().setAttribute(NNA_RUNNING_QUERIES, runningQueries);
+    httpServer.getWebAppContext().setAttribute(NNA_RUNNING_OPERATIONS, runningOperations);
+    httpServer.getWebAppContext().setAttribute(NNA_INTERNAL_SERVICE, internalService);
+    httpServer.getWebAppContext().setAttribute(NNA_OPERATION_SERVICE, operationService);
+    httpServer.getWebAppContext().setAttribute(NNA_QUERY_LOCK, queryLock);
+    httpServer.getWebAppContext().setAttribute(NNA_SAVING_NAMESPACE, savingNamespace);
+    httpServer.getWebAppContext().setAttribute(NNA_APP_CONF, nnaConf);
+    httpServer.getWebAppContext().setAttribute(NNA_HADOOP_CONF, conf);
 
     // NNA Rest API hosted at /* and web-pages served from /* as well.
     httpServer.addJerseyResourcePackage(
@@ -165,14 +212,6 @@ public class NameNodeAnalyticsHttpServer {
 
   /** Stops the httpserver. */
   public void stop() throws Exception {
-    try {
-      hsqlDriver.dropConnection();
-    } catch (Exception e) {
-      LOG.error("Error during shutdown: ", e);
-    }
-    if (nnLoader != null) {
-      //nnLoader.unload();
-    }
     if (httpServer != null) {
       httpServer.stop();
     }

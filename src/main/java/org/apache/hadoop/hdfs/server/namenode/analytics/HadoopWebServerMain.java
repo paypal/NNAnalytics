@@ -23,14 +23,23 @@ import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
 import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
+import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
+import org.apache.hadoop.hdfs.server.namenode.queries.BaseQuery;
 import org.apache.hadoop.util.GSet;
 import org.ldaptive.ConnectionConfig;
 import org.ldaptive.DefaultConnectionFactory;
@@ -65,8 +74,17 @@ public class HadoopWebServerMain implements ApplicationMain {
   public static final Logger LOG = LoggerFactory.getLogger(HadoopWebServerMain.class.getName());
 
   private final ExecutorService internalService = Executors.newFixedThreadPool(2);
+  private final ExecutorService operationService = Executors.newFixedThreadPool(1);
+  private final Map<String, BaseOperation> runningOperations =
+      Collections.synchronizedMap(new HashMap<>());
+
+  private final List<BaseQuery> runningQueries = Collections.synchronizedList(new LinkedList<>());
+  private final ReentrantReadWriteLock queryLock = new ReentrantReadWriteLock();
+  private final AtomicBoolean savingNamespace = new AtomicBoolean(false);
+
   private final NameNodeLoader nameNodeLoader = new NameNodeLoader();
   private final HsqlDriver hsqlDriver = new HsqlDriver();
+
   private NameNodeAnalyticsHttpServer nnaHttpServer;
 
   /**
@@ -126,7 +144,13 @@ public class HadoopWebServerMain implements ApplicationMain {
             securityContext,
             nameNodeLoader,
             hsqlDriver,
-            usageMetrics);
+            usageMetrics,
+            runningQueries,
+            runningOperations,
+            internalService,
+            operationService,
+            queryLock,
+            savingNamespace);
     nnaHttpServer.start();
 
     // Bootstrap classes.
@@ -234,12 +258,17 @@ public class HadoopWebServerMain implements ApplicationMain {
     } catch (Exception e) {
       LOG.error("Error during hsql connection shutdown: ", e);
     }
-    try {
-      nnaHttpServer.stop();
-    } catch (Exception e) {
-      LOG.error("Error during http server shutdown: ", e);
-    }
     nameNodeLoader.clear();
+    runningOperations.clear();
+    runningQueries.clear();
+    operationService.shutdown();
     internalService.shutdown();
+    if (nnaHttpServer != null) {
+      try {
+        nnaHttpServer.stop();
+      } catch (Exception e) {
+        LOG.error("Error during http server shutdown: ", e);
+      }
+    }
   }
 }

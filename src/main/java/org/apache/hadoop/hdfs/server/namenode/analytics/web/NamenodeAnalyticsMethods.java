@@ -19,6 +19,17 @@
 
 package org.apache.hadoop.hdfs.server.namenode.analytics.web;
 
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_APP_CONF;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_HSQL_DRIVER;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_NN_LOADER;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_OPERATION_SERVICE;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_QUERY_LOCK;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_RUNNING_OPERATIONS;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_RUNNING_QUERIES;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_SAVING_NAMESPACE;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_SECURITY_CONTEXT;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_USAGE_METRICS;
+
 import com.sun.management.OperatingSystemMXBean;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,14 +50,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -112,16 +121,6 @@ public class NamenodeAnalyticsMethods {
 
   public static final Log LOG = LogFactory.getLog(NamenodeAnalyticsMethods.class);
 
-  private static final List<BaseQuery> runningQueries =
-      Collections.synchronizedList(new LinkedList<>());
-  private static final ReentrantReadWriteLock queryLock = new ReentrantReadWriteLock();
-  private static final AtomicBoolean savingNamespace = new AtomicBoolean(false);
-  private static final SecurityConfiguration conf = new SecurityConfiguration();
-
-  private static final ExecutorService operationService = Executors.newFixedThreadPool(1);
-  private static final Map<String, BaseOperation> runningOperations =
-      Collections.synchronizedMap(new HashMap<>());
-
   private @Context ServletContext context;
   private @Context HttpServletRequest request;
   private @Context HttpServletResponse response;
@@ -159,8 +158,8 @@ public class NamenodeAnalyticsMethods {
     try {
       before();
       final SecurityContext securityContext =
-          (SecurityContext) context.getAttribute("nna.security.context");
-      final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute("nna.usage.metrics");
+          (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
+      final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute(NNA_USAGE_METRICS);
       securityContext.login(request, response, formData);
       usageMetrics.userLoggedIn(securityContext, request);
       return Response.ok().build();
@@ -177,8 +176,8 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.TEXT_PLAIN)
   public Response logout() {
     final SecurityContext securityContext =
-        (SecurityContext) context.getAttribute("nna.security.context");
-    final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute("nna.usage.metrics");
+        (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
+    final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute(NNA_USAGE_METRICS);
     try {
       before();
       securityContext.logout(request, response);
@@ -197,7 +196,7 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.TEXT_PLAIN)
   public Response sql(MultivaluedMap<String, String> formData) {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
       before();
       QueryEngine queryEngine = nnLoader.getQueryEngine();
       if (queryEngine instanceof JavaCollectionQEngine) {
@@ -222,7 +221,7 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.APPLICATION_JSON})
   public Response credentials() {
     final SecurityContext securityContext =
-        (SecurityContext) context.getAttribute("nna.security.context");
+        (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
     try {
       before();
       if (securityContext.isAuthenticationEnabled()) {
@@ -437,7 +436,7 @@ public class NamenodeAnalyticsMethods {
   public Response metrics() {
     try {
       before();
-      final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute("nna.usage.metrics");
+      final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute(NNA_USAGE_METRICS);
       return Response.ok(usageMetrics.getUserMetricsJson(), MediaType.APPLICATION_JSON).build();
     } catch (Exception ex) {
       return handleException(ex);
@@ -453,7 +452,7 @@ public class NamenodeAnalyticsMethods {
   @Path("/loadingStatus")
   @Produces({MediaType.APPLICATION_JSON})
   public Response loadingStatus() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     try {
       before();
       nnLoader.sendLoadingStatus(response);
@@ -599,8 +598,10 @@ public class NamenodeAnalyticsMethods {
   @Path("/info")
   @Produces(MediaType.TEXT_PLAIN)
   public Response info() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
-
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    @SuppressWarnings("unchecked")
+    final List<BaseQuery> runningQueries =
+        (List<BaseQuery>) context.getAttribute(NNA_RUNNING_QUERIES);
     try {
       before();
 
@@ -659,7 +660,7 @@ public class NamenodeAnalyticsMethods {
   @Path("/config")
   @Produces({MediaType.TEXT_PLAIN, MediaType.APPLICATION_XML})
   public Response config() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     try {
       before();
 
@@ -685,7 +686,7 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.TEXT_PLAIN})
   public Response refresh() {
     final SecurityContext securityContext =
-        (SecurityContext) context.getAttribute("nna.security.context");
+        (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
     try {
       before();
       securityContext.refresh(new SecurityConfiguration());
@@ -704,7 +705,7 @@ public class NamenodeAnalyticsMethods {
   @Path("/log")
   @Produces({MediaType.TEXT_PLAIN})
   public Response log() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     try {
       before();
       Integer charsLimit = Integer.parseInt(request.getParameter("limit"));
@@ -722,7 +723,7 @@ public class NamenodeAnalyticsMethods {
   @Path("/dump")
   @Produces({MediaType.APPLICATION_JSON})
   public Response dump() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     try {
       before();
       if (!nnLoader.isInit()) {
@@ -746,7 +747,7 @@ public class NamenodeAnalyticsMethods {
   @Path("/suggestions")
   @Produces(MediaType.APPLICATION_JSON)
   public Response suggestions() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     try {
       before();
       boolean allJson = request.getParameterMap().containsKey("all");
@@ -778,7 +779,7 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.APPLICATION_JSON)
   public Response directories() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
       before();
       String directory = request.getParameter("dir");
       String sum = request.getParameter("sum");
@@ -805,7 +806,7 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.TEXT_PLAIN})
   public Response addDirectory() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
 
       before();
       String directory = request.getParameter("dir");
@@ -827,7 +828,7 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.TEXT_PLAIN})
   public Response removeDirectory() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
 
       before();
       String directory = request.getParameter("dir");
@@ -848,7 +849,7 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.APPLICATION_JSON)
   public Response fileAge() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
 
       before();
       String sum = request.getParameter("sum");
@@ -874,7 +875,7 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.APPLICATION_JSON)
   public Response quotas() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
       before();
       boolean allJson = request.getParameterMap().containsKey("all");
       String resp;
@@ -902,7 +903,7 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.APPLICATION_JSON)
   public Response users() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
       before();
       String suggestion = request.getParameter("suggestion");
       return Response.ok(
@@ -922,7 +923,7 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.APPLICATION_JSON)
   public Response top() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
       before();
       String strLimit = request.getParameter("limit");
       Integer limit;
@@ -951,7 +952,7 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.APPLICATION_JSON)
   public Response bottom() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
       before();
       String strLimit = request.getParameter("limit");
       Integer limit;
@@ -979,7 +980,7 @@ public class NamenodeAnalyticsMethods {
   @Produces(MediaType.APPLICATION_JSON)
   public Response token() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
       before();
       return Response.ok(nnLoader.getSuggestionsEngine().getTokens(), MediaType.APPLICATION_JSON)
           .build();
@@ -998,7 +999,9 @@ public class NamenodeAnalyticsMethods {
   @Path("/saveNamespace")
   @Produces({MediaType.TEXT_PLAIN})
   public Response saveNamespace() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final AtomicBoolean savingNamespace =
+        (AtomicBoolean) context.getAttribute(NNA_SAVING_NAMESPACE);
     try {
       before();
       String dirStr = request.getParameter("dir");
@@ -1032,7 +1035,7 @@ public class NamenodeAnalyticsMethods {
   @Path("/fetchNamespace")
   @Produces({MediaType.TEXT_PLAIN})
   public Response fetchNamespace() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     StringWriter writer = new StringWriter();
     try {
       before();
@@ -1063,7 +1066,10 @@ public class NamenodeAnalyticsMethods {
   @Path("/reloadNamespace")
   @Produces({MediaType.TEXT_PLAIN})
   public Response reloadNamespace() {
-    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final ReentrantReadWriteLock queryLock =
+        (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    final SecurityConfiguration conf = (SecurityConfiguration) context.getAttribute(NNA_APP_CONF);
     try {
       before();
       queryLock.writeLock().lock();
@@ -1091,7 +1097,7 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.APPLICATION_JSON})
   public Response history() {
     try {
-      final HsqlDriver hsqlDriver = (HsqlDriver) context.getAttribute("nna.hsql.driver");
+      final HsqlDriver hsqlDriver = (HsqlDriver) context.getAttribute(NNA_HSQL_DRIVER);
       before();
       String usernameStr = request.getParameter("username");
       String username = (usernameStr == null) ? "" : usernameStr;
@@ -1113,7 +1119,7 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.TEXT_PLAIN})
   public Response drop() {
     try {
-      final HsqlDriver hsqlDriver = (HsqlDriver) context.getAttribute("nna.hsql.driver");
+      final HsqlDriver hsqlDriver = (HsqlDriver) context.getAttribute(NNA_HSQL_DRIVER);
       before();
       String table = request.getParameter("table");
       hsqlDriver.rebuildTable(table);
@@ -1134,7 +1140,7 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.TEXT_PLAIN})
   public Response truncate() {
     try {
-      final HsqlDriver hsqlDriver = (HsqlDriver) context.getAttribute("nna.hsql.driver");
+      final HsqlDriver hsqlDriver = (HsqlDriver) context.getAttribute(NNA_HSQL_DRIVER);
       before();
       String table = request.getParameter("table");
       Integer limit = Integer.parseInt(request.getParameter("limit"));
@@ -1159,9 +1165,10 @@ public class NamenodeAnalyticsMethods {
   @Path("/divide")
   @Produces({MediaType.TEXT_PLAIN})
   public Response divide() {
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final ReentrantReadWriteLock queryLock =
+        (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
-
       before();
 
       if (!nnLoader.isInit()) {
@@ -1249,9 +1256,10 @@ public class NamenodeAnalyticsMethods {
   @Path("/filter")
   @Produces({MediaType.TEXT_PLAIN})
   public Response filter() {
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final ReentrantReadWriteLock queryLock =
+        (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
-
       before();
 
       if (!nnLoader.isInit()) {
@@ -1356,9 +1364,10 @@ public class NamenodeAnalyticsMethods {
   @Path("/histogram")
   @Produces({MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON})
   public Response histogram() {
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final ReentrantReadWriteLock queryLock =
+        (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
-
       before();
 
       if (!nnLoader.isInit()) {
@@ -1607,9 +1616,10 @@ public class NamenodeAnalyticsMethods {
   @Path("/histogram2")
   @Produces({MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON})
   public Response histogram2() {
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final ReentrantReadWriteLock queryLock =
+        (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
-
       before();
 
       if (!nnLoader.isInit()) {
@@ -1823,10 +1833,18 @@ public class NamenodeAnalyticsMethods {
   @Path("/submitOperation")
   @Produces({MediaType.TEXT_PLAIN})
   public Response submitOperation() {
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final SecurityContext securityContext =
+        (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
+    final ReentrantReadWriteLock queryLock =
+        (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    final SecurityConfiguration conf = (SecurityConfiguration) context.getAttribute(NNA_APP_CONF);
+    @SuppressWarnings("unchecked")
+    final Map<String, BaseOperation> runningOperations =
+        (Map<String, BaseOperation>) context.getAttribute(NNA_RUNNING_OPERATIONS);
+    final ExecutorService operationService =
+        (ExecutorService) context.getAttribute(NNA_OPERATION_SERVICE);
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
-      final SecurityContext securityContext =
-          (SecurityContext) context.getAttribute("nna.security.context");
 
       if (!nnLoader.isInit()) {
         response.setHeader("Content-Type", "application/json");
@@ -1962,7 +1980,12 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.TEXT_PLAIN})
   public Response listOperations() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+      final ReentrantReadWriteLock queryLock =
+          (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+      @SuppressWarnings("unchecked")
+      final Map<String, BaseOperation> runningOperations =
+          (Map<String, BaseOperation>) context.getAttribute(NNA_RUNNING_OPERATIONS);
 
       before();
 
@@ -2079,7 +2102,12 @@ public class NamenodeAnalyticsMethods {
   @Produces({MediaType.TEXT_PLAIN})
   public Response abortOperation() {
     try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute("nna.namenode.loader");
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+      @SuppressWarnings("unchecked")
+      final Map<String, BaseOperation> runningOperations =
+          (Map<String, BaseOperation>) context.getAttribute(NNA_RUNNING_OPERATIONS);
+      final ReentrantReadWriteLock queryLock =
+          (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
 
       before();
 
@@ -2165,7 +2193,10 @@ public class NamenodeAnalyticsMethods {
 
   private Response handleException(Exception ex) {
     final SecurityContext securityContext =
-        (SecurityContext) context.getAttribute("nna.security.context");
+        (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
+    @SuppressWarnings("unchecked")
+    final List<BaseQuery> runningQueries =
+        (List<BaseQuery>) context.getAttribute(NNA_RUNNING_QUERIES);
     LOG.info("EXCEPTION encountered: ", ex);
     LOG.info(Arrays.toString(ex.getStackTrace()));
     try {
@@ -2207,8 +2238,11 @@ public class NamenodeAnalyticsMethods {
 
   private void before() throws AuthenticationException, HttpAction, AuthorizationException {
     final SecurityContext securityContext =
-        (SecurityContext) context.getAttribute("nna.security.context");
-    final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute("nna.usage.metrics");
+        (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
+    final UsageMetrics usageMetrics = (UsageMetrics) context.getAttribute(NNA_USAGE_METRICS);
+    @SuppressWarnings("unchecked")
+    final List<BaseQuery> runningQueries =
+        (List<BaseQuery>) context.getAttribute(NNA_RUNNING_QUERIES);
     securityContext.handleAuthentication(request, response);
     securityContext.handleAuthorization(request, response);
     if (!securityContext.isLoginAttempt(request)) {
@@ -2219,7 +2253,10 @@ public class NamenodeAnalyticsMethods {
 
   private void after() {
     final SecurityContext securityContext =
-        (SecurityContext) context.getAttribute("nna.security.context");
+        (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
+    @SuppressWarnings("unchecked")
+    final List<BaseQuery> runningQueries =
+        (List<BaseQuery>) context.getAttribute(NNA_RUNNING_QUERIES);
     if (!securityContext.isLoginAttempt(request)) {
       runningQueries.remove(Helper.createQuery(request, securityContext.getUserName()));
     }
