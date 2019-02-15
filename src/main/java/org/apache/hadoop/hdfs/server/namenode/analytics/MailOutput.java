@@ -36,12 +36,20 @@ import javax.mail.internet.MimeMultipart;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 
-class MailOutput {
+public class MailOutput {
 
   private static final String MAIL_CONTENT_TEXT_HTML = "text/html";
   private static final String MAIL_SMTP_HOST = "mail.smtp.host";
 
-  static void check(String emailConditionsStr, long value, NameNodeLoader nameNodeLoader)
+  /**
+   * Check whether to send email or not against specific value.
+   *
+   * @param emailConditionsStr the conditions for whether to email
+   * @param value the value ot compare against
+   * @param nameNodeLoader the NameNodeLoader
+   * @throws IOException if email requirements are not met
+   */
+  public static void check(String emailConditionsStr, long value, NameNodeLoader nameNodeLoader)
       throws IOException {
     QueryEngine queryEngine = nameNodeLoader.getQueryEngine();
     List<Function<Long, Boolean>> comparisons = queryEngine.createComparisons(emailConditionsStr);
@@ -51,7 +59,16 @@ class MailOutput {
     }
   }
 
-  static void check(
+  /**
+   * Check whether to send email histogram or not against specific criteria.
+   *
+   * @param emailConditionsStr the conditions for whether to email
+   * @param histogram the histogram to compare against
+   * @param highlightKeys the keys to highlight in the email
+   * @param nameNodeLoader the NameNodeLoader
+   * @throws IOException if email requirements are not met
+   */
+  public static void check(
       String emailConditionsStr,
       Map<String, Long> histogram,
       Set<String> highlightKeys,
@@ -72,7 +89,19 @@ class MailOutput {
     }
   }
 
-  static void write(
+  /**
+   * Write and send an email.
+   *
+   * @param subject email subject
+   * @param histogram histogram output
+   * @param highlightKeys histogram keys to highlight / bold in email
+   * @param mailHost email host
+   * @param emailTo email to address
+   * @param emailCc email cc addresses
+   * @param emailFrom email from address
+   * @throws Exception if email fails to send
+   */
+  public static void write(
       String subject,
       Map<String, Long> histogram,
       Set<String> highlightKeys,
@@ -90,7 +119,18 @@ class MailOutput {
         emailFrom);
   }
 
-  static void write(
+  /**
+   * Write and send an email.
+   *
+   * @param subject email subject
+   * @param html the exact html to send out via email
+   * @param mailHost email host
+   * @param emailTo email to address
+   * @param emailCc email cc addresses
+   * @param emailFrom email from address
+   * @throws Exception if email fails to send
+   */
+  public static void write(
       String subject,
       String html,
       String mailHost,

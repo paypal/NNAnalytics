@@ -64,7 +64,7 @@ public abstract class TestWithMiniClusterBase {
   protected static MiniQJMHACluster cluster;
   protected static HttpHost hostPort;
   protected static HttpClient client;
-  protected static WebServerMain nna;
+  protected static ApplicationMain nna;
 
   @AfterClass
   public static void tearDown() throws IOException {
@@ -79,6 +79,22 @@ public abstract class TestWithMiniClusterBase {
   @Before
   public void before() throws IOException {
     client = new DefaultHttpClient();
+
+    boolean isServingQueries = false;
+    while (!isServingQueries) {
+      try {
+        HttpGet get = new HttpGet("http://localhost:4567/info");
+        HttpResponse res = client.execute(hostPort, get);
+        String body = IOUtils.toString(res.getEntity().getContent());
+        if (body.contains("Ready to service queries: true")) {
+          isServingQueries = true;
+        } else {
+          Thread.sleep(1000L);
+        }
+      } catch (Exception ex) {
+        // Do nothing.
+      }
+    }
   }
 
   @Test
@@ -180,11 +196,7 @@ public abstract class TestWithMiniClusterBase {
     assertThat(tokenLastLogins.size(), is(0));
   }
 
-  /**
-   * In 2.4.0, MiniQJMHACluster has a bug starting DNs so we will use directories to track updates
-   * instead of files.
-   */
-  @Test(timeout = 60000L)
+  @Test(timeout = 120000L)
   public void testUpdateSeen() throws Exception {
     HttpGet get = new HttpGet("http://localhost:4567/filter?set=files&sum=count");
     HttpResponse res = client.execute(hostPort, get);

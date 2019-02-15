@@ -65,6 +65,7 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.MultivaluedMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
@@ -2157,14 +2158,20 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
     return comparisons;
   }
 
+  public HttpServletResponse sql(HttpServletRequest req, HttpServletResponse res) {
+    return sql(req, res, null);
+  }
+
   /**
    * Performs an SQL query against this query engine.
    *
    * @param req the http request
    * @param res the http response
+   * @param formData the Jersey form data
    * @return The same HttpServletResponse as param.
    */
-  public HttpServletResponse sql(HttpServletRequest req, HttpServletResponse res) {
+  public HttpServletResponse sql(
+      HttpServletRequest req, HttpServletResponse res, MultivaluedMap<String, String> formData) {
     Map<String, Attribute<INode, ?>> attributes = new HashMap<>();
     attributes.put("id", id);
     attributes.put("accessTime", accessTime);
@@ -2199,7 +2206,12 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
     try (PrintWriter out = res.getWriter()) {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Content-Type", "text/plain");
-      String sql = req.getParameter("sqlStatement");
+      String sql;
+      if (formData == null) {
+        sql = req.getParameter("sqlStatement");
+      } else {
+        sql = formData.getFirst("sqlStatement");
+      }
       ResultSet<INode> results = parser.retrieve(indexedFiles, sql);
       for (INode inode : results) {
         out.println(inode.getFullPathName());

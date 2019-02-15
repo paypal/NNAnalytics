@@ -20,6 +20,7 @@
 package org.apache.hadoop.hdfs.server.namenode.analytics;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Collection;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,9 +31,16 @@ import org.apache.hadoop.io.IOUtils;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 
-class Helper {
+/** NNA Utility class. */
+public class Helper {
 
-  static String toYAxis(String sum) {
+  /**
+   * Get the title of the Y axis for a chart based on the sum.
+   *
+   * @param sum type of sum
+   * @return string representing the y axis
+   */
+  public static String toYAxis(String sum) {
     switch (sum) {
       case "count":
         return "# of INodes";
@@ -66,7 +74,14 @@ class Helper {
     }
   }
 
-  static String toTitle(String histType, String sum) {
+  /**
+   * Get the title of a chart based on histogram type.
+   *
+   * @param histType the histogram type
+   * @param sum the sum type
+   * @return a String representing the title of the histogram
+   */
+  public static String toTitle(String histType, String sum) {
     return histType.toUpperCase() + " Histogram | " + sum.toUpperCase();
   }
 
@@ -79,7 +94,17 @@ class Helper {
     return requestUri + "?" + queryString;
   }
 
-  static Collection<INode> performFilters(
+  /**
+   * Utility method for performing filtering against NameNode.
+   *
+   * @param nameNodeLoader the NameNodeLoader
+   * @param set whether set of files or dirs
+   * @param filters the filter types
+   * @param filterOps the filter operations
+   * @param find find a min, max, or avg of inode fields
+   * @return the inodes collection that passed the filter
+   */
+  public static Collection<INode> performFilters(
       NameNodeLoader nameNodeLoader,
       String set,
       String[] filters,
@@ -89,7 +114,16 @@ class Helper {
     return nameNodeLoader.getQueryEngine().findFilter(interim, find);
   }
 
-  static Collection<INode> performFilters(
+  /**
+   * Utility method for performing filtering against NameNode.
+   *
+   * @param nameNodeLoader the NameNodeLoader
+   * @param set whether set of files or dirs
+   * @param filters the filter types
+   * @param filterOps the filter operations
+   * @return the inodes collection that passed the filter
+   */
+  public static Collection<INode> performFilters(
       NameNodeLoader nameNodeLoader, String set, String[] filters, String[] filterOps) {
     Collection<INode> inodes = nameNodeLoader.getINodeSet(set);
 
@@ -100,7 +134,14 @@ class Helper {
     return nameNodeLoader.getQueryEngine().combinedFilter(inodes, filters, filterOps);
   }
 
-  static void toJsonList(HttpServletResponse resp, Enum[]... values) throws IOException {
+  /**
+   * Write a set of enums out to HTTP Response as a JSON list.
+   *
+   * @param resp the http response
+   * @param values the enums
+   * @throws IOException if parsing or writing fails
+   */
+  public static void toJsonList(HttpServletResponse resp, Enum[]... values) throws IOException {
     JsonGenerator json =
         new JsonFactory().createJsonGenerator(resp.getWriter()).useDefaultPrettyPrinter();
     try {
@@ -123,7 +164,44 @@ class Helper {
     }
   }
 
-  static String[] parseFilters(String fullFilterStr) {
+  /**
+   * Return String representation of enums as a JSON list.
+   *
+   * @param values the enums
+   * @return String representation of enums as a JSON list
+   * @throws IOException if parsing or writing fails
+   */
+  public static String toJsonList(Enum[]... values) throws IOException {
+    StringWriter sw = new StringWriter();
+    JsonGenerator json = new JsonFactory().createJsonGenerator(sw).useDefaultPrettyPrinter();
+    try {
+      json.writeStartObject();
+      for (int i = 0; i < values.length; i++) {
+        Enum[] enumList = values[i];
+        json.writeArrayFieldStart("Possibilities " + (i + 1));
+        for (Enum value : enumList) {
+          if (value != null) {
+            json.writeStartObject();
+            json.writeStringField("Name", value.name());
+            json.writeEndObject();
+          }
+        }
+        json.writeEndArray();
+      }
+      json.writeEndObject();
+    } finally {
+      IOUtils.closeStream(json);
+    }
+    return sw.toString();
+  }
+
+  /**
+   * Parse the set of filters from the URL.
+   *
+   * @param fullFilterStr the full url filter string
+   * @return a set of strings representing the filters
+   */
+  public static String[] parseFilters(String fullFilterStr) {
     if (fullFilterStr != null && !fullFilterStr.isEmpty()) {
       String[] filterSplits = fullFilterStr.split(",");
       String[] filters = new String[filterSplits.length];
@@ -143,7 +221,13 @@ class Helper {
     return null;
   }
 
-  static String[] parseFilterOps(String fullFilterStr) {
+  /**
+   * Parse the set of filter operations from the URL.
+   *
+   * @param fullFilterStr the full url filter string
+   * @return a set of strings representing the filter operations
+   */
+  public static String[] parseFilterOps(String fullFilterStr) {
     if (fullFilterStr != null && !fullFilterStr.isEmpty()) {
       String[] filterOpSplits = fullFilterStr.split(",");
       String[] filterOps = new String[filterOpSplits.length];
@@ -164,7 +248,14 @@ class Helper {
     return null;
   }
 
-  static BaseQuery createQuery(HttpServletRequest raw, String userName) {
+  /**
+   * Create the query object used for tracking user queries.
+   *
+   * @param raw the http request
+   * @param userName the username who issued the query
+   * @return the query object for tracking
+   */
+  public static BaseQuery createQuery(HttpServletRequest raw, String userName) {
     return new BaseQuery(Helper.getTrackingUrl(raw), userName);
   }
 }

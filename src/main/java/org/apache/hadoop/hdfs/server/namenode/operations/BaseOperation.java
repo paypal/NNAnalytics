@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Future;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.INode;
@@ -44,6 +45,7 @@ public abstract class BaseOperation implements Operation {
   final FileSystem fs;
   final Iterator<INode> iterator;
   INode nextToOperate;
+  Future<?> submittedOp;
 
   BaseOperation(
       Collection<INode> toPerform, String owner, String query, String logbaseDir, FileSystem fs) {
@@ -155,6 +157,10 @@ public abstract class BaseOperation implements Operation {
   @Override
   public String owner() {
     return owner;
+  }
+
+  public void linkFuture(Future<?> submittedOp) {
+    this.submittedOp = submittedOp;
   }
 
   public abstract String type();

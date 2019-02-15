@@ -186,8 +186,8 @@ public class TestLdapAuth {
     assertThat(res2.getStatusLine().getStatusCode(), is(200));
 
     // Logout again; no JWT.
-    HttpGet get3 = new HttpGet("http://localhost:4567/logout");
-    HttpResponse res3 = client.execute(hostPort, get3);
+    HttpPost post3 = new HttpPost("http://localhost:4567/logout");
+    HttpResponse res3 = client.execute(hostPort, post3);
     assertThat(
         IOUtils.toString(res3.getEntity().getContent()),
         containsString("Authentication required."));
