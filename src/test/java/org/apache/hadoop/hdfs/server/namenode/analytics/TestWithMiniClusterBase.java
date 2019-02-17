@@ -270,6 +270,9 @@ public abstract class TestWithMiniClusterBase {
           DFSTestUtil.writeFile(fileSystem, filePath, "");
           break;
       }
+      if (dirNumber1 == 1) {
+        fileSystem.setQuota(filePath.getParent(), -1, 10000000);
+      }
       int user = RANDOM.nextInt(3);
       switch (user) {
         case 0:
