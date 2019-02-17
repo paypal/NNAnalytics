@@ -148,6 +148,12 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
       attribute("hasAcl", node -> getFilterFunctionToBooleanForINode("hasAcl").apply(node));
   private final SimpleAttribute<INode, Boolean> hasQuota =
       attribute("hasQuota", node -> getFilterFunctionToBooleanForINode("hasQuota").apply(node));
+  private final SimpleAttribute<INode, Boolean> isUnderNsQuota =
+      attribute(
+          "hasQuota", node -> getFilterFunctionToBooleanForINode("isUnderNsQuota").apply(node));
+  private final SimpleAttribute<INode, Boolean> isUnderDsQuota =
+      attribute(
+          "hasQuota", node -> getFilterFunctionToBooleanForINode("isUnderDsQuota").apply(node));
   private SimpleAttribute<INode, Long> dirNumChildren;
   private SimpleAttribute<INode, Long> dirSubTreeSize;
   private SimpleAttribute<INode, Long> dirSubTreeNumFiles;
@@ -485,6 +491,10 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
         return hasAcl;
       case "hasQuota":
         return hasQuota;
+      case "isUnderNsQuota":
+        return isUnderNsQuota;
+      case "isUnderDsQuota":
+        return isUnderDsQuota;
       default:
         return null;
     }

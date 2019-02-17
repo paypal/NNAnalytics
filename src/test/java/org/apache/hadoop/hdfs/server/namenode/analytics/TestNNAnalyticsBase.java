@@ -924,6 +924,27 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testHasNsQuotaFilter() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=isUnderNsQuota:eq:true&sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testHasDsQuotaFilter() throws IOException {
+    HttpGet get =
+        new HttpGet("http://localhost:4567/filter?set=files&filters=isUnderDsQuota:eq:false");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testNsQuotaHistogram() throws IOException {
     HttpGet get =
         new HttpGet(

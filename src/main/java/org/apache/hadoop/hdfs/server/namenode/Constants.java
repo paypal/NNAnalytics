@@ -82,7 +82,9 @@ public interface Constants {
     isUnderConstruction,
     isWithSnapshot,
     hasAcl,
-    hasQuota
+    hasQuota,
+    isUnderNsQuota,
+    isUnderDsQuota
   }
 
   EnumSet<Filter> FILTER_LONG =
@@ -109,7 +111,13 @@ public interface Constants {
           Filter.name, Filter.path, Filter.user, Filter.group, Filter.modDate, Filter.accessDate);
 
   EnumSet<Filter> FILTER_BOOLEAN =
-      EnumSet.of(Filter.isUnderConstruction, Filter.isWithSnapshot, Filter.hasAcl, Filter.hasQuota);
+      EnumSet.of(
+          Filter.isUnderConstruction,
+          Filter.isWithSnapshot,
+          Filter.hasAcl,
+          Filter.hasQuota,
+          Filter.isUnderNsQuota,
+          Filter.isUnderDsQuota);
 
   enum FilterOp {
     lt,
@@ -351,7 +359,9 @@ public interface Constants {
           Filter.accessDate,
           Filter.isWithSnapshot,
           Filter.hasAcl,
-          Filter.hasQuota);
+          Filter.hasQuota,
+          Filter.isUnderNsQuota,
+          Filter.isUnderDsQuota);
 
   EnumSet<Filter> FILTER_DIR =
       EnumSet.of(
@@ -373,7 +383,9 @@ public interface Constants {
           Filter.isWithSnapshot,
           Filter.hasAcl,
           Filter.hasQuota,
-          Filter.storageType);
+          Filter.storageType,
+          Filter.isUnderNsQuota,
+          Filter.isUnderDsQuota);
 
   EnumSet<Filter> FILTER_ALL = getIntersection(FILTER_FILE, FILTER_DIR);
 

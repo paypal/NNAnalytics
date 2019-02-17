@@ -151,6 +151,26 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         return node -> node.asFile().isWithSnapshot();
       case "hasAcl":
         return node -> (node.getAclFeature() != null);
+      case "isUnderNsQuota":
+        return node -> {
+          for (INodeDirectory p = node.getParent(); p != null; p = node.getParent()) {
+            node = p;
+            if (versionLoader.getNsQuota(node) >= 0) {
+              return true;
+            }
+          }
+          return false;
+        };
+      case "isUnderDsQuota":
+        return node -> {
+          for (INodeDirectory p = node.getParent(); p != null; p = node.getParent()) {
+            node = p;
+            if (versionLoader.getDsQuota(node) >= 0) {
+              return true;
+            }
+          }
+          return false;
+        };
       default:
         return versionLoader.getFilterFunctionToBooleanForINode(filter);
     }
