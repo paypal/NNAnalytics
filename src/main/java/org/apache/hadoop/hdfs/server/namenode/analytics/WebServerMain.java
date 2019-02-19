@@ -162,7 +162,7 @@ public class WebServerMain implements ApplicationMain {
    * @throws IllegalAccessException IllegalAccessException
    * @throws NoSuchFieldException NoSuchFieldException
    */
-  static void main(String[] args)
+  public static void main(String[] args)
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
       ApplicationMain main = new WebServerMain();
