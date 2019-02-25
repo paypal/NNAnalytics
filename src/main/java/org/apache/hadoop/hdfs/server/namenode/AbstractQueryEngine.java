@@ -70,7 +70,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         return INode::getModificationTime;
       case "memoryConsumed":
         return node -> {
-          long inodeSize = 100L;
+          long inodeSize = 150L;
           if (node.isFile()) {
             inodeSize += node.asFile().numBlocks() * 150L;
           }
@@ -200,7 +200,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         return node -> ((long) node.asFile().numBlocks() * node.asFile().getFileReplication());
       case "memoryConsumed":
         return node -> {
-          long inodeSize = 100L;
+          long inodeSize = 150L;
           if (node.isFile()) {
             inodeSize += node.asFile().numBlocks() * 150L;
           }

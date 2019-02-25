@@ -32,3 +32,5 @@ You can always find the full list of available filters by going to `/filters` RE
 26. `hasQuota` - Usable by dirs. Filters the working INode set by some condition of whether the directory has either a namespace or disk space quota assigned.
 27. `isUnderNsQuota` - Usable by files and dirs. Filters the working INode set by checking whether each INode has any parent up to the root that has a namespace quota assigned.
 28. `isUnderDsQuota` - Usable by files and dirs. Filters the working INode set by checking whether each INode has any parent up to the root that has a disk space quota assigned.
+
+All memoryConsumed calculations are estimations performed as documented [here](https://www.cloudera.com/documentation/enterprise/5-8-x/topics/admin_nn_memory_config.html).

@@ -18,3 +18,5 @@ You can also find the full list of available histogram output types by going to 
 10. `group` - Usable by files and dirs. Groups the filtered INodes by their owner's group name.
 11. `fileType` - Usable by files and dirs. Groups the filtered INodes by their file's extension.
 12. `dirQuota` - Usable by dirs. Groups the filtered INodes by their quotas. You can decide by which quota via the `sum`.
+
+All memoryConsumed calculations are estimations performed as documented [here](https://www.cloudera.com/documentation/enterprise/5-8-x/topics/admin_nn_memory_config.html).
