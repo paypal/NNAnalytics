@@ -240,7 +240,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
                 .parallelStream()
                 .mapToLong(
                     node -> {
-                      long inodeSize = 100L;
+                      long inodeSize = 150L;
                       if (node.isFile()) {
                         inodeSize += node.asFile().numBlocks() * 150L;
                       }
@@ -515,7 +515,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
   private Map<String, Long> memoryConsumedHistogramCpu(Collection<INode> inodes, String sum) {
     Function<INode, Long> memConsumedFunction =
         node -> {
-          long inodeSize = 100L;
+          long inodeSize = 150L;
           if (node.isFile()) {
             inodeSize += node.asFile().numBlocks() * 150L;
           }
@@ -534,7 +534,7 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
       Collection<INode> inodes, String find) {
     Function<INode, Long> memConsumedFunction =
         node -> {
-          long inodeSize = 100L;
+          long inodeSize = 150L;
           if (node.isFile()) {
             inodeSize += node.asFile().numBlocks() * 150L;
           }
