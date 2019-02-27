@@ -277,7 +277,10 @@ public interface Constants {
     removeDirectory,
     quotas,
     fileAge,
-    metrics
+    metrics,
+    setCachedQuery,
+    getCachedQuery,
+    removeCachedQuery
   }
 
   EnumSet<Endpoint> UNSECURED_ENDPOINTS =
@@ -306,7 +309,8 @@ public interface Constants {
           Endpoint.quotas,
           Endpoint.fileAge,
           Endpoint.info,
-          Endpoint.config);
+          Endpoint.config,
+          Endpoint.getCachedQuery);
 
   EnumSet<Endpoint> READER_ENDPOINTS =
       EnumSet.of(
@@ -334,7 +338,9 @@ public interface Constants {
           Endpoint.truncate,
           Endpoint.addDirectory,
           Endpoint.removeDirectory,
-          Endpoint.metrics);
+          Endpoint.metrics,
+          Endpoint.setCachedQuery,
+          Endpoint.removeCachedQuery);
 
   EnumSet<Filter> FILTER_FILE =
       EnumSet.of(

@@ -31,6 +31,7 @@ import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalytics
 import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_USAGE_METRICS;
 
 import com.sun.management.OperatingSystemMXBean;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -638,9 +639,16 @@ public class NamenodeAnalyticsMethods {
       }
       sb.append("Cached directories for analysis::\n");
       Set<String> dirs = nnLoader.getSuggestionsEngine().getDirectoriesForAnalysis();
-      sb.append("Cached directories size: ").append(dirs.size()).append("\n");
+      sb.append("Cached directories size: ").append(dirs.size());
       for (String dir : dirs) {
-        sb.append(dir).append("\n");
+        sb.append("\n").append(dir);
+      }
+      sb.append("\n\n");
+      sb.append("Cached queries for analysis::\n");
+      Map<String, String> queries = nnLoader.getSuggestionsEngine().getQueriesForAnalysis();
+      sb.append("Cached queries size: ").append(queries.size()).append("\n");
+      for (Entry<String, String> queryEntry : queries.entrySet()) {
+        sb.append(queryEntry.getKey()).append(" : ").append(queryEntry.getValue()).append("\n");
       }
       return Response.ok(sb.toString(), MediaType.TEXT_PLAIN).build();
     } catch (RuntimeException rtex) {
@@ -834,6 +842,73 @@ public class NamenodeAnalyticsMethods {
       String directory = request.getParameter("dir");
       nnLoader.getSuggestionsEngine().removeDirectoryFromAnalysis(directory);
       return Response.ok(directory + " removed from analysis.", MediaType.TEXT_PLAIN).build();
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
+  /**
+   * SETCACHEDQUERY endpoint is an admin-level endpoint meant to add a query for cached analysis by
+   * NNA. It can also be used to modify existing cached queries by supplying an existing queryName.
+   */
+  @GET
+  @Path("/setCachedQuery")
+  @Produces({MediaType.TEXT_PLAIN})
+  public Response setCachedQuery() {
+    try {
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+
+      before();
+      String queryName = request.getParameter("queryName");
+      String query = request.getQueryString();
+      nnLoader.getSuggestionsEngine().setQueryToAnalysis(queryName, query);
+      return Response.ok(queryName + " set for analysis.").build();
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
+  /**
+   * REMOVECACHEDQUERY eendpoint is an admin-level endpoint meant to remove a query from cached
+   * analysis by NNA.
+   */
+  @GET
+  @Path("/removeCachedQuery")
+  @Produces({MediaType.TEXT_PLAIN})
+  public Response removeCachedQuery() {
+    try {
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+
+      before();
+      String queryName = request.getParameter("queryName");
+      nnLoader.getSuggestionsEngine().removeQueryFromAnalysis(queryName);
+      return Response.ok(queryName + " removed from analysis.").build();
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
+  /**
+   * GETCACHEDQUERY endpoint is an admin-level endpoint meant to add a query for cached analysis by
+   * NNA. It can also be used to modify existing cached queries by supplying an existing queryName.
+   */
+  @GET
+  @Path("/getCachedQuery")
+  @Produces({MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON})
+  public Response getCachedQuery() {
+    try {
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+
+      before();
+      String queryName = request.getParameter("queryName");
+      String body = nnLoader.getSuggestionsEngine().getLatestCacheQueryResult(queryName, response);
+      return Response.ok(body).build();
     } catch (Exception ex) {
       return handleException(ex);
     } finally {
@@ -2216,6 +2291,11 @@ public class NamenodeAnalyticsMethods {
       } else if (ex instanceof MalformedURLException || ex instanceof SQLException) {
         return Response.status(HttpStatus.SC_BAD_REQUEST)
             .entity(ex.toString())
+            .type(MediaType.TEXT_PLAIN)
+            .build();
+      } else if (ex instanceof FileNotFoundException) {
+        return Response.status(HttpStatus.SC_NOT_FOUND)
+            .entity(ex.getMessage())
             .type(MediaType.TEXT_PLAIN)
             .build();
       } else {

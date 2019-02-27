@@ -20,7 +20,10 @@
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import com.google.common.collect.Sets;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,11 +35,17 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.MediaType;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
+import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
+import org.apache.hadoop.hdfs.server.namenode.analytics.QueryChecker;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.util.VirtualINodeTree;
@@ -64,8 +73,11 @@ public class SuggestionsEngine {
   private Map<String, Long> cachedLogins;
   private Set<String> cachedUsers;
   private Set<String> cachedDirs;
+  private Map<String, String> cachedQueries;
   private Map<String, Map<String, Long>> cachedUserNsQuotas;
   private Map<String, Map<String, Long>> cachedUserDsQuotas;
+  private Map<String, Long> cachedValueQueries;
+  private Map<String, Map<String, Long>> cachedMapQueries;
 
   private AtomicBoolean loaded;
 
@@ -486,10 +498,19 @@ public class SuggestionsEngine {
     try {
       cacheManager.commit();
     } catch (Exception e) {
-      LOG.info("Failed to write cache data due to: {}", e);
+      LOG.error("Failed to write cache data due to: {}", e);
     }
     long e4 = System.currentTimeMillis();
     LOG.info("Writing to embedded MapDB took: {} ms.", (e4 - s4));
+
+    long s5 = System.currentTimeMillis();
+    try {
+      performCustomQueries(nameNodeLoader);
+    } catch (Exception e) {
+      LOG.error("Failed to write custom query data due to: {}", e);
+    }
+    long e5 = System.currentTimeMillis();
+    LOG.info("Performing cached queries took: {} ms.", (e5 - s5));
   }
 
   public String getTokens() {
@@ -530,12 +551,218 @@ public class SuggestionsEngine {
     }
     boolean removed = cachedDirs.remove(directory);
     if (!removed) {
-      throw new IOException(directory + " was not scheduled for analysis.");
+      throw new FileNotFoundException(directory + " was not scheduled for analysis.");
     }
   }
 
   public Set<String> getDirectoriesForAnalysis() {
     return cachedDirs;
+  }
+
+  /**
+   * Adds a query to run alongside suggestions cache reporting.
+   *
+   * @param query query to add to reporting
+   * @throws IOException query could not be added to reporting
+   */
+  public void setQueryToAnalysis(String queryName, String query) throws IOException {
+    if (query == null || query.isEmpty()) {
+      throw new IllegalArgumentException("Query not defined.");
+    }
+    Map<String, String> params = splitQuery(query);
+    String queryType = params.get("queryType");
+    switch (queryType) {
+      case "filter":
+        break;
+      case "histogram":
+        break;
+      default:
+        throw new IllegalArgumentException("Query type " + queryType + " is not a valid query.");
+    }
+    String set = params.get("set");
+    String[] filters = Helper.parseFilters(params.get("filters"));
+    String[] filterOps = Helper.parseFilterOps(params.get("filters"));
+    String find = params.get("find");
+    String sum = params.get("sum");
+    String type = params.get("type");
+    QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
+    String oldQuery = cachedQueries.put(queryName, query);
+    if (oldQuery != null) {
+      LOG.info(query + " has replaced " + oldQuery + " as analysis for " + queryName + ".");
+    }
+  }
+
+  /**
+   * Removes a query from cache reporting.
+   *
+   * @param queryName query to remove from reporting
+   * @throws IOException query could not be removed from reporting
+   */
+  public void removeQueryFromAnalysis(String queryName) throws IOException {
+    if (queryName == null || queryName.isEmpty()) {
+      throw new IllegalArgumentException("Query not defined.");
+    }
+    String query = cachedQueries.remove(queryName);
+    if (query == null) {
+      throw new FileNotFoundException(queryName + " was not scheduled for analysis.");
+    }
+  }
+
+  public Map<String, String> getQueriesForAnalysis() {
+    return cachedQueries;
+  }
+
+  /**
+   * Fetches latest cached value or histogram.
+   *
+   * @param queryName query to get cached result from
+   * @param response http response for setting correct header
+   * @return a String representing a Long value or a JSON string representing histogram result
+   * @throws IOException cached query could not be found
+   */
+  public String getLatestCacheQueryResult(String queryName, HttpServletResponse response)
+      throws IOException {
+    if (queryName == null || queryName.isEmpty()) {
+      throw new IllegalArgumentException("Query not defined.");
+    }
+    String query = cachedQueries.get(queryName);
+    if (query == null) {
+      throw new FileNotFoundException(queryName + " was not scheduled for analysis.");
+    }
+    Map<String, String> params = splitQuery(query);
+    String queryType = params.get("queryType");
+    switch (queryType) {
+      case "filter":
+        response.setContentType(MediaType.TEXT_PLAIN);
+        return String.valueOf(cachedValueQueries.get(queryName));
+      case "histogram":
+        response.setContentType(MediaType.APPLICATION_JSON);
+        return Histograms.toJson(cachedMapQueries.get(queryName));
+      default:
+        throw new IllegalArgumentException("Query type " + queryType + " is not a valid query.");
+    }
+  }
+
+  private Map<String, String> splitQuery(String query) {
+    Map<String, String> queryPairs = new HashMap<>();
+    String[] pairs = query.split("&");
+    try {
+      for (String pair : pairs) {
+        int idx = pair.indexOf("=");
+        queryPairs.put(
+            URLDecoder.decode(pair.substring(0, idx), Constants.CHARSET.name()),
+            URLDecoder.decode(pair.substring(idx + 1), Constants.CHARSET.name()));
+      }
+    } catch (UnsupportedEncodingException ex) {
+      LOG.error("Failed to parse query: " + query, ex);
+      return Collections.emptyMap();
+    }
+    return queryPairs;
+  }
+
+  private void performCustomQueries(NameNodeLoader nameNodeLoader) {
+    cachedQueries.forEach(
+        (n, q) -> {
+          Map<String, String> params = splitQuery(q);
+          String queryType = params.get("queryType");
+          String set = params.get("set");
+          String[] filters = Helper.parseFilters(params.get("filters"));
+          String[] filterOps = Helper.parseFilterOps(params.get("filters"));
+          String find = params.get("find");
+          String sum = params.get("sum");
+          Collection<INode> filteredINodes =
+              Helper.performFilters(nameNodeLoader, set, filters, filterOps, find);
+          switch (queryType) {
+            case "filter":
+              long value = nameNodeLoader.getQueryEngine().sum(filteredINodes, sum);
+              cachedValueQueries.put(n, value);
+              break;
+            case "histogram":
+              String histogramType = params.get("type");
+              String timeRangeStr = params.get("timeRange");
+              String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
+              String parentDirDepthStr = params.get("parentDirDepth");
+              final Integer parentDirDepth =
+                  (parentDirDepthStr == null) ? null : Integer.parseInt(parentDirDepthStr);
+              Histogram htEnum = Histogram.valueOf(histogramType);
+              Map<String, Long> histogram;
+              switch (htEnum) {
+                case user:
+                  histogram =
+                      nameNodeLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
+                  break;
+                case group:
+                  histogram =
+                      nameNodeLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
+                  break;
+                case accessTime:
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .accessTimeHistogram(filteredINodes, sum, find, timeRange);
+                  break;
+                case modTime:
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .modTimeHistogram(filteredINodes, sum, find, timeRange);
+                  break;
+                case fileSize:
+                  histogram =
+                      nameNodeLoader.getQueryEngine().fileSizeHistogram(filteredINodes, sum, find);
+                  break;
+                case diskspaceConsumed:
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .diskspaceConsumedHistogram(
+                              filteredINodes, sum, find, Collections.emptyMap());
+                  break;
+                case fileReplica:
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .fileReplicaHistogram(filteredINodes, sum, find, Collections.emptyMap());
+                  break;
+                case storageType:
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .storageTypeHistogram(filteredINodes, sum, find);
+                  break;
+                case memoryConsumed:
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .memoryConsumedHistogram(filteredINodes, sum, find);
+                  break;
+                case parentDir:
+                  histogram =
+                      nameNodeLoader
+                          .getQueryEngine()
+                          .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
+                  break;
+                case fileType:
+                  histogram =
+                      nameNodeLoader.getQueryEngine().fileTypeHistogram(filteredINodes, sum, find);
+                  break;
+                case dirQuota:
+                  histogram =
+                      nameNodeLoader.getQueryEngine().dirQuotaHistogram(filteredINodes, sum);
+                  break;
+                default:
+                  throw new IllegalArgumentException(
+                      "Could not determine histogram type: "
+                          + histogramType
+                          + ".\nPlease check /histograms for available histograms.");
+              }
+              cachedMapQueries.put(n, histogram);
+              break;
+            default:
+              throw new IllegalArgumentException(
+                  "Query type " + queryType + " is not a valid query.");
+          }
+        });
   }
 
   /**
@@ -803,5 +1030,11 @@ public class SuggestionsEngine {
         Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserNsQuotas"));
     this.cachedUserDsQuotas =
         Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserDsQuotas"));
+    this.cachedQueries =
+        Collections.synchronizedMap(cacheManager.getCachedStringMap("cachedQueries"));
+    this.cachedValueQueries =
+        Collections.synchronizedMap(cacheManager.getCachedMap("cachedValueQueries"));
+    this.cachedMapQueries =
+        Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedMapQueries"));
   }
 }
