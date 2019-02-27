@@ -29,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.sun.management.OperatingSystemMXBean;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.management.ManagementFactory;
@@ -436,9 +437,17 @@ public class WebServerMain implements ApplicationMain {
           }
           sb.append("Cached directories for analysis::\n");
           Set<String> dirs = nameNodeLoader.getSuggestionsEngine().getDirectoriesForAnalysis();
-          sb.append("Cached directories size: ").append(dirs.size()).append("\n");
+          sb.append("Cached directories size: ").append(dirs.size());
           for (String dir : dirs) {
-            sb.append(dir).append("\n");
+            sb.append("\n").append(dir);
+          }
+          sb.append("\n\n");
+          sb.append("Cached queries for analysis::\n");
+          Map<String, String> queries =
+              nameNodeLoader.getSuggestionsEngine().getQueriesForAnalysis();
+          sb.append("Cached queries size: ").append(queries.size()).append("\n");
+          for (Entry<String, String> queryEntry : queries.entrySet()) {
+            sb.append(queryEntry.getKey()).append(" : ").append(queryEntry.getValue()).append("\n");
           }
           return sb.toString();
         });
@@ -1443,7 +1452,7 @@ public class WebServerMain implements ApplicationMain {
             } else {
               BaseOperation operation = runningOperations.get(identity);
               if (operation == null) {
-                throw new MalformedURLException("Operation not found.");
+                throw new FileNotFoundException("Operation not found.");
               }
               int totalToPerform = operation.totalToPerform();
               int numPerformed = operation.numPerformed();
@@ -1512,7 +1521,7 @@ public class WebServerMain implements ApplicationMain {
             }
             BaseOperation operation = runningOperations.get(identity);
             if (operation == null) {
-              throw new MalformedURLException("Operation not found.");
+              throw new FileNotFoundException("Operation not found.");
             }
             operation.abort();
 
@@ -1624,6 +1633,46 @@ public class WebServerMain implements ApplicationMain {
           nameNodeLoader.getSuggestionsEngine().removeDirectoryFromAnalysis(directory);
           res.status(HttpStatus.SC_OK);
           res.body(directory + " removed from analysis.");
+          return res;
+        });
+
+    /* SETCACHEDQUERY endpoint is an admin-level endpoint meant to add a query for cached analysis by NNA.
+     * It can also be used to modify existing cached queries by supplying an existing queryName. */
+    get(
+        "/setCachedQuery",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          String queryName = req.queryMap("queryName").value();
+          String query = req.queryString();
+          nameNodeLoader.getSuggestionsEngine().setQueryToAnalysis(queryName, query);
+          res.status(HttpStatus.SC_OK);
+          res.body(queryName + " set for analysis.");
+          return res;
+        });
+
+    /* REMOVECACHEDQUERY endpoint is an admin-level endpoint meant to remove a query from cached analysis by NNA. */
+    get(
+        "/removeCachedQuery",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          String queryName = req.queryMap("queryName").value();
+          nameNodeLoader.getSuggestionsEngine().removeQueryFromAnalysis(queryName);
+          res.status(HttpStatus.SC_OK);
+          res.body(queryName + " removed from analysis.");
+          return res;
+        });
+
+    /* GETCACHEDQUERY endpoint is an admin-level endpoint meant to add a query for cached analysis by NNA.
+     * It can also be used to modify existing cached queries by supplying an existing queryName. */
+    get(
+        "/getCachedQuery",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          String queryName = req.queryMap("queryName").value();
+          String body =
+              nameNodeLoader.getSuggestionsEngine().getLatestCacheQueryResult(queryName, res.raw());
+          res.status(HttpStatus.SC_OK);
+          res.body(body);
           return res;
         });
 
@@ -1842,6 +1891,12 @@ public class WebServerMain implements ApplicationMain {
             res.header("Access-Control-Allow-Origin", "*");
             res.header("Content-Type", "text/plain");
             res.status(HttpStatus.SC_BAD_REQUEST);
+            res.body(ex.getMessage());
+            runningQueries.remove(Helper.createQuery(req.raw(), secContext.getUserName()));
+          } else if (ex instanceof FileNotFoundException) {
+            res.header("Access-Control-Allow-Origin", "*");
+            res.header("Content-Type", "text/plain");
+            res.status(HttpStatus.SC_NOT_FOUND);
             res.body(ex.getMessage());
             runningQueries.remove(Helper.createQuery(req.raw(), secContext.getUserName()));
           } else {

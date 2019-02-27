@@ -91,13 +91,13 @@ public class TestOperations {
       HttpGet get = new HttpGet("http://localhost:4567/listOperations?identity=" + deleteID);
       res = client.execute(hostPort, get);
       statusCode = res.getStatusLine().getStatusCode();
-      if (statusCode != 400) {
+      if (statusCode != 404) {
         assertThat(statusCode, is(200));
       } else {
         break;
       }
     }
-    assertThat(statusCode, is(400));
+    assertThat(statusCode, is(404));
   }
 
   @Test(timeout = 10000)
@@ -114,13 +114,13 @@ public class TestOperations {
       HttpGet get = new HttpGet("http://localhost:4567/listOperations?identity=" + setRepID);
       res = client.execute(hostPort, get);
       statusCode = res.getStatusLine().getStatusCode();
-      if (statusCode != 400) {
+      if (statusCode != 404) {
         assertThat(statusCode, is(200));
       } else {
         break;
       }
     }
-    assertThat(statusCode, is(400));
+    assertThat(statusCode, is(404));
   }
 
   @Test(timeout = 10000)
@@ -137,27 +137,27 @@ public class TestOperations {
       HttpGet get = new HttpGet("http://localhost:4567/listOperations?identity=" + setPolicyID);
       res = client.execute(hostPort, get);
       statusCode = res.getStatusLine().getStatusCode();
-      if (statusCode != 400) {
+      if (statusCode != 404) {
         assertThat(statusCode, is(200));
       } else {
         break;
       }
     }
-    assertThat(statusCode, is(400));
+    assertThat(statusCode, is(404));
   }
 
   @Test
   public void testGetNonExistantDelete() throws IOException, InterruptedException {
     HttpGet get = new HttpGet("http://localhost:4567/abortOperation?identity=FAKEID");
     HttpResponse res = client.execute(hostPort, get);
-    assertThat(res.getStatusLine().getStatusCode(), is(400));
+    assertThat(res.getStatusLine().getStatusCode(), is(404));
   }
 
   @Test
   public void testAbortNonExistantDelete() throws IOException, InterruptedException {
     HttpGet delete = new HttpGet("http://localhost:4567/listOperations?identity=FAKEID");
     HttpResponse res = client.execute(hostPort, delete);
-    assertThat(res.getStatusLine().getStatusCode(), is(400));
+    assertThat(res.getStatusLine().getStatusCode(), is(404));
   }
 
   @Test(timeout = 10000)

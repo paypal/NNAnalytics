@@ -49,6 +49,10 @@ public class CacheManager {
     return cache.hashMap(mapName, Serializer.STRING, Serializer.LONG).createOrOpen();
   }
 
+  public Map<String, String> getCachedStringMap(String mapName) {
+    return cache.hashMap(mapName, Serializer.STRING, Serializer.STRING).createOrOpen();
+  }
+
   public Set<String> getCachedSet(String setName) {
     return cache.hashSet(setName, Serializer.STRING).createOrOpen();
   }
@@ -70,7 +74,8 @@ public class CacheManager {
     }
     cache =
         DBMaker.fileDB(baseDir + "/db/nna_cache")
-            .fileMmapEnable()
+            .fileMmapEnableIfSupported()
+            .fileMmapPreclearDisable()
             .transactionEnable()
             .closeOnJvmShutdown()
             .cleanerHackEnable()
