@@ -641,20 +641,21 @@ public class SuggestionsEngine {
         return String.valueOf(cachedValueQueries.get(queryName));
       case "histogram":
         String outputTypeStr = params.get("histogramOutput");
-        String outputType = (outputTypeStr != null) ? outputTypeStr : "json";
+        final String outputType = (outputTypeStr != null) ? outputTypeStr : "json";
         String rawTimestampsStr = params.get("rawTimestamps");
         String sortAscendingStr = params.get("sortAscending");
-        Boolean sortAscending =
+        final Boolean sortAscending =
             sortAscendingStr == null ? null : Boolean.parseBoolean(sortAscendingStr);
         String sortDescendingStr = params.get("sortDescending");
-        Boolean sortDescending =
+        final Boolean sortDescending =
             sortDescendingStr == null ? null : Boolean.parseBoolean(sortDescendingStr);
-        boolean rawTimestamps = rawTimestampsStr != null && Boolean.parseBoolean(rawTimestampsStr);
+        final boolean rawTimestamps =
+            rawTimestampsStr != null && Boolean.parseBoolean(rawTimestampsStr);
         String topStr = params.get("top");
-        Integer top = (topStr == null) ? null : Integer.parseInt(topStr);
+        final Integer top = (topStr == null) ? null : Integer.parseInt(topStr);
         String bottomStr = params.get("bottom");
-        Integer bottom = (bottomStr == null) ? null : Integer.parseInt(bottomStr);
-        String find = params.get("find");
+        final Integer bottom = (bottomStr == null) ? null : Integer.parseInt(bottomStr);
+        final String find = params.get("find");
 
         Map<String, Long> histogram = cachedMapQueries.get(queryName);
         if (histogram == null) {
