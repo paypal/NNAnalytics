@@ -51,5 +51,5 @@ Definitions of configuration NNA-specific properties:
 
 *Below is additional experimental configuration.*
 
-If you are using a Hadoop 3.x build, it is possible to override the `NNA_MAIN` export in `/usr/local/nn-analytics/bin/nna_env` to point to `org.apache.hadoop.hdfs.server.namenode.analytics.HadoopWebServerMain`. 
+If you are using a Hadoop 3.x build of NNA, it is possible to override the `NNA_MAIN` export in `/usr/local/nn-analytics/bin/nna_env` to point to `org.apache.hadoop.hdfs.server.namenode.analytics.HadoopWebServerMain`. 
 This will launch NNA in a Jersey HTTP Server just like the NameNode uses as opposed to the SparkJava HTTP Server. There should be no difference in REST API usage.

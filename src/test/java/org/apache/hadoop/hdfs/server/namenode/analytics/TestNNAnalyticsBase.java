@@ -304,10 +304,10 @@ public abstract class TestNNAnalyticsBase {
 
   @Test
   public void testAddRemoveQueryToCache() throws IOException {
-    HttpGet addDir =
+    HttpGet addQuery =
         new HttpGet(
             "http://localhost:4567/setCachedQuery?queryName=test&queryType=filter&set=files&filters=fileSize:eq:0&sum=count");
-    HttpResponse res = client.execute(hostPort, addDir);
+    HttpResponse res = client.execute(hostPort, addQuery);
     IOUtils.readLines(res.getEntity().getContent()).clear();
     assertThat(res.getStatusLine().getStatusCode(), is(200));
 
@@ -316,8 +316,13 @@ public abstract class TestNNAnalyticsBase {
     IOUtils.readLines(res.getEntity().getContent()).clear();
     assertThat(res.getStatusLine().getStatusCode(), is(404));
 
-    HttpGet rmDir = new HttpGet("http://localhost:4567/removeCachedQuery?queryName=test");
-    res = client.execute(hostPort, rmDir);
+    HttpGet getQuery = new HttpGet("http://localhost:4567/getCachedQuery?queryName=test");
+    res = client.execute(hostPort, getQuery);
+    IOUtils.readLines(res.getEntity().getContent()).clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+
+    HttpGet rmQuery = new HttpGet("http://localhost:4567/removeCachedQuery?queryName=test");
+    res = client.execute(hostPort, rmQuery);
     IOUtils.readLines(res.getEntity().getContent()).clear();
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }

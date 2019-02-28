@@ -40,6 +40,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
+import org.apache.hadoop.hdfs.server.namenode.Constants.HistogramOutput;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
@@ -496,21 +497,21 @@ public class SuggestionsEngine {
 
     long s4 = System.currentTimeMillis();
     try {
-      cacheManager.commit();
-    } catch (Exception e) {
-      LOG.error("Failed to write cache data due to: {}", e);
-    }
-    long e4 = System.currentTimeMillis();
-    LOG.info("Writing to embedded MapDB took: {} ms.", (e4 - s4));
-
-    long s5 = System.currentTimeMillis();
-    try {
       performCustomQueries(nameNodeLoader);
     } catch (Exception e) {
       LOG.error("Failed to write custom query data due to: {}", e);
     }
+    long e4 = System.currentTimeMillis();
+    LOG.info("Performing cached queries took: {} ms.", (e4 - s4));
+
+    long s5 = System.currentTimeMillis();
+    try {
+      cacheManager.commit();
+    } catch (Exception e) {
+      LOG.error("Failed to write cache data due to: {}", e);
+    }
     long e5 = System.currentTimeMillis();
-    LOG.info("Performing cached queries took: {} ms.", (e5 - s5));
+    LOG.info("Writing to embedded MapDB took: {} ms.", (e5 - s5));
   }
 
   public String getTokens() {
@@ -605,6 +606,9 @@ public class SuggestionsEngine {
     String query = cachedQueries.remove(queryName);
     if (query == null) {
       throw new FileNotFoundException(queryName + " was not scheduled for analysis.");
+    } else {
+      cachedValueQueries.remove(queryName);
+      cachedMapQueries.remove(queryName);
     }
   }
 
@@ -636,8 +640,61 @@ public class SuggestionsEngine {
         response.setContentType(MediaType.TEXT_PLAIN);
         return String.valueOf(cachedValueQueries.get(queryName));
       case "histogram":
-        response.setContentType(MediaType.APPLICATION_JSON);
-        return Histograms.toJson(cachedMapQueries.get(queryName));
+        String outputTypeStr = params.get("histogramOutput");
+        final String outputType = (outputTypeStr != null) ? outputTypeStr : "json";
+        String rawTimestampsStr = params.get("rawTimestamps");
+        String sortAscendingStr = params.get("sortAscending");
+        final Boolean sortAscending =
+            sortAscendingStr == null ? null : Boolean.parseBoolean(sortAscendingStr);
+        String sortDescendingStr = params.get("sortDescending");
+        final Boolean sortDescending =
+            sortDescendingStr == null ? null : Boolean.parseBoolean(sortDescendingStr);
+        final boolean rawTimestamps =
+            rawTimestampsStr != null && Boolean.parseBoolean(rawTimestampsStr);
+        String topStr = params.get("top");
+        final Integer top = (topStr == null) ? null : Integer.parseInt(topStr);
+        String bottomStr = params.get("bottom");
+        final Integer bottom = (bottomStr == null) ? null : Integer.parseInt(bottomStr);
+        final String find = params.get("find");
+
+        Map<String, Long> histogram = cachedMapQueries.get(queryName);
+        if (histogram == null) {
+          response.setContentType(MediaType.TEXT_PLAIN);
+          return "null";
+        }
+
+        // Slice top and bottom.
+        if (top != null && bottom != null) {
+          throw new IllegalArgumentException("Please choose only one type of slice.");
+        } else if (top != null && top > 0) {
+          histogram = Histograms.sliceToTop(histogram, top);
+        } else if (bottom != null && bottom > 0) {
+          histogram = Histograms.sliceToBottom(histogram, bottom);
+        }
+
+        // Sort results.
+        if (sortAscending != null && sortDescending != null) {
+          throw new IllegalArgumentException("Please choose one type of sort.");
+        } else if (sortAscending != null && sortAscending) {
+          histogram = Histograms.sortByValue(histogram, true);
+        } else if (sortDescending != null && sortDescending) {
+          histogram = Histograms.sortByValue(histogram, false);
+        }
+
+        HistogramOutput output = HistogramOutput.valueOf(outputType);
+        switch (output) {
+          case json:
+            response.setContentType(MediaType.APPLICATION_JSON);
+            return Histograms.toJson(histogram);
+          case csv:
+            response.setContentType(MediaType.TEXT_PLAIN);
+            return Histograms.toCsv(histogram, find, rawTimestamps);
+          default:
+            throw new IllegalArgumentException(
+                "Could not determine output type: "
+                    + outputType
+                    + ".\nPlease check /histogramOutputs for available histogram outputs.");
+        }
       default:
         throw new IllegalArgumentException("Query type " + queryType + " is not a valid query.");
     }
@@ -662,8 +719,8 @@ public class SuggestionsEngine {
 
   private void performCustomQueries(NameNodeLoader nameNodeLoader) {
     cachedQueries.forEach(
-        (n, q) -> {
-          Map<String, String> params = splitQuery(q);
+        (queryName, query) -> {
+          Map<String, String> params = splitQuery(query);
           String queryType = params.get("queryType");
           String set = params.get("set");
           String[] filters = Helper.parseFilters(params.get("filters"));
@@ -675,7 +732,7 @@ public class SuggestionsEngine {
           switch (queryType) {
             case "filter":
               long value = nameNodeLoader.getQueryEngine().sum(filteredINodes, sum);
-              cachedValueQueries.put(n, value);
+              cachedValueQueries.put(queryName, value);
               break;
             case "histogram":
               String histogramType = params.get("type");
@@ -756,7 +813,7 @@ public class SuggestionsEngine {
                           + histogramType
                           + ".\nPlease check /histograms for available histograms.");
               }
-              cachedMapQueries.put(n, histogram);
+              cachedMapQueries.put(queryName, histogram);
               break;
             default:
               throw new IllegalArgumentException(
