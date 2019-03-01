@@ -83,8 +83,8 @@ stop)
 
 restart)
         $0 stop
-        echo "Sleeping for 5 seconds..."
-        sleep 5
+        echo "Sleeping for 60 seconds..."
+        sleep 60
         $0 start
 ;;
 
