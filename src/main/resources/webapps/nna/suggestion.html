@@ -82,6 +82,7 @@
                 <td class="metrics-dashboard hasTooltip" width="160px" id="total" title="Percentage of bad INodes."><img src='images/wastedmemory.png' height="20px" width="20px" class="metrics-icons" alt='wasted resources'/></td>
                 <td class="metrics-dashboard hasTooltip" width="160px" id="time" title="Time taken to analyze."><img src='images/runtime.png' height="20px" width="20px" class="metrics-icons" alt='refresh duration'/></td>
                 <td class="metrics-dashboard hasTooltip" width="200px" id="report" title="Report is fresh as of:"><img src='images/runtime.png' height="20px" width="20px" class="metrics-icons" alt='refresh time'/></td>
+                <td class="metrics-dashboard hasTooltip" width="200px" id="next" title="Next report estimated for:"><img src='images/nexttime.png' height="20px" width="20px" class="metrics-icons" alt='next refresh estimate'/></td>
             </tr>
         </table>
         </p>
@@ -865,6 +866,7 @@
                 console.log(data);
                 var time = data["timeTaken"];
                 var report = data["reportTime"];
+                var next = data["nextReportEstimate"];
                 var capacity = data["capacity"];
                 var diskspace = data["diskspace"];
                 var diskspace24h = data["diskspace24h"];
@@ -1007,6 +1009,7 @@
                 $('#total').append(" "+(totalBad/totalDF*100).toFixed(2)+"%");
                 $('#time').append(" "+msToTime(time));
                 $('#report').append(" "+msToDate(report));
+                $('#next').append(" "+msToDate(next));
 
                 var usr = getUrlParameter("username");
                 if(usr.length > 0) {

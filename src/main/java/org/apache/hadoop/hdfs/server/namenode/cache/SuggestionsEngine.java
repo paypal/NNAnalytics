@@ -81,6 +81,7 @@ public class SuggestionsEngine {
   private Map<String, Map<String, Long>> cachedMapQueries;
 
   private AtomicBoolean loaded;
+  private int suggestionsReloadSleepMs;
 
   public SuggestionsEngine() {
     this.cacheManager = new CacheManager();
@@ -388,6 +389,7 @@ public class SuggestionsEngine {
     cachedUsers.addAll(users);
     cachedValues.put("timeTaken", timeTaken);
     cachedValues.put("reportTime", e1);
+    cachedValues.put("nextReportEstimate", e1 + timeTaken + suggestionsReloadSleepMs);
     cachedValues.put("capacity", capacity);
     cachedValues.put("diskspace", diskspace);
     cachedValues.put("diskspace24h", diskspace24h);
@@ -1093,5 +1095,6 @@ public class SuggestionsEngine {
         Collections.synchronizedMap(cacheManager.getCachedMap("cachedValueQueries"));
     this.cachedMapQueries =
         Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedMapQueries"));
+    this.suggestionsReloadSleepMs = conf.getSuggestionsReloadSleepMs();
   }
 }
