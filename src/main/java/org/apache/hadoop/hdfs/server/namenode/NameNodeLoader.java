@@ -44,6 +44,7 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
+import org.apache.hadoop.hdfs.server.namenode.analytics.WebServerMain;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine;
 import org.apache.hadoop.hdfs.server.namenode.startupprogress.Phase;
