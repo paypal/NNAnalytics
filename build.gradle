@@ -133,9 +133,6 @@ compileJava {
 
 repositories {
     mavenCentral()
-    maven {
-        url 'https://repo.hortonworks.com/content/repositories/releases/'
-    }
 }
 
 configurations {
