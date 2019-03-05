@@ -922,6 +922,12 @@ public class SuggestionsEngine {
     Map<String, Map<String, Long>> allUsersSuggestions = new HashMap<>();
     for (String user : cachedUsers) {
       Map<String, Long> userMap = getUserMapFromCachedMaps(user);
+      userMap.remove("totalFiles");
+      userMap.remove("totalDirs");
+      userMap.remove("capacity");
+      userMap.remove("timeTaken");
+      userMap.remove("reportTime");
+      userMap.remove("nextReportEstimate");
       allUsersSuggestions.put(user, userMap);
     }
     return Histograms.toJson(allUsersSuggestions);
