@@ -220,9 +220,11 @@ public abstract class TestWithMiniClusterBase {
     } while (checkCount == startingCount);
 
     assertThat(checkCount, is(greaterThan(startingCount)));
-    
+
     // Test NsQuota histogram is not empty.
-    HttpGet histogram = new HttpGet("http://localhost:4567/histogram?set=files&filters=isUnderNsQuota:eq:true&parentDirDepth=3&sum=count&type=parentDir&histogramOutput=csv");
+    HttpGet histogram =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=isUnderNsQuota:eq:true&parentDirDepth=3&sum=count&type=parentDir&histogramOutput=csv");
     HttpResponse checkRes = client.execute(hostPort, histogram);
     assertThat(checkRes.getStatusLine().getStatusCode(), is(200));
     List<String> checkContent = IOUtils.readLines(checkRes.getEntity().getContent());

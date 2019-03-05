@@ -153,7 +153,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         return node -> (node.getAclFeature() != null);
       case "isUnderNsQuota":
         return node -> {
-          if(node.isRoot()) {
+          if (node.isRoot()) {
             return false;
           }
           for (INodeDirectory p = node.getParent(); p != null; p = node.getParent()) {
@@ -166,7 +166,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         };
       case "isUnderDsQuota":
         return node -> {
-          if(node.isRoot()) {
+          if (node.isRoot()) {
             return false;
           }
           for (INodeDirectory p = node.getParent(); p != null; p = node.getParent()) {
