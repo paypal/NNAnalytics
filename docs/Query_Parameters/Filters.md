@@ -28,9 +28,9 @@ You can always find the full list of available filters by going to `/filters` RE
 22. `accessDate` Functions like `accessTime` but the `value` can be a calendar date, like: `01/01/1989`.
 23. `isUnderConstruction` - Usable by files. Filters the working INode set by some condition of whether the file is under construction.
 24. `isWithSnapshot` - Usable by files and dirs. Filters the working INode set by some condition of whether the file or directory is part of a [Snapshot](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsSnapshots.html).
-25. `hasAcl` - Usable by files and dirs. Filters the working INode set by some condition of whether the file or directory is has a native HDFS ACL.
-26. `hasQuota` - Usable by dirs. Filters the working INode set by some condition of whether the directory has either a namespace or disk space quota assigned.
-27. `isUnderNsQuota` - Usable by files and dirs. Filters the working INode set by checking whether each INode has any parent up to the root that has a namespace quota assigned.
-28. `isUnderDsQuota` - Usable by files and dirs. Filters the working INode set by checking whether each INode has any parent up to the root that has a disk space quota assigned.
+25. `hasAcl` - Usable by files and dirs. Filters the working INode set by some condition of whether the file or directory is has a native HDFS [ACL](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/FileSystemShell.html#setfacl).
+26. `hasQuota` - Usable by dirs. Filters the working INode set by some condition of whether the directory has either a namespace or disk space [quota](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsQuotaAdminGuide.html) assigned.
+27. `isUnderNsQuota` - Usable by files and dirs. Filters the working INode set by checking whether each INode has any parent up to the root that has a namespace [quota](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsQuotaAdminGuide.html) assigned. Ignores any quota set on root directory, `/`.
+28. `isUnderDsQuota` - Usable by files and dirs. Filters the working INode set by checking whether each INode has any parent up to the root that has a disk space [quota](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsQuotaAdminGuide.html) assigned. Ignores any quota set on root directory, `/`.
 
 All memoryConsumed calculations are estimations performed as documented [here](https://www.cloudera.com/documentation/enterprise/5-8-x/topics/admin_nn_memory_config.html).
