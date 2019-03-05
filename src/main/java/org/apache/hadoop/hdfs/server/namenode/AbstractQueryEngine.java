@@ -153,9 +153,12 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         return node -> (node.getAclFeature() != null);
       case "isUnderNsQuota":
         return node -> {
+          if (node.isRoot()) {
+            return false;
+          }
           for (INodeDirectory p = node.getParent(); p != null; p = node.getParent()) {
             node = p;
-            if (versionLoader.getNsQuota(node) >= 0) {
+            if (!node.isRoot() && versionLoader.getNsQuota(node) >= 0) {
               return true;
             }
           }
@@ -163,9 +166,12 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         };
       case "isUnderDsQuota":
         return node -> {
+          if (node.isRoot()) {
+            return false;
+          }
           for (INodeDirectory p = node.getParent(); p != null; p = node.getParent()) {
             node = p;
-            if (versionLoader.getDsQuota(node) >= 0) {
+            if (!node.isRoot() && versionLoader.getDsQuota(node) >= 0) {
               return true;
             }
           }

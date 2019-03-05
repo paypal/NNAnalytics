@@ -26,6 +26,7 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
@@ -219,6 +220,15 @@ public abstract class TestWithMiniClusterBase {
     } while (checkCount == startingCount);
 
     assertThat(checkCount, is(greaterThan(startingCount)));
+
+    // Test NsQuota histogram is not empty.
+    HttpGet histogram =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&filters=isUnderNsQuota:eq:true&parentDirDepth=3&sum=count&type=parentDir&histogramOutput=csv");
+    HttpResponse checkRes = client.execute(hostPort, histogram);
+    assertThat(checkRes.getStatusLine().getStatusCode(), is(200));
+    List<String> checkContent = IOUtils.readLines(checkRes.getEntity().getContent());
+    assertThat(checkContent.size(), is(greaterThan(0)));
   }
 
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {
@@ -271,7 +281,7 @@ public abstract class TestWithMiniClusterBase {
           break;
       }
       if (dirNumber1 == 1) {
-        fileSystem.setQuota(filePath.getParent(), -1L, 100000000000000L);
+        fileSystem.setQuota(filePath.getParent(), 9999999L, 100000000000000L);
       }
       int user = RANDOM.nextInt(3);
       switch (user) {
