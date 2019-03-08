@@ -139,7 +139,7 @@ public class SuggestionsEngine {
     final Set<String> dirUsers =
         dirs.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toSet());
     final Set<String> users = Sets.union(fileUsers, dirUsers);
-    long uniqueUsersFetchTime  = System.currentTimeMillis() - timer;
+    long uniqueUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.users took: {} ms.", uniqueUsersFetchTime);
 
     timer = System.currentTimeMillis();
@@ -319,7 +319,7 @@ public class SuggestionsEngine {
         queryEngine.byUserHistogram(smallFiles24h, "diskspaceConsumed", null);
     long perUser24hSuggFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUser24h took: {} ms.", perUser24hSuggFetchTime);
-    
+
     timer = System.currentTimeMillis();
     final Map<String, Long> emptyFiles1yrUsers =
         queryEngine.byUserHistogram(emptyFiles1yr, "count", null);
@@ -389,8 +389,8 @@ public class SuggestionsEngine {
       }
     }
     long cachedDirectoriesFetchTime = System.currentTimeMillis() - timer;
-    LOG.info("Performing SuggestionsEngine.cachedDirectories took: {} ms.",
-        cachedDirectoriesFetchTime);
+    LOG.info(
+        "Performing SuggestionsEngine.cachedDirectories took: {} ms.", cachedDirectoriesFetchTime);
 
     timer = System.currentTimeMillis();
     Map<String, Long> dirCount24h = queryEngine.parentDirHistogram(files24h, 3, "count", null);
