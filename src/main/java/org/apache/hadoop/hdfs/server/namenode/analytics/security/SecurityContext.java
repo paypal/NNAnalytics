@@ -202,7 +202,7 @@ public class SecurityContext {
           authFailedEx = e;
           continue;
         }
-        LOG.info("Login success via [LDAP] for: {} at {}", username, request.getRemoteAddr());
+        LOG.debug("Login success via [LDAP] for: {} at {}", username, request.getRemoteAddr());
         CommonProfile profile = credentials.getUserProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
@@ -224,7 +224,7 @@ public class SecurityContext {
       throws AuthenticationException {
     if (localOnlyUsers.allows(username)) {
       if (localOnlyUsers.authenticate(username, password)) {
-        LOG.info("Login success via [LOCAL] for: {} at {}", username, request.getRemoteAddr());
+        LOG.debug("Login success via [LOCAL] for: {} at {}", username, request.getRemoteAddr());
         CommonProfile profile = new CommonProfile();
         profile.setId(username);
         String generate = jwtGenerator.generate(profile);
@@ -369,7 +369,7 @@ public class SecurityContext {
 
         manager.save(true, userProfile, false);
         String profileId = userProfile.getId();
-        LOG.info("Login success via [TOKEN] for: {} at {}", profileId, request.getRemoteAddr());
+        LOG.debug("Login success via [TOKEN] for: {} at {}", profileId, request.getRemoteAddr());
         currentUser.set(profileId);
         return;
       } catch (Exception e) {

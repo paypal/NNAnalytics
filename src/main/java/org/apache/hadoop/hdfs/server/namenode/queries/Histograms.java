@@ -86,7 +86,7 @@ public class Histograms {
     long s1 = System.currentTimeMillis();
     String gson = new Gson().toJson(set);
     long e1 = System.currentTimeMillis();
-    LOG.info("Time to convert object to JSON of {} chars took: {} ms.", gson.length(), (e1 - s1));
+    LOG.debug("Time to convert object to JSON of {} chars took: {} ms.", gson.length(), (e1 - s1));
     return gson;
   }
 
