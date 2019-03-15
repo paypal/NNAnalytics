@@ -95,12 +95,12 @@ import org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
+import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.MailOutput;
 import org.apache.hadoop.hdfs.server.namenode.analytics.QueryChecker;
 import org.apache.hadoop.hdfs.server.namenode.analytics.UsageMetrics;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
 import org.apache.hadoop.hdfs.server.namenode.operations.Delete;
@@ -697,7 +697,7 @@ public class NamenodeAnalyticsMethods {
         (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
     try {
       before();
-      securityContext.refresh(new SecurityConfiguration());
+      securityContext.refresh(new ApplicationConfiguration());
       return Response.ok(securityContext.toString(), MediaType.TEXT_PLAIN).build();
     } catch (Exception ex) {
       return handleException(ex);
@@ -1144,7 +1144,8 @@ public class NamenodeAnalyticsMethods {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     final ReentrantReadWriteLock queryLock =
         (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
-    final SecurityConfiguration conf = (SecurityConfiguration) context.getAttribute(NNA_APP_CONF);
+    final ApplicationConfiguration conf =
+        (ApplicationConfiguration) context.getAttribute(NNA_APP_CONF);
     try {
       before();
       queryLock.writeLock().lock();
@@ -1916,7 +1917,8 @@ public class NamenodeAnalyticsMethods {
         (SecurityContext) context.getAttribute(NNA_SECURITY_CONTEXT);
     final ReentrantReadWriteLock queryLock =
         (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
-    final SecurityConfiguration conf = (SecurityConfiguration) context.getAttribute(NNA_APP_CONF);
+    final ApplicationConfiguration conf =
+        (ApplicationConfiguration) context.getAttribute(NNA_APP_CONF);
     @SuppressWarnings("unchecked")
     final Map<String, BaseOperation> runningOperations =
         (Map<String, BaseOperation>) context.getAttribute(NNA_RUNNING_OPERATIONS);

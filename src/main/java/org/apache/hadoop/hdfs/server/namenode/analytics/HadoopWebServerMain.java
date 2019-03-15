@@ -36,7 +36,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
 import org.apache.hadoop.hdfs.server.namenode.queries.BaseQuery;
@@ -99,19 +98,19 @@ public class HadoopWebServerMain implements ApplicationMain {
   public static void main(String[] args) {
     try {
       HadoopWebServerMain main = new HadoopWebServerMain();
-      SecurityConfiguration conf = new SecurityConfiguration();
+      ApplicationConfiguration conf = new ApplicationConfiguration();
       main.init(conf);
     } catch (Throwable e) {
       LOG.info("FATAL: {}", e);
     }
   }
 
-  public void init(SecurityConfiguration conf) throws Exception {
+  public void init(ApplicationConfiguration conf) throws Exception {
     init(conf, null);
   }
 
   @VisibleForTesting
-  public void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
+  public void init(ApplicationConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
       throws Exception {
     init(conf, inodes, null);
   }
@@ -127,7 +126,7 @@ public class HadoopWebServerMain implements ApplicationMain {
    */
   @VisibleForTesting
   public void init(
-      SecurityConfiguration conf,
+      ApplicationConfiguration conf,
       GSet<INode, INodeWithAdditionalFields> inodes,
       Configuration preloadedHadoopConf)
       throws Exception {
@@ -159,7 +158,7 @@ public class HadoopWebServerMain implements ApplicationMain {
     nameNodeLoader.initReloadThreads(internalService, conf);
   }
 
-  private SecurityContext loadSecurityContext(SecurityConfiguration nnaConf) {
+  private SecurityContext loadSecurityContext(ApplicationConfiguration nnaConf) {
     SecurityContext securityContext = new SecurityContext();
 
     boolean ldapEnabled = nnaConf.getLdapEnabled();
@@ -238,7 +237,7 @@ public class HadoopWebServerMain implements ApplicationMain {
     return securityContext;
   }
 
-  private InetSocketAddress getHttpServerBindAddress(SecurityConfiguration conf) {
+  private InetSocketAddress getHttpServerBindAddress(ApplicationConfiguration conf) {
     return new InetSocketAddress("0.0.0.0", conf.getPort());
   }
 

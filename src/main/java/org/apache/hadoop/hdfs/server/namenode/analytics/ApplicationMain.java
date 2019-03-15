@@ -24,7 +24,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.util.GSet;
 
 public interface ApplicationMain {
@@ -32,15 +31,15 @@ public interface ApplicationMain {
   @VisibleForTesting
   NameNodeLoader getLoader();
 
-  void init(SecurityConfiguration conf) throws Exception;
+  void init(ApplicationConfiguration conf) throws Exception;
 
   @VisibleForTesting
-  void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
+  void init(ApplicationConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
       throws Exception;
 
   @VisibleForTesting
   void init(
-      SecurityConfiguration conf,
+      ApplicationConfiguration conf,
       GSet<INode, INodeWithAdditionalFields> inodes,
       Configuration preloadedHadoopConf)
       throws Exception;

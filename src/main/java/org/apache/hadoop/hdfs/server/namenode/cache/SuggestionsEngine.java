@@ -44,10 +44,10 @@ import org.apache.hadoop.hdfs.server.namenode.Constants.HistogramOutput;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
+import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.QueryChecker;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.util.VirtualINodeTree;
 import org.slf4j.Logger;
@@ -1153,7 +1153,7 @@ public class SuggestionsEngine {
    * @param conf the application configuration
    * @throws IOException an error occurred starting the cache engine
    */
-  public void start(SecurityConfiguration conf) throws IOException {
+  public void start(ApplicationConfiguration conf) throws IOException {
     cacheManager.start(conf);
     this.cachedDirs = Collections.synchronizedSet(cacheManager.getCachedSet("cachedDirs"));
     this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));

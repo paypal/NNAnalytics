@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +64,7 @@ public class HsqlDriver {
    * @param conf the application configuration
    * @throws SQLException error in opening DB connection
    */
-  public void startDatabase(SecurityConfiguration conf) throws SQLException {
+  public void startDatabase(ApplicationConfiguration conf) throws SQLException {
     try {
       Class.forName("org.hsqldb.jdbc.JDBCDriver");
     } catch (ClassNotFoundException e) {

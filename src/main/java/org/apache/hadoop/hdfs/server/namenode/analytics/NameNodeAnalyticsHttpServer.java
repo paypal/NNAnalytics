@@ -39,7 +39,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
 import org.apache.hadoop.hdfs.server.namenode.analytics.web.NamenodeAnalyticsMethods;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
@@ -90,7 +89,7 @@ public class NameNodeAnalyticsHttpServer {
 
   // Configuration.
   private Configuration conf;
-  private SecurityConfiguration nnaConf;
+  private ApplicationConfiguration nnaConf;
 
   // Hosting addresses.
   private InetSocketAddress httpAddress;
@@ -116,7 +115,7 @@ public class NameNodeAnalyticsHttpServer {
    */
   public NameNodeAnalyticsHttpServer(
       Configuration conf,
-      SecurityConfiguration nnaConf,
+      ApplicationConfiguration nnaConf,
       InetSocketAddress bindAddress,
       SecurityContext securityContext,
       NameNodeLoader nameNodeLoader,
@@ -157,10 +156,10 @@ public class NameNodeAnalyticsHttpServer {
       httpAddress = new InetSocketAddress(bindAddress.getAddress(), nnaPort);
     } else if (sslKeystorePath != null && sslKeystorePassword != null) {
       LOG.info("Running web server in HTTPS mode.");
-      httpAddress = new InetSocketAddress(bindAddress.getAddress(), nnaPort);
+      httpsAddress = new InetSocketAddress(bindAddress.getAddress(), nnaPort);
     } else {
       throw new IllegalStateException(
-          "Illegal SSL configuration. Check config/security.properties file.");
+          "Illegal SSL configuration. Check config/application.properties file.");
     }
 
     if (conf == null) {
