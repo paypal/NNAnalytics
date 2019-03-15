@@ -28,7 +28,6 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.qjournal.MiniQJMHACluster;
 import org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.ha.HATestUtil;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -75,7 +74,7 @@ public class TestWithMiniClusterWithCQEngine extends TestWithMiniClusterBase {
     CONF.set("dfs.nameservice.id", NAMESERVICE);
 
     nna = new WebServerMain();
-    SecurityConfiguration nnaConf = new SecurityConfiguration();
+    ApplicationConfiguration nnaConf = new ApplicationConfiguration();
     nnaConf.set("nna.support.bootstrap.overrides", "true");
     nnaConf.set("ldap.enable", "false");
     nnaConf.set("authorization.enable", "false");

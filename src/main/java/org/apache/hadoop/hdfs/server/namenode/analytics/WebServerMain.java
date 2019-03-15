@@ -78,7 +78,6 @@ import org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
 import org.apache.hadoop.hdfs.server.namenode.operations.Delete;
@@ -167,7 +166,7 @@ public class WebServerMain implements ApplicationMain {
       throws InterruptedException, IllegalAccessException, NoSuchFieldException {
     try {
       ApplicationMain main = new WebServerMain();
-      SecurityConfiguration conf = new SecurityConfiguration();
+      ApplicationConfiguration conf = new ApplicationConfiguration();
       main.init(conf);
     } catch (Throwable e) {
       LOG.info("FATAL: {}", e);
@@ -181,13 +180,13 @@ public class WebServerMain implements ApplicationMain {
   }
 
   @Override // ApplicationMain
-  public void init(SecurityConfiguration conf) throws Exception {
+  public void init(ApplicationConfiguration conf) throws Exception {
     init(conf, null);
   }
 
   @Override // ApplicationMain
   @VisibleForTesting
-  public void init(SecurityConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
+  public void init(ApplicationConfiguration conf, GSet<INode, INodeWithAdditionalFields> inodes)
       throws Exception {
     init(conf, inodes, null);
   }
@@ -204,7 +203,7 @@ public class WebServerMain implements ApplicationMain {
   @Override // ApplicationMain
   @VisibleForTesting
   public void init(
-      SecurityConfiguration conf,
+      ApplicationConfiguration conf,
       GSet<INode, INodeWithAdditionalFields> inodes,
       Configuration preloadedHadoopConf)
       throws Exception {
@@ -536,7 +535,7 @@ public class WebServerMain implements ApplicationMain {
         "/refresh",
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
-          secContext.refresh(new SecurityConfiguration());
+          secContext.refresh(new ApplicationConfiguration());
           res.body(secContext.toString());
           return res;
         });

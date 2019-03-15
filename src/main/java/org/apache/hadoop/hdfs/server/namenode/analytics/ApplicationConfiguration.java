@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.hadoop.hdfs.server.namenode.analytics.security;
+package org.apache.hadoop.hdfs.server.namenode.analytics;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,9 +31,10 @@ import org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SecurityConfiguration {
+public class ApplicationConfiguration {
 
-  public static final Logger LOG = LoggerFactory.getLogger(SecurityConfiguration.class.getName());
+  public static final Logger LOG =
+      LoggerFactory.getLogger(ApplicationConfiguration.class.getName());
 
   private static final String SEC_PROPERTIES = "security.properties";
   private final Properties properties = new Properties();
@@ -52,7 +53,7 @@ public class SecurityConfiguration {
       JavaStreamQueryEngine.class.getCanonicalName();
 
   /** Constructor. Fetches configuration from ClassLoader stream. */
-  public SecurityConfiguration() {
+  public ApplicationConfiguration() {
     InputStream input = this.getClass().getClassLoader().getResourceAsStream(SEC_PROPERTIES);
     try {
       properties.load(input);

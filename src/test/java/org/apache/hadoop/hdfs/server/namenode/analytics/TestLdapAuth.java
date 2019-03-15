@@ -34,7 +34,6 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityConfiguration;
 import org.apache.hadoop.util.GSet;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
@@ -64,7 +63,7 @@ public class TestLdapAuth {
     gSetGenerator.clear();
     GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
     nna = new WebServerMain();
-    SecurityConfiguration conf = new SecurityConfiguration();
+    ApplicationConfiguration conf = new ApplicationConfiguration();
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "false");
     conf.set("nna.historical", "false");
