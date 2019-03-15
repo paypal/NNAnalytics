@@ -63,7 +63,7 @@ public class ApplicationConfiguration {
           SEC_PROPERTIES,
           APP_PROPERTIES);
       return;
-    } catch (IOException e) {
+    } catch (Exception e) {
       LOG.warn(
           "Failed to load old properties file: {}, due to: {}. Ignore if you are using {}.",
           SEC_PROPERTIES,
