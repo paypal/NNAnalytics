@@ -18,8 +18,8 @@ For example:
 
 1. SCP over configurations from your Standby NameNode into `/usr/local/nn-analytics/config`
 2. Modify your `hdfs-site.xml` and ensure that Kerberos information is valid. NNA requires a keytab with `nn` user principal if you are using Kerberos. Just like a real NameNode.
-3. Modify `security.properties` and set up LDAP authentication, SSL, and authorization.
-4. Ensure that `security.properties` file is only read-able by hdfs and root users: `chown hdfs: security.properties && chmod 400 security.properties`
+3. Modify `application.properties` and set up LDAP authentication, SSL, and authorization.
+4. Ensure that `application.properties` file is only read-able by hdfs and root users: `chown hdfs: application.properties && chmod 400 application.properties`
 
 Definitions of configuration NNA-specific properties:
 
@@ -48,6 +48,8 @@ Definitions of configuration NNA-specific properties:
 * `nna.cache.users=<comma-seperated list of usernames>` - An * enables all users as CACHE users.
 * `nna.localonly.users=<comma-seperated list of username:password pairs>` - Local-only accounts; recommended for any applications that intend to use NNA API.
 * `nna.query.engine.impl=<string>` - The full canonical class name of the QueryEngine implementation to use. Current existing implementations are `org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine` (recommended and the default) and `org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine` (currently experimental).
+
+** If you have a `/usr/local/nn-analytics/config/security.properties` file please rename it to `/usr/local/nn-analytics/config/application.properties`. The `security.properties` file is now deprecated. Eventually the new `application.properties` file will also be moved to an XML file in the style of other Hadoop ecosystem configurations.
 
 *Below is additional experimental configuration.*
 
