@@ -159,7 +159,7 @@ public class NameNodeAnalyticsHttpServer {
       httpsAddress = new InetSocketAddress(bindAddress.getAddress(), nnaPort);
     } else {
       throw new IllegalStateException(
-          "Illegal SSL configuration. Check config/security.properties file.");
+          "Illegal SSL configuration. Check config/application.properties file.");
     }
 
     if (conf == null) {

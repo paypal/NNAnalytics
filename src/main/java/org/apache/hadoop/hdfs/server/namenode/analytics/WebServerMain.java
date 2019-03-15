@@ -216,7 +216,7 @@ public class WebServerMain implements ApplicationMain {
       Spark.secure(sslKeystorePath, sslKeystorePassword, null, null);
     } else {
       throw new IllegalStateException(
-          "Illegal SSL configuration. Check config/security.properties file.");
+          "Illegal SSL configuration. Check config/application.properties file.");
     }
 
     boolean ldapEnabled = conf.getLdapEnabled();

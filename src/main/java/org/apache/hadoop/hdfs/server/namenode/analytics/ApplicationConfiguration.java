@@ -36,7 +36,8 @@ public class ApplicationConfiguration {
   public static final Logger LOG =
       LoggerFactory.getLogger(ApplicationConfiguration.class.getName());
 
-  private static final String SEC_PROPERTIES = "security.properties";
+  private static final String APP_PROPERTIES = "application.properties";
+  @Deprecated private static final String SEC_PROPERTIES = "security.properties";
   private final Properties properties = new Properties();
 
   private static final String NNA_PORT_DEFAULT = "8080";
@@ -54,11 +55,26 @@ public class ApplicationConfiguration {
 
   /** Constructor. Fetches configuration from ClassLoader stream. */
   public ApplicationConfiguration() {
-    InputStream input = this.getClass().getClassLoader().getResourceAsStream(SEC_PROPERTIES);
+    InputStream oldProps = this.getClass().getClassLoader().getResourceAsStream(SEC_PROPERTIES);
+    try {
+      properties.load(oldProps);
+      LOG.warn(
+          "Loaded deprecated configuration, {}. Please rename to {}.",
+          SEC_PROPERTIES,
+          APP_PROPERTIES);
+      return;
+    } catch (IOException e) {
+      LOG.warn(
+          "Failed to load old properties file: {}, due to: {}. Ignore if you are using {}.",
+          SEC_PROPERTIES,
+          e,
+          APP_PROPERTIES);
+    }
+    InputStream input = this.getClass().getClassLoader().getResourceAsStream(APP_PROPERTIES);
     try {
       properties.load(input);
     } catch (IOException e) {
-      LOG.info("Failed to load properties file: {}, due to: {}", SEC_PROPERTIES, e);
+      LOG.error("Failed to load properties file: {}, due to: {}", APP_PROPERTIES, e);
     }
   }
 
@@ -210,7 +226,7 @@ public class ApplicationConfiguration {
 
   /**
    * These are NNA local only accounts that can be used by outside applications. If you intend to
-   * utilize local-only accounts then you must lock down the permissions on the security.properties
+   * utilize local-only accounts then you must lock down the permissions on the .properties
    * file as it will contain passwords.
    *
    * @return map of username : password for locally maintained NNA users
