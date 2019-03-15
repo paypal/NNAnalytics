@@ -226,8 +226,8 @@ public class ApplicationConfiguration {
 
   /**
    * These are NNA local only accounts that can be used by outside applications. If you intend to
-   * utilize local-only accounts then you must lock down the permissions on the .properties
-   * file as it will contain passwords.
+   * utilize local-only accounts then you must lock down the permissions on the .properties file as
+   * it will contain passwords.
    *
    * @return map of username : password for locally maintained NNA users
    */
