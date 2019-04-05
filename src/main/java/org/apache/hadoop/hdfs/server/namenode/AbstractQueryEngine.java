@@ -900,11 +900,11 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   @Override // QueryEngine
   public Map<String, Long> binMappingHistogramWithFind(
       Collection<INode> inodes,
-      String findFunc,
+      String find,
       Function<INode, Long> findToLong,
       Function<INode, Long> nodeToLong,
       Map<String, Long> binKeyMap) {
-    long[][] datas = fetchDataViaCpu(inodes, findFunc, findToLong, nodeToLong);
+    long[][] datas = fetchDataViaCpu(inodes, find, findToLong, nodeToLong);
     long[] data = datas[0];
     long[] sums = datas[1];
     int length = Math.min(data.length, sums.length);
@@ -915,7 +915,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       if (data.length == 0 || sums.length == 0) {
         histogram = data;
         LOG.info("Empty data set; skipping.");
-      } else if (findFunc.equals("avg")) {
+      } else if ("avg".equals(find)) {
         BigInteger[] bigHistogram = new BigInteger[binKeyMap.size() + 1];
         long[] counts = new long[binKeyMap.size() + 1];
         Arrays.fill(bigHistogram, BigInteger.valueOf(-1));
@@ -967,7 +967,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
                   synchronized (histogram) {
                     long currentVal = histogram[chosenBin];
                     long compareVal = sums[idx];
-                    switch (findFunc) {
+                    switch (find) {
                       case "max":
                         if (currentVal < compareVal) {
                           histogram[chosenBin] = compareVal;
@@ -1066,7 +1066,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       if (data.length == 0) {
         histogram = data;
         LOG.info("Empty data set; skipping.");
-      } else if (find.equals("avg")) {
+      } else if ("avg".equals(find)) {
         BigInteger[] bigHistogram = new BigInteger[binsArray.length + 1];
         long[] counts = new long[binsArray.length + 1];
         IntStream.range(0, data.length)
