@@ -23,6 +23,10 @@ script:
 - "./gradlew clean build buildRpm buildDeb $VERSION"
 after_success:
 - bash <(curl -s https://codecov.io/bash)
+after_failure:
+- tar -czvf ./test-report.tar.gz /home/travis/build/paypal/NNAnalytics/build/reports/tests/
+- curl --upload-file ./test-report.tar.gz "https://transfer.sh/test-report.tar.gz" | tee -a output_urls.txt && echo "" >> output_urls.txt
+- cat output_urls.txt
 deploy:
   provider: releases
   api_key:
