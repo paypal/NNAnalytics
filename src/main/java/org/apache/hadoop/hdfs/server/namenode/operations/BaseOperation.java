@@ -21,6 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode.operations;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -72,19 +73,14 @@ public abstract class BaseOperation implements Operation {
     if (obj == null) {
       return false;
     }
-    if (obj != this) {
-      return false;
-    }
     if (obj.hashCode() != this.hashCode()) {
       return false;
     }
     if (obj instanceof Delete) {
       BaseOperation that = (BaseOperation) obj;
-      if (!that.identity.equals(this.identity)) {
-        return false;
-      }
+      return that.identity.equals(this.identity);
     }
-    return true;
+    return false;
   }
 
   @Override
@@ -100,11 +96,14 @@ public abstract class BaseOperation implements Operation {
 
   @Override
   public synchronized List<String> lastPerformed(int numOfLast) {
-    int lastIndex = pathsOperated.size();
-    if (numOfLast >= lastIndex) {
-      return pathsOperated;
+    synchronized (pathsOperated) {
+      int lastIndex = pathsOperated.size();
+      if (numOfLast >= lastIndex) {
+        return Collections.unmodifiableList(new ArrayList<>(pathsOperated));
+      }
+      List<String> paths = pathsOperated.subList(lastIndex - numOfLast, lastIndex);
+      return Collections.unmodifiableList(new ArrayList<>(paths));
     }
-    return new ArrayList<>(pathsOperated.subList(lastIndex - numOfLast, lastIndex));
   }
 
   @Override

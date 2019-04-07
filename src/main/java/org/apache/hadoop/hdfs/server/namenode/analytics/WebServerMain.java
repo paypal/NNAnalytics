@@ -1456,8 +1456,8 @@ public class WebServerMain implements ApplicationMain {
               int totalToPerform = operation.totalToPerform();
               int numPerformed = operation.numPerformed();
               double percentageDone = ((double) numPerformed / (double) totalToPerform) * 100.0;
-              List<String> lastDeleted = operation.lastPerformed(limit);
-              Collections.reverse(lastDeleted);
+              List<String> lastPerformed = operation.lastPerformed(limit);
+              Collections.reverse(lastPerformed);
 
               String sb =
                   "Identity: "
@@ -1487,7 +1487,7 @@ public class WebServerMain implements ApplicationMain {
                       + "Last ("
                       + limit
                       + ") performed: "
-                      + lastDeleted.toString()
+                      + lastPerformed.toString()
                       + "\n\n";
               res.body(sb);
             }
