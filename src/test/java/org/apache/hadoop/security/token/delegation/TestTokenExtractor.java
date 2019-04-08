@@ -21,7 +21,6 @@ package org.apache.hadoop.security.token.delegation;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.notNull;
 
 import java.util.Map;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
