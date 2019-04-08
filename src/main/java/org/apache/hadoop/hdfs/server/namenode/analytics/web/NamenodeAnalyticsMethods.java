@@ -2117,7 +2117,7 @@ public class NamenodeAnalyticsMethods {
         } else {
           BaseOperation operation = runningOperations.get(identity);
           if (operation == null) {
-            throw new MalformedURLException("Operation not found.");
+            throw new FileNotFoundException("Operation not found.");
           }
           StringBuilder sb = new StringBuilder();
           sb.append("Identity: ");
@@ -2214,7 +2214,7 @@ public class NamenodeAnalyticsMethods {
         }
         BaseOperation operation = runningOperations.get(identity);
         if (operation == null) {
-          throw new MalformedURLException("Operation not found.");
+          throw new FileNotFoundException("Operation not found.");
         }
         operation.abort();
 
