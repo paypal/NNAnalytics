@@ -57,6 +57,7 @@ public interface Constants {
   }
 
   enum Filter {
+    id,
     accessTime,
     modTime,
     fileSize,
@@ -89,6 +90,7 @@ public interface Constants {
 
   EnumSet<Filter> FILTER_LONG =
       EnumSet.of(
+          Filter.id,
           Filter.accessTime,
           Filter.modTime,
           Filter.fileSize,
@@ -344,6 +346,7 @@ public interface Constants {
 
   EnumSet<Filter> FILTER_FILE =
       EnumSet.of(
+          Filter.id,
           Filter.blockSize,
           Filter.fileSize,
           Filter.fileReplica,
@@ -371,6 +374,7 @@ public interface Constants {
 
   EnumSet<Filter> FILTER_DIR =
       EnumSet.of(
+          Filter.id,
           Filter.dirNumChildren,
           Filter.dirSubTreeSize,
           Filter.dirSubTreeNumFiles,

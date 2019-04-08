@@ -1459,37 +1459,40 @@ public class WebServerMain implements ApplicationMain {
               List<String> lastPerformed = operation.lastPerformed(limit);
               Collections.reverse(lastPerformed);
 
-              String sb =
-                  "Identity: "
-                      + operation.identity()
-                      + '\n'
-                      + "Owner: "
-                      + operation.owner()
-                      + '\n'
-                      + "Query: "
-                      + operation.query()
-                      + '\n'
-                      + "Total to perform: "
-                      + totalToPerform
-                      + '\n'
-                      + "Total performed: "
-                      + numPerformed
-                      + '\n'
-                      + "Total left to perform: "
-                      + (totalToPerform - numPerformed)
-                      + '\n'
-                      + "Percentage done: "
-                      + percentageDone
-                      + '\n'
-                      + "Up next: "
-                      + operation.upNext()
-                      + '\n'
-                      + "Last ("
-                      + limit
-                      + ") performed: "
-                      + lastPerformed.toString()
-                      + "\n\n";
-              res.body(sb);
+              StringBuilder sb = new StringBuilder();
+              sb.append("Identity: ");
+              sb.append(operation.identity());
+              sb.append('\n');
+              sb.append("Owner: ");
+              sb.append(operation.owner());
+              sb.append('\n');
+              sb.append("Type: ");
+              sb.append(operation.type());
+              sb.append('\n');
+              sb.append("Query: ");
+              sb.append(operation.query());
+              sb.append('\n');
+              sb.append("Total to perform: ");
+              sb.append(totalToPerform);
+              sb.append('\n');
+              sb.append("Total performed: ");
+              sb.append(numPerformed);
+              sb.append('\n');
+              sb.append("Total left to perform: ");
+              sb.append(totalToPerform - numPerformed);
+              sb.append('\n');
+              sb.append("Percentage done: ");
+              sb.append(percentageDone);
+              sb.append('\n');
+              sb.append("Up next: ");
+              sb.append(operation.upNext());
+              sb.append('\n');
+              sb.append("Last (");
+              sb.append(limit);
+              sb.append(") performed: ");
+              sb.append(lastPerformed.toString());
+              sb.append('\n');
+              res.body(sb.toString());
             }
             return res;
           } finally {
