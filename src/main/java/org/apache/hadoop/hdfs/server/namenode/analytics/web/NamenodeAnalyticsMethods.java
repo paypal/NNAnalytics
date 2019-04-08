@@ -2119,12 +2119,6 @@ public class NamenodeAnalyticsMethods {
           if (operation == null) {
             throw new MalformedURLException("Operation not found.");
           }
-          int totalToPerform = operation.totalToPerform();
-          int numPerformed = operation.numPerformed();
-          double percentageDone = ((double) numPerformed / (double) totalToPerform) * 100.0;
-          List<String> lastDeleted = operation.lastPerformed(limit);
-          Collections.reverse(lastDeleted);
-
           StringBuilder sb = new StringBuilder();
           sb.append("Identity: ");
           sb.append(operation.identity());
@@ -2139,15 +2133,18 @@ public class NamenodeAnalyticsMethods {
           sb.append(operation.query());
           sb.append('\n');
           sb.append("Total to perform: ");
+          int totalToPerform = operation.totalToPerform();
           sb.append(totalToPerform);
           sb.append('\n');
           sb.append("Total performed: ");
+          int numPerformed = operation.numPerformed();
           sb.append(numPerformed);
           sb.append('\n');
           sb.append("Total left to perform: ");
           sb.append(totalToPerform - numPerformed);
           sb.append('\n');
           sb.append("Percentage done: ");
+          double percentageDone = ((double) numPerformed / (double) totalToPerform) * 100.0;
           sb.append(percentageDone);
           sb.append('\n');
           sb.append("Up next: ");
@@ -2156,6 +2153,8 @@ public class NamenodeAnalyticsMethods {
           sb.append("Last (");
           sb.append(limit);
           sb.append(") performed: ");
+          List<String> lastDeleted = operation.lastPerformed(limit);
+          Collections.reverse(lastDeleted);
           sb.append(lastDeleted.toString());
           sb.append('\n');
           writer = response.getWriter();

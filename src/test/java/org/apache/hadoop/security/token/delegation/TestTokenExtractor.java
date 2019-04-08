@@ -34,23 +34,24 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TestTokenExtractor {
-  
+
   private FSNamesystem fsn;
   private DelegationTokenSecretManager dtsm;
-  
+
   @Before
   public void setUp() {
     fsn = Mockito.mock(FSNamesystem.class);
     dtsm = new DelegationTokenSecretManager(0L, 0L, 0L, 0L, fsn);
   }
-  
+
   @Test
   public void testSimple() {
     Mockito.doNothing().when(fsn).writeLock();
     Mockito.doNothing().when(fsn).writeUnlock();
 
-    DelegationTokenIdentifier dtId = new DelegationTokenIdentifier(new Text("mockOwner"), 
-        new Text("mockGroup"), new Text("mockRealUser/HOST@REALM.COM"));
+    DelegationTokenIdentifier dtId =
+        new DelegationTokenIdentifier(
+            new Text("mockOwner"), new Text("mockGroup"), new Text("mockRealUser/HOST@REALM.COM"));
     DelegationTokenInformation dtInfo = Mockito.mock(DelegationTokenInformation.class);
     dtsm.currentTokens.put(dtId, dtInfo);
 
@@ -58,8 +59,7 @@ public class TestTokenExtractor {
     Map<String, Long> tokenLastLogins = extractor.getTokenLastLogins();
 
     assertThat(tokenLastLogins.size(), is(2));
-    assertThat(tokenLastLogins.get("mockRealUser"), is(notNull()));
-    assertThat(tokenLastLogins.get("mockOwner"), is(notNull()));
+    assertThat(tokenLastLogins.containsKey("mockRealUser"), is(true));
+    assertThat(tokenLastLogins.containsKey("mockOwner"), is(true));
   }
-
 }

@@ -354,7 +354,8 @@ public abstract class TestNNAnalyticsBase {
   @Test
   public void testIsUnderConstruction() throws IOException {
     HttpGet get =
-        new HttpGet("http://localhost:4567/filter?set=files&filters=isUnderConstruction:notEq:false&sum=count");
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=isUnderConstruction:notEq:false&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());
     assertThat(result.size(), is(1));
@@ -365,7 +366,8 @@ public abstract class TestNNAnalyticsBase {
   @Test
   public void testIsWithSnapshot() throws IOException {
     HttpGet get =
-        new HttpGet("http://localhost:4567/filter?set=dirs&filters=isWithSnapshot:notEq:false&sum=count");
+        new HttpGet(
+            "http://localhost:4567/filter?set=dirs&filters=isWithSnapshot:notEq:false&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());
     assertThat(result.size(), is(1));

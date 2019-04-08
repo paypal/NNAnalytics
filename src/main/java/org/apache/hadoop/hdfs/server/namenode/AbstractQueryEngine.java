@@ -176,10 +176,10 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         return node -> node.asFile().isUnderConstruction();
       case "isWithSnapshot":
         return node -> {
-          if(node.isFile()) {
+          if (node.isFile()) {
             return node.asFile().isWithSnapshot();
           }
-          if(node.isDirectory()) {
+          if (node.isDirectory()) {
             return node.asDirectory().isWithSnapshot();
           }
           return false;

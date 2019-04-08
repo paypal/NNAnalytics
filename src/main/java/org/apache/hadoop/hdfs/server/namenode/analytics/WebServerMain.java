@@ -1453,12 +1453,6 @@ public class WebServerMain implements ApplicationMain {
               if (operation == null) {
                 throw new FileNotFoundException("Operation not found.");
               }
-              int totalToPerform = operation.totalToPerform();
-              int numPerformed = operation.numPerformed();
-              double percentageDone = ((double) numPerformed / (double) totalToPerform) * 100.0;
-              List<String> lastPerformed = operation.lastPerformed(limit);
-              Collections.reverse(lastPerformed);
-
               StringBuilder sb = new StringBuilder();
               sb.append("Identity: ");
               sb.append(operation.identity());
@@ -1473,15 +1467,18 @@ public class WebServerMain implements ApplicationMain {
               sb.append(operation.query());
               sb.append('\n');
               sb.append("Total to perform: ");
+              int totalToPerform = operation.totalToPerform();
               sb.append(totalToPerform);
               sb.append('\n');
               sb.append("Total performed: ");
+              int numPerformed = operation.numPerformed();
               sb.append(numPerformed);
               sb.append('\n');
               sb.append("Total left to perform: ");
               sb.append(totalToPerform - numPerformed);
               sb.append('\n');
               sb.append("Percentage done: ");
+              double percentageDone = ((double) numPerformed / (double) totalToPerform) * 100.0;
               sb.append(percentageDone);
               sb.append('\n');
               sb.append("Up next: ");
@@ -1490,7 +1487,9 @@ public class WebServerMain implements ApplicationMain {
               sb.append("Last (");
               sb.append(limit);
               sb.append(") performed: ");
-              sb.append(lastPerformed.toString());
+              List<String> lastDeleted = operation.lastPerformed(limit);
+              Collections.reverse(lastDeleted);
+              sb.append(lastDeleted.toString());
               sb.append('\n');
               res.body(sb.toString());
             }
