@@ -328,6 +328,18 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testInodeId() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=id:gt:0,id:lt:10000000&sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0), is(String.valueOf(GSetGenerator.FILES_MADE)));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testModDateFilterGt() throws IOException {
     HttpGet get =
         new HttpGet(
@@ -340,13 +352,37 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testIsUnderConstruction() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=isUnderConstruction:notEq:false&sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0), is("0"));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testIsWithSnapshot() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=dirs&filters=isWithSnapshot:notEq:false&sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0), is("0"));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testHasQuota() throws IOException {
     HttpGet get =
         new HttpGet("http://localhost:4567/filter?set=dirs&filters=hasQuota:eq:true&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());
     assertThat(result.size(), is(1));
-    assertThat(result.get(0), is(not(0L)));
+    assertThat(result.get(0), is(not("0")));
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }
 
@@ -365,6 +401,18 @@ public abstract class TestNNAnalyticsBase {
     HttpGet get =
         new HttpGet(
             "http://localhost:4567/filter?set=files&filters=modDate:dateGt:01/01/1990,modDate:dateLt:01/01/2050&sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0), is(not(String.valueOf(0))));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testAccessDateFilterGtAndLt() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=accessDate:dateGt:01/01/1990,accessDate:dateLt:01/01/2050&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> result = IOUtils.readLines(res.getEntity().getContent());
     assertThat(result.size(), is(1));
@@ -1313,7 +1361,7 @@ public abstract class TestNNAnalyticsBase {
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     int statusCode = res.getStatusLine().getStatusCode();
     if (statusCode == 500) {
-      assertThat(strings, hasItem(CoreMatchers.containsString("not supported")));
+      assertThat(strings, hasItem(containsString("not supported")));
     } else {
       assertThat(statusCode, is(200));
     }
@@ -1567,7 +1615,7 @@ public abstract class TestNNAnalyticsBase {
     if (isValid) {
       int statusCode = res.getStatusLine().getStatusCode();
       if (statusCode == 500) {
-        assertThat(strings, hasItem(CoreMatchers.containsString("not supported")));
+        assertThat(strings, hasItem(containsString("not supported")));
       } else {
         assertThat(statusCode, is(200));
       }

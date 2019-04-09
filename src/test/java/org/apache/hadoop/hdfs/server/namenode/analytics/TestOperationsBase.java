@@ -25,11 +25,6 @@ import static org.hamcrest.core.Is.is;
 import java.io.IOException;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
-import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.util.GSet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -37,32 +32,14 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestOperations {
+public abstract class TestOperationsBase {
 
-  private static HttpHost hostPort;
-  private static HttpClient client;
-  private static WebServerMain nna;
+  protected static HttpHost hostPort;
+  protected static ApplicationMain nna;
 
-  @BeforeClass
-  public static void beforeClass() throws Exception {
-    GSetGenerator gSetGenerator = new GSetGenerator();
-    gSetGenerator.clear();
-    GSet<INode, INodeWithAdditionalFields> gset = gSetGenerator.getGSet((short) 3, 10, 500);
-    nna = new WebServerMain();
-    ApplicationConfiguration conf = new ApplicationConfiguration();
-    conf.set("ldap.enable", "false");
-    conf.set("authorization.enable", "false");
-    conf.set("nna.historical", "false");
-    conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
-    nna.init(conf, gset);
-    hostPort = new HttpHost("localhost", 4567);
-  }
+  private HttpClient client;
 
   @AfterClass
   public static void tearDown() {
@@ -77,7 +54,7 @@ public class TestOperations {
   }
 
   @Test(timeout = 10000)
-  public void testDelete() throws IOException, InterruptedException {
+  public void testDelete() throws IOException {
     HttpGet post =
         new HttpGet(
             "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=delete");
@@ -100,7 +77,7 @@ public class TestOperations {
   }
 
   @Test(timeout = 10000)
-  public void testSetReplication() throws IOException, InterruptedException {
+  public void testSetReplication() throws IOException {
     HttpGet post =
         new HttpGet(
             "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=setReplication:1");
@@ -123,7 +100,7 @@ public class TestOperations {
   }
 
   @Test(timeout = 10000)
-  public void testSetStoragePolicy() throws IOException, InterruptedException {
+  public void testSetStoragePolicy() throws IOException {
     HttpGet post =
         new HttpGet(
             "http://localhost:4567/submitOperation?set=files&filters=fileSize:eq:0,accessTime:daysAgo:3&sleep=0&operation=setStoragePolicy:COLD");
@@ -146,21 +123,21 @@ public class TestOperations {
   }
 
   @Test
-  public void testGetNonExistantDelete() throws IOException, InterruptedException {
+  public void testGetNonExistantDelete() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/abortOperation?identity=FAKEID");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(404));
   }
 
   @Test
-  public void testAbortNonExistantDelete() throws IOException, InterruptedException {
+  public void testAbortNonExistantDelete() throws IOException {
     HttpGet delete = new HttpGet("http://localhost:4567/listOperations?identity=FAKEID");
     HttpResponse res = client.execute(hostPort, delete);
     assertThat(res.getStatusLine().getStatusCode(), is(404));
   }
 
   @Test(timeout = 10000)
-  public void testAbortDeletes() throws IOException, InterruptedException {
+  public void testAbortDeletes() throws IOException {
     HttpGet post =
         new HttpGet(
             "http://localhost:4567/submitOperation?set=files&filters=fileSize:lte:1048576,fileSize:gt:1024&sleep=1000&operation=delete");

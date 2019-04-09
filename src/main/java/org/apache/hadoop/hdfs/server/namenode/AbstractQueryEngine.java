@@ -175,7 +175,15 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       case "isUnderConstruction":
         return node -> node.asFile().isUnderConstruction();
       case "isWithSnapshot":
-        return node -> node.asFile().isWithSnapshot();
+        return node -> {
+          if (node.isFile()) {
+            return node.asFile().isWithSnapshot();
+          }
+          if (node.isDirectory()) {
+            return node.asDirectory().isWithSnapshot();
+          }
+          return false;
+        };
       case "hasAcl":
         return node -> (node.getAclFeature() != null);
       case "isUnderNsQuota":
