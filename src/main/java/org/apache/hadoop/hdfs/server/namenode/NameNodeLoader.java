@@ -22,18 +22,14 @@ package org.apache.hadoop.hdfs.server.namenode;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
-import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -55,9 +51,7 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.delegation.TokenExtractor;
-import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
-import org.apache.hadoop.util.GSetSeperatorWrapper;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
@@ -77,9 +71,6 @@ public class NameNodeLoader {
   private Configuration conf = null;
   private FSNamesystem namesystem = null;
   private HsqlDriver hsqlDriver = null;
-  private Collection<INode> all = null;
-  private Map<INode, INodeWithAdditionalFields> files = null;
-  private Map<INode, INodeWithAdditionalFields> dirs = null;
   private TokenExtractor tokenExtractor = null;
 
   /** Constructor. */
@@ -321,8 +312,7 @@ public class NameNodeLoader {
       GSet<INode, INodeWithAdditionalFields> preloadedInodes,
       Configuration preloadedHadoopConf,
       ApplicationConfiguration nnaConf)
-      throws IOException, NoSuchFieldException, IllegalAccessException, URISyntaxException,
-          ClassNotFoundException {
+      throws Exception {
     /*
      * Configuration standard is: /etc/hadoop/conf.
      * Goal is to let configuration tell us where the FsImage and EditLogs are for loading.
@@ -342,7 +332,6 @@ public class NameNodeLoader {
     handleConfigurationOverrides(conf, nnaConf);
     final long start = System.currentTimeMillis();
 
-    GSet<INode, INodeWithAdditionalFields> gsetMap;
     if (preloadedInodes == null) {
       UserGroupInformation.setConfiguration(conf);
       reloadKeytab();
@@ -356,56 +345,31 @@ public class NameNodeLoader {
         namesystem = FSNamesystem.loadFromDisk(conf);
         namesystem.setSafeMode(HdfsConstants.SafeModeAction.SAFEMODE_ENTER);
       } catch (IOException e) {
-        LOG.info("Failed to load namesystem: {}", e);
+        LOG.error("Failed to load namesystem.", e);
         return;
       }
       long end1 = System.currentTimeMillis();
       LOG.info("FSImage loaded in: {} ms.", (end1 - start1));
       LOG.info("Loaded in {} Inodes", namesystem.getFilesTotal());
 
-      namesystem.writeLock();
       tokenExtractor = new TokenExtractor(namesystem.dtSecretManager, namesystem);
-      FSDirectory fsDirectory = namesystem.getFSDirectory();
-      INodeMap inodeMap = fsDirectory.getINodeMap();
-      Field mapField = inodeMap.getClass().getDeclaredField("map");
-      mapField.setAccessible(true);
-      gsetMap = (GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap);
     } else {
-      gsetMap = preloadedInodes;
       tokenExtractor = new TokenExtractor(null, null);
     }
 
-    final long s1 = System.currentTimeMillis();
-    files =
-        StreamSupport.stream(gsetMap.spliterator(), true)
-            .filter(INode::isFile)
-            .collect(Collectors.toConcurrentMap(node -> node, node -> node));
-    dirs =
-        StreamSupport.stream(gsetMap.spliterator(), true)
-            .filter(INode::isDirectory)
-            .collect(Collectors.toConcurrentMap(node -> node, node -> node));
-    all = CollectionsView.combine(files.keySet(), dirs.keySet());
-    long e1 = System.currentTimeMillis();
-    LOG.info("Filtering {} files and {} dirs took: {} ms.", files.size(), dirs.size(), (e1 - s1));
+    // Let QueryEngine deal with inode set from here.
+    queryEngine.handleGSet(preloadedInodes, namesystem);
 
     if (preloadedInodes == null) {
       // Start tailing and updating security credentials threads.
       try {
-        FSDirectory fsDirectory = namesystem.getFSDirectory();
-        INodeMap inodeMap = fsDirectory.getINodeMap();
-        Field mapField = inodeMap.getClass().getDeclaredField("map");
-        mapField.setAccessible(true);
-        GSet<INode, INodeWithAdditionalFields> newGSet = new GSetSeperatorWrapper(files, dirs);
-        mapField.set(inodeMap, newGSet);
-        namesystem.writeUnlock();
-
         namesystem.startStandbyServices(conf);
         versionLoader.setNamesystem(namesystem);
       } catch (Throwable e) {
-        LOG.info("ERROR: Failed to start EditLogTailer: {}", e);
+        LOG.error("Failed to start EditLogTailer.", e);
       }
     }
-    queryEngine.setContexts(this, versionLoader);
+    queryEngine.setVersionContext(versionLoader);
 
     long end = System.currentTimeMillis();
     LOG.info("NameNodeLoader bootstrap'd in: {} ms.", (end - start));
@@ -511,15 +475,7 @@ public class NameNodeLoader {
         namesystem = null;
       }
     }
-    if (all != null) {
-      all.clear();
-    }
-    if (files != null) {
-      files.clear();
-    }
-    if (dirs != null) {
-      dirs.clear();
-    }
+    queryEngine.clear();
     inited.set(false);
   }
 
@@ -557,32 +513,6 @@ public class NameNodeLoader {
     return queryEngine.getINodeSet(set);
   }
 
-  Collection<INode> getINodeSetInternal(String set) {
-    long start = System.currentTimeMillis();
-    Collection<INode> inodes;
-    switch (set) {
-      case "all":
-        inodes = all;
-        break;
-      case "files":
-        inodes = files.keySet();
-        break;
-      case "dirs":
-        inodes = dirs.keySet();
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "You did not specify a set to use. Please check /sets for available sets.");
-    }
-    long end = System.currentTimeMillis();
-    LOG.info(
-        "Fetching set of: {} had result size: {} and took: {} ms.",
-        set,
-        inodes.size(),
-        (end - start));
-    return inodes;
-  }
-
   /**
    * Initializes the background thread that performs cached reporting for all users. Initializes the
    * background thread that refreshes Kerberos keytab for NNA process.
@@ -598,15 +528,15 @@ public class NameNodeLoader {
                 try {
                   suggestionsEngine.reloadSuggestions(this);
                 } catch (Throwable e) {
-                  LOG.info("Suggestion reload failed: {}", e);
+                  LOG.info("Suggestion reload failed!", e);
                   for (StackTraceElement element : e.getStackTrace()) {
                     LOG.info(element.toString());
                   }
                 }
                 try {
                   Thread.sleep(conf.getSuggestionsReloadSleepMs());
-                } catch (InterruptedException ignored) {
-                  LOG.debug("Suggestion reload was interrupted by: {}", ignored);
+                } catch (InterruptedException ex) {
+                  LOG.debug("Suggestion reload was interrupted.", ex);
                 }
               }
             });
@@ -617,8 +547,8 @@ public class NameNodeLoader {
                 // Reload Keytab every 10 minutes.
                 try {
                   Thread.sleep(10 * 60 * 1000L);
-                } catch (InterruptedException ignored) {
-                  LOG.debug("Keytab refresh was interrupted by: {}", ignored);
+                } catch (InterruptedException ex) {
+                  LOG.debug("Keytab refresh was interrupted.", ex);
                 }
                 reloadKeytab();
               }

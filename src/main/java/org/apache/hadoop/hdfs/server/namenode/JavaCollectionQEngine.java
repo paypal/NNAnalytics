@@ -144,13 +144,9 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
   private SimpleAttribute<INode, Long> dirSubTreeNumDirs;
   private SimpleAttribute<INode, Long> storageType;
 
-  private IndexedCollection<INode> indexedFiles;
-  private IndexedCollection<INode> indexedDirs;
-
   @Override // QueryEngine
-  public void setContexts(NameNodeLoader loader, VersionInterface versionLoader) {
-    this.nameNodeLoader = loader;
-    this.versionLoader = versionLoader;
+  public void setVersionContext(VersionInterface versionLoader) {
+    super.setVersionContext(versionLoader);
 
     dirNumChildren =
         attribute(
@@ -173,47 +169,6 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
         attribute(
             "storageType",
             node -> versionLoader.getFilterFunctionToLongForINode("storageType").apply(node));
-
-    Collection<INode> files = loader.getINodeSetInternal("files");
-    Collection<INode> dirs = loader.getINodeSetInternal("dirs");
-
-    indexedFiles =
-        new ConcurrentIndexedCollection<>(
-            WrappingPersistence.aroundCollectionOnPrimaryKey(files, id));
-
-    indexedDirs =
-        new ConcurrentIndexedCollection<>(
-            WrappingPersistence.aroundCollectionOnPrimaryKey(dirs, id));
-  }
-
-  @Override // QueryEngine
-  public Collection<INode> getINodeSet(String set) {
-    long start = System.currentTimeMillis();
-    Collection<INode> inodes;
-    switch (set) {
-      case "all":
-        inodes =
-            new ConcurrentIndexedCollection<>(
-                WrappingPersistence.aroundCollectionOnPrimaryKey(
-                    nameNodeLoader.getINodeSetInternal("all"), id));
-        break;
-      case "files":
-        inodes = indexedFiles;
-        break;
-      case "dirs":
-        inodes = indexedDirs;
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "You did not specify a set to use. Please check /sets for available sets.");
-    }
-    long end = System.currentTimeMillis();
-    LOG.info(
-        "Fetching indexed set of: {} had result size: {} and took: {} ms.",
-        set,
-        inodes.size(),
-        (end - start));
-    return inodes;
   }
 
   /**
@@ -588,6 +543,7 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
     attributes.put("hasQuota", hasQuota);
 
     SQLParser<INode> parser = SQLParser.forPojoWithAttributes(INode.class, attributes);
+    IndexedCollection<INode> inodes;
 
     long count = 0;
     try (PrintWriter out = res.getWriter()) {
@@ -599,7 +555,20 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
       } else {
         sql = formData.getFirst("sqlStatement");
       }
-      ResultSet<INode> results = parser.retrieve(indexedFiles, sql);
+
+      if (sql.contains("FILES")) {
+        inodes =
+            new ConcurrentIndexedCollection<>(
+                WrappingPersistence.aroundCollectionOnPrimaryKey(getINodeSet("files"), id));
+      } else if (sql.contains("DIRS")) {
+        inodes =
+            new ConcurrentIndexedCollection<>(
+                WrappingPersistence.aroundCollectionOnPrimaryKey(getINodeSet("dirs"), id));
+      } else {
+        throw new IllegalArgumentException("SQL must specify either selection from FILES, DIRS.");
+      }
+
+      ResultSet<INode> results = parser.retrieve(inodes, sql);
       for (INode inode : results) {
         out.println(inode.getFullPathName());
         count++;

@@ -19,93 +19,97 @@
 
 package org.apache.hadoop.util;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public final class CollectionsView {
+public final class MapsView {
 
-  static class JoinedCollectionView<E> implements Collection<E> {
+  static class JoinedMapView<E, K> implements Map<E, K> {
 
-    private final Collection<? extends E>[] items;
+    private final Map<E, K> map1;
+    private final Map<E, K> map2;
 
-    JoinedCollectionView(final Collection<? extends E>[] items) {
-      this.items = items;
-    }
-
-    @Override
-    public boolean addAll(final Collection<? extends E> c) {
-      throw new UnsupportedOperationException();
+    public JoinedMapView(final Map<E, K> map1, final Map<E, K> map2) {
+      this.map1 = map1;
+      this.map2 = map2;
     }
 
     @Override
     public void clear() {
-      for (final Collection<? extends E> coll : items) {
-        coll.clear();
-      }
-    }
-
-    @Override
-    public boolean contains(final Object o) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean containsAll(final Collection<?> c) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return !iterator().hasNext();
+      map1.clear();
+      map2.clear();
     }
 
     @NotNull
     @Override
-    public Iterator<E> iterator() {
-      return Iterables.concat(items).iterator();
+    public Set<E> keySet() {
+      return Sets.union(map1.keySet(), map2.keySet());
+    }
+
+    @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
+    @NotNull
+    @Override
+    public Collection<K> values() {
+      return CollectionsView.combine(map1.values(), map2.values());
+    }
+
+    @NotNull
+    @Override
+    public Set<Entry<E, K>> entrySet() {
+      return Sets.union(map1.entrySet(), map2.entrySet());
     }
 
     @Override
-    public boolean remove(final Object o) {
+    public boolean isEmpty() {
+      return size() == 0;
+    }
+
+    @Override
+    public boolean containsKey(Object key) {
+      return map1.containsKey(key) || map2.containsKey(key);
+    }
+
+    @Override
+    public boolean containsValue(Object value) {
+      return map1.containsValue(value) || map2.containsValue(value);
+    }
+
+    @Override
+    public K get(Object key) {
+      K k1 = map1.get(key);
+      K k2 = map2.get(key);
+      if (k1 != null && k2 != null) {
+        throw new IllegalStateException("MapsView key collision.");
+      }
+      if (k1 != null) {
+        return k1;
+      }
+      return k2;
+    }
+
+    @Nullable
+    @Override
+    public K put(E key, K value) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean removeAll(final Collection<?> c) {
+    public K remove(Object key) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean retainAll(final Collection<?> c) {
+    public void putAll(@NotNull Map<? extends E, ? extends K> m) {
       throw new UnsupportedOperationException();
     }
 
     @Override
     public int size() {
-      int ct = 0;
-      for (final Collection<? extends E> coll : items) {
-        ct += coll.size();
-      }
-      return ct;
-    }
-
-    @NotNull
-    @Override
-    public Object[] toArray() {
-      throw new UnsupportedOperationException();
-    }
-
-    @NotNull
-    @Override
-    public <T> T[] toArray(T[] a) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean add(E e) {
-      throw new UnsupportedOperationException();
+      return map1.size() + map2.size();
     }
   }
 
@@ -118,10 +122,9 @@ public final class CollectionsView {
    *
    * <p>None of the above methods is thread safe (nor would there be an easy way of making them).
    */
-  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
-  public static <T> Collection<T> combine(final Collection<? extends T>... items) {
-    return new JoinedCollectionView<>(items);
+  public static <E, K> Map<E, K> combine(final Map<E, K> map1, final Map<E, K> map2) {
+    return new JoinedMapView<>(map1, map2);
   }
 
-  private CollectionsView() {}
+  private MapsView() {}
 }
