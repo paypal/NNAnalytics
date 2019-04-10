@@ -35,12 +35,15 @@ import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.IndexedCollection;
 import com.googlecode.cqengine.attribute.Attribute;
 import com.googlecode.cqengine.attribute.SimpleAttribute;
+import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.persistence.wrapping.WrappingPersistence;
+import com.googlecode.cqengine.quantizer.LongQuantizer;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.query.parser.sql.SQLParser;
 import com.googlecode.cqengine.resultset.ResultSet;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -55,9 +58,14 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MultivaluedMap;
+import org.apache.hadoop.util.GSet;
+import org.apache.hadoop.util.GSetCollectionWrapper;
 import org.apache.http.HttpStatus;
 
 public class JavaCollectionQEngine extends AbstractQueryEngine {
+
+  private final SimpleAttribute<INode, Boolean> isFile = attribute("isFile", INode::isFile);
+  private final SimpleAttribute<INode, Boolean> isDir = attribute("isDir", INode::isDirectory);
 
   private final SimpleAttribute<INode, Long> id =
       attribute("id", node -> getFilterFunctionToLongForINode("id").apply(node));
@@ -169,6 +177,83 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
         attribute(
             "storageType",
             node -> versionLoader.getFilterFunctionToLongForINode("storageType").apply(node));
+  }
+
+  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
+  @Override // QueryEngine
+  public void handleGSet(GSet<INode, INodeWithAdditionalFields> preloaded, FSNamesystem namesystem)
+      throws Exception {
+    if (preloaded != null) {
+      filterINodes(preloaded);
+      return;
+    }
+
+    namesystem.writeLock();
+    try {
+      FSDirectory fsDirectory = namesystem.getFSDirectory();
+      INodeMap inodeMap = fsDirectory.getINodeMap();
+      Field mapField = inodeMap.getClass().getDeclaredField("map");
+      mapField.setAccessible(true);
+      GSet<INode, INodeWithAdditionalFields> gset =
+          (GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap);
+
+      filterINodes(gset);
+    } finally {
+      namesystem.writeUnlock();
+    }
+  }
+
+  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
+  private void filterINodes(GSet<INode, INodeWithAdditionalFields> gset) {
+    final long start = System.currentTimeMillis();
+    GSetCollectionWrapper gcw = new GSetCollectionWrapper(gset);
+    all =
+        new ConcurrentIndexedCollection<>(
+            WrappingPersistence.aroundCollectionOnPrimaryKey(gcw, id));
+    ((IndexedCollection) all)
+        .addIndex(HashIndex.withQuantizerOnAttribute(LongQuantizer.withCompressionFactor(10), id));
+    ((IndexedCollection) all).addIndex(HashIndex.onAttribute(isFile));
+    ((IndexedCollection) all).addIndex(HashIndex.onAttribute(isDir));
+    final long end = System.currentTimeMillis();
+    LOG.info("Performing JC-QE filtering of files and dirs took: {} ms.", (end - start));
+  }
+
+  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
+  @Override // QueryEngine
+  public Collection<INode> getINodeSet(String set) {
+    long start = System.currentTimeMillis();
+    Collection<INode> inodes;
+    switch (set) {
+      case "all":
+        inodes = all;
+        break;
+      case "files":
+        inodes =
+            (Collection<INode>)
+                ((IndexedCollection) all)
+                    .retrieve(equal(isFile, Boolean.TRUE))
+                    .stream()
+                    .collect(Collectors.toSet());
+        break;
+      case "dirs":
+        inodes =
+            (Collection<INode>)
+                ((IndexedCollection) all)
+                    .retrieve(equal(isDir, Boolean.TRUE))
+                    .stream()
+                    .collect(Collectors.toSet());
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "You did not specify a set to use. Please check /sets for available sets.");
+    }
+    long end = System.currentTimeMillis();
+    LOG.info(
+        "Fetching set of: {} (by index) had result size: {} and took: {} ms.",
+        set,
+        inodes.size(),
+        (end - start));
+    return inodes;
   }
 
   /**
