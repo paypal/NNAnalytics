@@ -36,6 +36,8 @@ import com.googlecode.cqengine.IndexedCollection;
 import com.googlecode.cqengine.attribute.Attribute;
 import com.googlecode.cqengine.attribute.SimpleAttribute;
 import com.googlecode.cqengine.index.hash.HashIndex;
+import com.googlecode.cqengine.index.hash.HashIndex.CompactValueSetFactory;
+import com.googlecode.cqengine.index.hash.HashIndex.DefaultIndexMapFactory;
 import com.googlecode.cqengine.persistence.wrapping.WrappingPersistence;
 import com.googlecode.cqengine.quantizer.LongQuantizer;
 import com.googlecode.cqengine.query.Query;
@@ -58,6 +60,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MultivaluedMap;
+import org.apache.hadoop.util.CollectionGSetWrapper;
 import org.apache.hadoop.util.GSet;
 import org.apache.hadoop.util.GSetCollectionWrapper;
 import org.apache.http.HttpStatus;
@@ -197,25 +200,32 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
       GSet<INode, INodeWithAdditionalFields> gset =
           (GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap);
 
-      filterINodes(gset);
+      CollectionGSetWrapper newGSet = filterINodes(gset);
+      mapField.set(inodeMap, newGSet);
     } finally {
       namesystem.writeUnlock();
     }
   }
 
-  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
-  private void filterINodes(GSet<INode, INodeWithAdditionalFields> gset) {
+  private CollectionGSetWrapper filterINodes(GSet<INode, INodeWithAdditionalFields> gset) {
     final long start = System.currentTimeMillis();
     GSetCollectionWrapper gcw = new GSetCollectionWrapper(gset);
     all =
         new ConcurrentIndexedCollection<>(
             WrappingPersistence.aroundCollectionOnPrimaryKey(gcw, id));
-    ((IndexedCollection) all)
+    ((IndexedCollection<INode>) all)
         .addIndex(HashIndex.withQuantizerOnAttribute(LongQuantizer.withCompressionFactor(10), id));
-    ((IndexedCollection) all).addIndex(HashIndex.onAttribute(isFile));
-    ((IndexedCollection) all).addIndex(HashIndex.onAttribute(isDir));
+    ((IndexedCollection<INode>) all)
+        .addIndex(
+            HashIndex.onAttribute(
+                new DefaultIndexMapFactory<>(), new CompactValueSetFactory<>(), isFile));
+    ((IndexedCollection<INode>) all)
+        .addIndex(
+            HashIndex.onAttribute(
+                new DefaultIndexMapFactory<>(), new CompactValueSetFactory<>(), isDir));
     final long end = System.currentTimeMillis();
     LOG.info("Performing JC-QE filtering of files and dirs took: {} ms.", (end - start));
+    return new CollectionGSetWrapper((IndexedCollection<INode>) all, gset);
   }
 
   @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */

@@ -78,7 +78,7 @@ public abstract class TestWithMiniClusterBase {
   }
 
   @Before
-  public void before() throws IOException {
+  public void before() {
     client = new DefaultHttpClient();
 
     boolean isServingQueries = false;
@@ -192,7 +192,7 @@ public abstract class TestWithMiniClusterBase {
   }
 
   @Test
-  public void testTokenExtractor() throws IOException {
+  public void testTokenExtractor() {
     Map<String, Long> tokenLastLogins = nna.getLoader().getTokenExtractor().getTokenLastLogins();
     assertThat(tokenLastLogins.size(), is(0));
   }
@@ -211,7 +211,7 @@ public abstract class TestWithMiniClusterBase {
     // Ensure NNA sees those updates in query.
     int checkCount;
     do {
-      HttpGet check = new HttpGet("http://localhost:4567/filter?set=dirs&sum=count");
+      HttpGet check = new HttpGet("http://localhost:4567/filter?set=files&sum=count");
       HttpResponse checkRes = client.execute(hostPort, check);
       assertThat(checkRes.getStatusLine().getStatusCode(), is(200));
       String checkContent = IOUtils.toString(checkRes.getEntity().getContent());

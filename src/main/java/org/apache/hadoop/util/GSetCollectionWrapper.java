@@ -77,4 +77,8 @@ public class GSetCollectionWrapper extends AbstractCollection<INode> {
   public void clear() {
     gset.clear();
   }
+
+  public GSet<INode, INodeWithAdditionalFields> getBackingSet() {
+    return gset;
+  }
 }
