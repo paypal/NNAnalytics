@@ -35,12 +35,17 @@ import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.IndexedCollection;
 import com.googlecode.cqengine.attribute.Attribute;
 import com.googlecode.cqengine.attribute.SimpleAttribute;
+import com.googlecode.cqengine.index.hash.HashIndex;
+import com.googlecode.cqengine.index.hash.HashIndex.CompactValueSetFactory;
+import com.googlecode.cqengine.index.hash.HashIndex.DefaultIndexMapFactory;
 import com.googlecode.cqengine.persistence.wrapping.WrappingPersistence;
+import com.googlecode.cqengine.quantizer.LongQuantizer;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.query.parser.sql.SQLParser;
 import com.googlecode.cqengine.resultset.ResultSet;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -55,9 +60,15 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MultivaluedMap;
+import org.apache.hadoop.util.CollectionGSetWrapper;
+import org.apache.hadoop.util.GSet;
+import org.apache.hadoop.util.GSetCollectionWrapper;
 import org.apache.http.HttpStatus;
 
 public class JavaCollectionQEngine extends AbstractQueryEngine {
+
+  private final SimpleAttribute<INode, Boolean> isFile = attribute("isFile", INode::isFile);
+  private final SimpleAttribute<INode, Boolean> isDir = attribute("isDir", INode::isDirectory);
 
   private final SimpleAttribute<INode, Long> id =
       attribute("id", node -> getFilterFunctionToLongForINode("id").apply(node));
@@ -144,13 +155,9 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
   private SimpleAttribute<INode, Long> dirSubTreeNumDirs;
   private SimpleAttribute<INode, Long> storageType;
 
-  private IndexedCollection<INode> indexedFiles;
-  private IndexedCollection<INode> indexedDirs;
-
   @Override // QueryEngine
-  public void setContexts(NameNodeLoader loader, VersionInterface versionLoader) {
-    this.nameNodeLoader = loader;
-    this.versionLoader = versionLoader;
+  public void setVersionContext(VersionInterface versionLoader) {
+    super.setVersionContext(versionLoader);
 
     dirNumChildren =
         attribute(
@@ -173,35 +180,78 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
         attribute(
             "storageType",
             node -> versionLoader.getFilterFunctionToLongForINode("storageType").apply(node));
-
-    Collection<INode> files = loader.getINodeSetInternal("files");
-    Collection<INode> dirs = loader.getINodeSetInternal("dirs");
-
-    indexedFiles =
-        new ConcurrentIndexedCollection<>(
-            WrappingPersistence.aroundCollectionOnPrimaryKey(files, id));
-
-    indexedDirs =
-        new ConcurrentIndexedCollection<>(
-            WrappingPersistence.aroundCollectionOnPrimaryKey(dirs, id));
   }
 
+  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
+  @Override // QueryEngine
+  public void handleGSet(GSet<INode, INodeWithAdditionalFields> preloaded, FSNamesystem namesystem)
+      throws Exception {
+    if (preloaded != null) {
+      filterINodes(preloaded);
+      return;
+    }
+
+    namesystem.writeLock();
+    try {
+      FSDirectory fsDirectory = namesystem.getFSDirectory();
+      INodeMap inodeMap = fsDirectory.getINodeMap();
+      Field mapField = inodeMap.getClass().getDeclaredField("map");
+      mapField.setAccessible(true);
+      GSet<INode, INodeWithAdditionalFields> gset =
+          (GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap);
+
+      CollectionGSetWrapper newGSet = filterINodes(gset);
+      mapField.set(inodeMap, newGSet);
+    } finally {
+      namesystem.writeUnlock();
+    }
+  }
+
+  private CollectionGSetWrapper filterINodes(GSet<INode, INodeWithAdditionalFields> gset) {
+    final long start = System.currentTimeMillis();
+    GSetCollectionWrapper gcw = new GSetCollectionWrapper(gset);
+    all =
+        new ConcurrentIndexedCollection<>(
+            WrappingPersistence.aroundCollectionOnPrimaryKey(gcw, id));
+    ((IndexedCollection<INode>) all)
+        .addIndex(HashIndex.withQuantizerOnAttribute(LongQuantizer.withCompressionFactor(10), id));
+    ((IndexedCollection<INode>) all)
+        .addIndex(
+            HashIndex.onAttribute(
+                new DefaultIndexMapFactory<>(), new CompactValueSetFactory<>(), isFile));
+    ((IndexedCollection<INode>) all)
+        .addIndex(
+            HashIndex.onAttribute(
+                new DefaultIndexMapFactory<>(), new CompactValueSetFactory<>(), isDir));
+    final long end = System.currentTimeMillis();
+    LOG.info("Performing JC-QE filtering of files and dirs took: {} ms.", (end - start));
+    return new CollectionGSetWrapper((IndexedCollection<INode>) all, gset);
+  }
+
+  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
   @Override // QueryEngine
   public Collection<INode> getINodeSet(String set) {
     long start = System.currentTimeMillis();
     Collection<INode> inodes;
     switch (set) {
       case "all":
-        inodes =
-            new ConcurrentIndexedCollection<>(
-                WrappingPersistence.aroundCollectionOnPrimaryKey(
-                    nameNodeLoader.getINodeSetInternal("all"), id));
+        inodes = all;
         break;
       case "files":
-        inodes = indexedFiles;
+        inodes =
+            (Collection<INode>)
+                ((IndexedCollection) all)
+                    .retrieve(equal(isFile, Boolean.TRUE))
+                    .stream()
+                    .collect(Collectors.toSet());
         break;
       case "dirs":
-        inodes = indexedDirs;
+        inodes =
+            (Collection<INode>)
+                ((IndexedCollection) all)
+                    .retrieve(equal(isDir, Boolean.TRUE))
+                    .stream()
+                    .collect(Collectors.toSet());
         break;
       default:
         throw new IllegalArgumentException(
@@ -209,7 +259,7 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
     }
     long end = System.currentTimeMillis();
     LOG.info(
-        "Fetching indexed set of: {} had result size: {} and took: {} ms.",
+        "Fetching set of: {} (by index) had result size: {} and took: {} ms.",
         set,
         inodes.size(),
         (end - start));
@@ -588,6 +638,7 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
     attributes.put("hasQuota", hasQuota);
 
     SQLParser<INode> parser = SQLParser.forPojoWithAttributes(INode.class, attributes);
+    IndexedCollection<INode> inodes;
 
     long count = 0;
     try (PrintWriter out = res.getWriter()) {
@@ -599,7 +650,20 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
       } else {
         sql = formData.getFirst("sqlStatement");
       }
-      ResultSet<INode> results = parser.retrieve(indexedFiles, sql);
+
+      if (sql.contains("FILES")) {
+        inodes =
+            new ConcurrentIndexedCollection<>(
+                WrappingPersistence.aroundCollectionOnPrimaryKey(getINodeSet("files"), id));
+      } else if (sql.contains("DIRS")) {
+        inodes =
+            new ConcurrentIndexedCollection<>(
+                WrappingPersistence.aroundCollectionOnPrimaryKey(getINodeSet("dirs"), id));
+      } else {
+        throw new IllegalArgumentException("SQL must specify either selection from FILES, DIRS.");
+      }
+
+      ResultSet<INode> results = parser.retrieve(inodes, sql);
       for (INode inode : results) {
         out.println(inode.getFullPathName());
         count++;

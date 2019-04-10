@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.hadoop.util.GSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,10 @@ public interface QueryEngine {
 
   Logger LOG = LoggerFactory.getLogger(QueryEngine.class.getName());
 
-  void setContexts(NameNodeLoader nameNodeLoader, VersionInterface versionLoader);
+  void setVersionContext(VersionInterface versionLoader);
+
+  void handleGSet(GSet<INode, INodeWithAdditionalFields> gset, FSNamesystem namesystem)
+      throws Exception;
 
   Collection<INode> getINodeSet(String set);
 
@@ -117,4 +121,6 @@ public interface QueryEngine {
   List<Function<Long, Boolean>> createComparisons(String conditionsStr);
 
   boolean check(List<Function<Long, Boolean>> comparisons, long value);
+
+  void clear();
 }

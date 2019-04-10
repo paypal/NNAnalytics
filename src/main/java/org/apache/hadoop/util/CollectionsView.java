@@ -22,6 +22,7 @@ package org.apache.hadoop.util;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Iterator;
+import org.jetbrains.annotations.NotNull;
 
 public final class CollectionsView {
 
@@ -29,7 +30,7 @@ public final class CollectionsView {
 
     private final Collection<? extends E>[] items;
 
-    public JoinedCollectionView(final Collection<? extends E>[] items) {
+    JoinedCollectionView(final Collection<? extends E>[] items) {
       this.items = items;
     }
 
@@ -60,6 +61,7 @@ public final class CollectionsView {
       return !iterator().hasNext();
     }
 
+    @NotNull
     @Override
     public Iterator<E> iterator() {
       return Iterables.concat(items).iterator();
@@ -89,11 +91,13 @@ public final class CollectionsView {
       return ct;
     }
 
+    @NotNull
     @Override
     public Object[] toArray() {
       throw new UnsupportedOperationException();
     }
 
+    @NotNull
     @Override
     public <T> T[] toArray(T[] a) {
       throw new UnsupportedOperationException();
@@ -114,6 +118,7 @@ public final class CollectionsView {
    *
    * <p>None of the above methods is thread safe (nor would there be an easy way of making them).
    */
+  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
   public static <T> Collection<T> combine(final Collection<? extends T>... items) {
     return new JoinedCollectionView<>(items);
   }

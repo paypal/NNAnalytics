@@ -23,6 +23,7 @@ import static org.apache.hadoop.hdfs.server.namenode.Constants.UNSECURED_ENDPOIN
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.StringContains.containsString;
@@ -504,7 +505,7 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
-  public void testFindMinAccessTimeHistogramRawTimestampCSV() throws IOException, ParseException {
+  public void testFindMinAccessTimeHistogramRawTimestampCSV() throws IOException {
     HttpGet get =
         new HttpGet(
             "http://localhost:4567/histogram?set=files&type=user&find=min:accessTime&histogramOutput=csv&rawTimestamps=true");
@@ -1236,15 +1237,31 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
-  public void testSQL() throws IOException {
+  public void testSQL1() throws IOException {
     HttpPost post = new HttpPost("http://localhost:4567/sql");
     List<NameValuePair> postParams = new ArrayList<>();
-    postParams.add(new BasicNameValuePair("sqlStatement", "SELECT * FROM files"));
+    postParams.add(
+        new BasicNameValuePair("sqlStatement", "SELECT * FROM FILES WHERE fileSize = 0"));
     post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
     HttpResponse res = client.execute(hostPort, post);
     if (res.getStatusLine().getStatusCode() != HttpStatus.SC_NOT_FOUND) {
       List<String> text = IOUtils.readLines(res.getEntity().getContent());
-      assertThat(text.size(), is(555000));
+      assertThat(text.size(), is(greaterThan(100)));
+      assertThat(res.getStatusLine().getStatusCode(), is(HttpStatus.SC_OK));
+    }
+  }
+
+  @Test
+  public void testSQL2() throws IOException {
+    HttpPost post = new HttpPost("http://localhost:4567/sql");
+    List<NameValuePair> postParams = new ArrayList<>();
+    postParams.add(
+        new BasicNameValuePair("sqlStatement", "SELECT * FROM DIRS WHERE dirNumChildren = 0"));
+    post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
+    HttpResponse res = client.execute(hostPort, post);
+    if (res.getStatusLine().getStatusCode() != HttpStatus.SC_NOT_FOUND) {
+      List<String> text = IOUtils.readLines(res.getEntity().getContent());
+      assertThat(text.size(), is(0));
       assertThat(res.getStatusLine().getStatusCode(), is(HttpStatus.SC_OK));
     }
   }

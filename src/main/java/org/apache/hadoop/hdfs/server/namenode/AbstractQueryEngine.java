@@ -21,6 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
@@ -50,22 +52,92 @@ import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.util.CollectionsView;
+import org.apache.hadoop.util.GSet;
+import org.apache.hadoop.util.GSetSeperatorWrapper;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class AbstractQueryEngine implements QueryEngine {
 
-  VersionInterface versionLoader;
-  NameNodeLoader nameNodeLoader;
+  protected Collection<INode> all;
+  protected Map<INode, INodeWithAdditionalFields> files;
+  protected Map<INode, INodeWithAdditionalFields> dirs;
+
+  private VersionInterface versionLoader;
 
   @Override // QueryEngine
-  public void setContexts(NameNodeLoader nameNodeLoader, VersionInterface versionLoader) {
-    this.nameNodeLoader = nameNodeLoader;
+  public void setVersionContext(VersionInterface versionLoader) {
     this.versionLoader = versionLoader;
+  }
+
+  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
+  @Override // QueryEngine
+  public void handleGSet(GSet<INode, INodeWithAdditionalFields> preloaded, FSNamesystem namesystem)
+      throws Exception {
+    if (preloaded != null) {
+      filterINodes(preloaded);
+      return;
+    }
+
+    namesystem.writeLock();
+    try {
+      FSDirectory fsDirectory = namesystem.getFSDirectory();
+      INodeMap inodeMap = fsDirectory.getINodeMap();
+      Field mapField = inodeMap.getClass().getDeclaredField("map");
+      mapField.setAccessible(true);
+      GSet<INode, INodeWithAdditionalFields> gset =
+          (GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap);
+
+      filterINodes(gset);
+
+      GSet<INode, INodeWithAdditionalFields> newGSet = new GSetSeperatorWrapper(files, dirs);
+      mapField.set(inodeMap, newGSet);
+    } finally {
+      namesystem.writeUnlock();
+    }
+  }
+
+  @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
+  private void filterINodes(GSet<INode, INodeWithAdditionalFields> gset) {
+    final long start = System.currentTimeMillis();
+    files =
+        StreamSupport.stream(gset.spliterator(), true)
+            .filter(INode::isFile)
+            .collect(Collectors.toConcurrentMap(node -> node, node -> node));
+    dirs =
+        StreamSupport.stream(gset.spliterator(), true)
+            .filter(INode::isDirectory)
+            .collect(Collectors.toConcurrentMap(node -> node, node -> node));
+    all = CollectionsView.combine(files.keySet(), dirs.keySet());
+    final long end = System.currentTimeMillis();
+    LOG.info("Performing AbstractQE filtering of files and dirs took: {} ms.", (end - start));
   }
 
   @Override // QueryEngine
   public Collection<INode> getINodeSet(String set) {
-    return nameNodeLoader.getINodeSetInternal(set);
+    long start = System.currentTimeMillis();
+    Collection<INode> inodes;
+    switch (set) {
+      case "all":
+        inodes = all;
+        break;
+      case "files":
+        inodes = files.keySet();
+        break;
+      case "dirs":
+        inodes = dirs.keySet();
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "You did not specify a set to use. Please check /sets for available sets.");
+    }
+    long end = System.currentTimeMillis();
+    LOG.info(
+        "Fetching set of: {} had result size: {} and took: {} ms.",
+        set,
+        inodes.size(),
+        (end - start));
+    return inodes;
   }
 
   /**
@@ -1814,5 +1886,18 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       return transformMap.get(transformKey);
     }
     return stdFunc;
+  }
+
+  @Override // QueryEngine
+  public void clear() {
+    if (all != null) {
+      all.clear();
+    }
+    if (files != null) {
+      files.clear();
+    }
+    if (dirs != null) {
+      dirs.clear();
+    }
   }
 }
