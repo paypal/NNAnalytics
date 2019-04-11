@@ -231,6 +231,7 @@ public abstract class TestWithMiniClusterBase {
     assertThat(checkContent.size(), is(greaterThan(0)));
 
     // Test cachedMaps are visible.
+    nna.getLoader().getSuggestionsEngine().reloadSuggestions(nna.getLoader());
     HttpGet getMaps = new HttpGet("http://localhost:4567/cachedMaps");
     HttpResponse mapsRes = client.execute(hostPort, getMaps);
     List<String> output = IOUtils.readLines(mapsRes.getEntity().getContent());
