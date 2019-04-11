@@ -1586,6 +1586,15 @@ public class WebServerMain implements ApplicationMain {
           }
         });
 
+    /* SUGGESTIONS endpoint is a cache-level endpoint meant to dump meta keys of cached analysis by NNA. */
+    get(
+        "/cachedMaps",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "application/json");
+          return Histograms.toJson(nameNodeLoader.getSuggestionsEngine().getCachedMapKeys());
+        });
+
     /* DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by NNA. */
     get(
         "/directories",
@@ -1699,8 +1708,32 @@ public class WebServerMain implements ApplicationMain {
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
-          String suggestion = req.queryMap("suggestion").value();
-          return nameNodeLoader.getSuggestionsEngine().getUsersAsJson(suggestion);
+          final String suggestion = req.queryMap("suggestion").value();
+          final Integer top = req.queryMap("top").integerValue();
+          final String outputTypeStr = req.queryMap("histogramOutput").value();
+          final String outputType = (outputTypeStr != null) ? outputTypeStr : "json";
+          switch (outputType) {
+            case "json":
+              return nameNodeLoader.getSuggestionsEngine().getUsersAsJson(suggestion);
+            case "csv":
+              Map<String, Long> suggestionHistCsv =
+                  nameNodeLoader.getSuggestionsEngine().getSuggestion(suggestion);
+              if (top != null && top > 0) {
+                suggestionHistCsv = Histograms.sliceToTop(suggestionHistCsv, top);
+                suggestionHistCsv = Histograms.sortByValue(suggestionHistCsv, false);
+              }
+              return Histograms.toCsv(suggestionHistCsv, null, true);
+            case "chart":
+              Map<String, Long> suggestionHistChart =
+                  nameNodeLoader.getSuggestionsEngine().getSuggestion(suggestion);
+              if (top != null && top > 0) {
+                suggestionHistChart = Histograms.sliceToTop(suggestionHistChart, top);
+                suggestionHistChart = Histograms.sortByValue(suggestionHistChart, false);
+              }
+              return Histograms.toChartJsJson(suggestionHistChart, suggestion, "Username", "Count");
+            default:
+              throw new IllegalArgumentException("Unknown histogram output type:" + outputType);
+          }
         });
 
     /* TOP endpoint is an admin-level endpoint meant to dump the cached set of top issues by NNA. */
