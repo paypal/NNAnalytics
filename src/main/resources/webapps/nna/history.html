@@ -600,7 +600,9 @@
                 console.log(response);
                 swal({
                     title: "",
-                    text: response.responseText,
+                    text: response.responseText + 
+                        "\nHistorical load on NNA is likely disabled." +
+                        "\nPlease check ./info REST endpoint.",
                     type: "error",
                     showCancelButton: false,
                     closeOnConfirm: true,

@@ -974,12 +974,25 @@ public class SuggestionsEngine {
     if (suggestion == null || suggestion.isEmpty()) {
       return Histograms.toJson(cachedUsers);
     } else {
-      Map<String, Long> userSuggestions = cachedMaps.get(suggestion);
+      Map<String, Long> userSuggestions = getSuggestion(suggestion);
       if (userSuggestions == null) {
         throw new IllegalArgumentException(suggestion + " is not a valid suggestion query.");
       }
       return Histograms.toJson(userSuggestions);
     }
+  }
+
+  /**
+   * Get all users' analysis of a particular suggestion cache as Histogram.
+   *
+   * @param suggestion the suggestion to fetch histogram for
+   * @return a histogram or null
+   */
+  public Map<String, Long> getSuggestion(String suggestion) {
+    if (suggestion == null || suggestion.isEmpty()) {
+      return null;
+    }
+    return cachedMaps.get(suggestion);
   }
 
   /**
@@ -1171,5 +1184,14 @@ public class SuggestionsEngine {
     this.cachedMapQueries =
         Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedMapQueries"));
     this.suggestionsReloadSleepMs = conf.getSuggestionsReloadSleepMs();
+  }
+
+  /**
+   * Returns the set of all cached maps available for reporting.
+   *
+   * @return set of strings representing all cached maps available
+   */
+  public Set<String> getCachedMapKeys() {
+    return cachedMaps.keySet();
   }
 }

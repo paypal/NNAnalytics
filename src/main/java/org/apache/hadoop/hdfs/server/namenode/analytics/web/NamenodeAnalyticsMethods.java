@@ -779,6 +779,28 @@ public class NamenodeAnalyticsMethods {
   }
 
   /**
+   * CACHEDMAPS endpoint is a cache-level endpoint meant to dump meta keys of cached analysis by
+   * NNA.
+   */
+  @GET
+  @Path("/cachedMaps")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response cachedMaps() {
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    try {
+      before();
+      return Response.ok(
+              Histograms.toJson(nnLoader.getSuggestionsEngine().getCachedMapKeys()),
+              MediaType.APPLICATION_JSON)
+          .build();
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
+  /**
    * DIRECTORIES endpoint is an reader-level endpoint meant to dump the cached directory analysis by
    * NNA.
    */

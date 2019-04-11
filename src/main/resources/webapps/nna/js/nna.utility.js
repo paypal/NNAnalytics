@@ -443,9 +443,11 @@ function checkIfAdmin() {
          400: function(xhr) {
            $("li.admin-menu").hide();
            $("li.user-menu").hide();
+           $("li.open-menu").show();
          },
          200: function(xhr) {
            var isAdmin = xhr.includes("ADMIN");
+           $("li.open-menu").hide();
            if(isAdmin) {
              $("li.admin-menu").show();
            } else {

@@ -229,6 +229,15 @@ public abstract class TestWithMiniClusterBase {
     assertThat(checkRes.getStatusLine().getStatusCode(), is(200));
     List<String> checkContent = IOUtils.readLines(checkRes.getEntity().getContent());
     assertThat(checkContent.size(), is(greaterThan(0)));
+
+    // Test cachedMaps are visible.
+    HttpGet getMaps = new HttpGet("http://localhost:4567/cachedMaps");
+    HttpResponse mapsRes = client.execute(hostPort, getMaps);
+    List<String> output = IOUtils.readLines(mapsRes.getEntity().getContent());
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(output.size(), is(greaterThan(0)));
+    assertThat(output.get(0), containsString("numFilesUsers"));
+    assertThat(output.get(0), containsString("diskspaceUsers"));
   }
 
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {
