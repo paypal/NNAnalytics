@@ -96,6 +96,22 @@ public interface QueryEngine {
 
   Map<String, Long> dirQuotaHistogram(Collection<INode> inodes, String sum);
 
+  Map<String, Long> idMappingHistogram(
+      Collection<INode> inodes,
+      String sum,
+      Function<INode, Long> sumFunc,
+      Function<INode, Long> nodeToLong,
+      Function<Long, String> idToString,
+      long[] ids);
+
+  Map<String, Long> idMappingHistogramWithFind(
+      Collection<INode> inodes,
+      String find,
+      Function<INode, Long> findToLong,
+      Function<INode, Long> nodeToLong,
+      Function<Long, String> idToString,
+      long[] ids);
+
   Map<String, Long> binMappingHistogram(
       Collection<INode> inodes,
       String sum,

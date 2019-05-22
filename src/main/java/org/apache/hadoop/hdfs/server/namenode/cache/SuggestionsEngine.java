@@ -121,6 +121,11 @@ public class SuggestionsEngine {
     } catch (IOException e) {
       LOG.error("Failed to fetch capacity from active cluster.", e);
     }
+    cachedValues.put("totalFiles", numFiles);
+    cachedValues.put("totalDirs", numDirs);
+    cachedValues.put("numFiles", numFiles);
+    cachedValues.put("numDirs", numDirs);
+    cachedValues.put("capacity", capacity);
     long capacityFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.capacity took: {} ms.", capacityFetchTime);
 
@@ -130,15 +135,19 @@ public class SuggestionsEngine {
         queryEngine.modTimeHistogram(files, "count", null, "monthly");
     final Map<String, Long> modTimeDiskspace =
         queryEngine.modTimeHistogram(files, "diskspaceConsumed", null, "monthly");
+    cachedMaps.put("modTimeCount", modTimeCount);
+    cachedMaps.put("modTimeDiskspace", modTimeDiskspace);
     long fileAgesFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.fileAges took: {} ms.", fileAgesFetchTime);
 
     timer = System.currentTimeMillis();
     final Set<String> fileUsers =
-        files.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toSet());
+        files.parallelStream().map(INode::getUserName).collect(Collectors.toSet());
     final Set<String> dirUsers =
-        dirs.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toSet());
+        dirs.parallelStream().map(INode::getUserName).collect(Collectors.toSet());
     final Set<String> users = Sets.union(fileUsers, dirUsers);
+    cachedUsers.clear();
+    cachedUsers.addAll(users);
     long uniqueUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.users took: {} ms.", uniqueUsersFetchTime);
 
@@ -146,6 +155,8 @@ public class SuggestionsEngine {
     final long diskspace = queryEngine.sum(files, "diskspaceConsumed");
     final Map<String, Long> diskspaceUsers =
         queryEngine.byUserHistogram(files, "diskspaceConsumed", null);
+    cachedValues.put("diskspace", diskspace);
+    cachedMaps.put("diskspaceUsers", diskspaceUsers);
     long diskspaceUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.diskspace took: {} ms.", diskspaceUsersFetchTime);
 
@@ -157,6 +168,8 @@ public class SuggestionsEngine {
     final Map<String, Long> numFiles24hUsers = queryEngine.byUserHistogram(files24h, "count", null);
     final Map<String, Long> diskspace24hUsers =
         queryEngine.byUserHistogram(files24h, "diskspaceConsumed", null);
+    cachedValues.put("numFiles24h", numFiles24h);
+    cachedValues.put("diskspace24h", diskspace24h);
     long files24hUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.files24hr took: {} ms.", files24hUsersFetchTime);
 
@@ -175,6 +188,10 @@ public class SuggestionsEngine {
         queryEngine.byUserHistogram(oldFiles2yr, "count", null);
     final Map<String, Long> oldFiles2yrDsUsers =
         queryEngine.byUserHistogram(oldFiles2yr, "diskspaceConsumed", null);
+    cachedMaps.put("oldFiles1yrUsers", oldFiles1yrCountUsers);
+    cachedMaps.put("oldFiles1yrDsUsers", oldFiles1yrDsUsers);
+    cachedMaps.put("oldFiles2yrUsers", oldFiles2yrCountUsers);
+    cachedMaps.put("oldFiles2yrDsUsers", oldFiles2yrDsUsers);
     long oldFilesUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.files1yr2yr took: {} ms.", oldFilesUsersFetchTime);
 
@@ -264,12 +281,49 @@ public class SuggestionsEngine {
     final long oldFiles2yrCount = oldFiles2yr.size();
     final long oldFiles1yrDs = queryEngine.sum(oldFiles1yr, "diskspaceConsumed");
     final long oldFiles2yrDs = queryEngine.sum(oldFiles2yr, "diskspaceConsumed");
+
+    cachedValues.put("emptyFiles", emptyFilesCount);
+    cachedValues.put("emptyDirs", emptyDirsCount);
+    cachedValues.put("emptyFilesMem", emptyFilesMem);
+    cachedValues.put("emptyDirsMem", emptyDirsMem);
+    cachedValues.put("tinyFiles", tinyFilesCount);
+    cachedValues.put("smallFiles", smallFilesCount);
+    cachedValues.put("mediumFiles", mediumFilesCount);
+    cachedValues.put("largeFiles", largeFilesCount);
+    cachedValues.put("tinyFilesMem", tinyFilesMem);
+    cachedValues.put("tinyFilesDs", tinyFilesDs);
+    cachedValues.put("smallFilesMem", smallFilesMem);
+    cachedValues.put("smallFilesDs", smallFilesDs);
+
+    cachedValues.put("emptyFiles24h", emptyFiles24hCount);
+    cachedValues.put("emptyDirs24h", emptyDirs24hCount);
+    cachedValues.put("emptyFiles24hMem", emptyFiles24hMem);
+    cachedValues.put("emptyDirs24hMem", emptyDirs24hMem);
+    cachedValues.put("tinyFiles24h", tinyFiles24hCount);
+    cachedValues.put("smallFiles24h", smallFiles24hCount);
+    cachedValues.put("tinyFiles24hMem", tinyFiles24hMem);
+    cachedValues.put("smallFiles24hMem", smallFiles24hMem);
+    cachedValues.put("tinyFiles24hDs", tinyFiles24hDs);
+    cachedValues.put("smallFiles24hDs", smallFiles24hDs);
+
+    cachedValues.put("emptyFiles1yr", emptyFiles1yrCount);
+    cachedValues.put("emptyDirs1yr", emptyDirs1yrCount);
+    cachedValues.put("tinyFiles1yr", tinyFiles1yrCount);
+    cachedValues.put("smallFiles1yr", smallFiles1yrCount);
+
+    cachedValues.put("oldFiles1yr", oldFiles1yrCount);
+    cachedValues.put("oldFiles1yrDs", oldFiles1yrDs);
+    cachedValues.put("oldFiles2yr", oldFiles2yrCount);
+    cachedValues.put("oldFiles2yrDs", oldFiles2yrDs);
+
     long systemCountsFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.systemCount took: {} ms.", systemCountsFetchTime);
 
     timer = System.currentTimeMillis();
     final Map<String, Long> filesUsers = queryEngine.byUserHistogram(files, "count", null);
     final Map<String, Long> dirsUsers = queryEngine.byUserHistogram(dirs, "count", null);
+    cachedMaps.put("numFilesUsers", filesUsers);
+    cachedMaps.put("numDirsUsers", dirsUsers);
     long perUserCountFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUserCount took: {} ms.", perUserCountFetchTime);
 
@@ -293,6 +347,12 @@ public class SuggestionsEngine {
                   - mediumFilesUsers.getOrDefault(u, 0L);
           largeFilesUsers.put(u, largeFiles);
         });
+    cachedMaps.put("emptyFilesUsers", emptyFilesUsers);
+    cachedMaps.put("emptyDirsUsers", emptyDirsUsers);
+    cachedMaps.put("tinyFilesUsers", tinyFilesUsers);
+    cachedMaps.put("smallFilesUsers", smallFilesUsers);
+    cachedMaps.put("mediumFilesUsers", mediumFilesUsers);
+    cachedMaps.put("largeFilesUsers", largeFilesUsers);
     long perUserSuggFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUserSuggest took: {} ms.", perUserSuggFetchTime);
 
@@ -317,6 +377,21 @@ public class SuggestionsEngine {
         queryEngine.byUserHistogram(tinyFiles24h, "diskspaceConsumed", null);
     final Map<String, Long> smallFiles24hDsUsers =
         queryEngine.byUserHistogram(smallFiles24h, "diskspaceConsumed", null);
+
+    cachedMaps.put("diskspace24hUsers", diskspace24hUsers);
+    cachedMaps.put("numFiles24hUsers", numFiles24hUsers);
+    cachedMaps.put("emptyFiles24hUsers", emptyFiles24hUsers);
+    cachedMaps.put("emptyDirs24hUsers", emptyDirs24hUsers);
+    cachedMaps.put("tinyFiles24hUsers", tinyFiles24hUsers);
+    cachedMaps.put("smallFiles24hUsers", smallFiles24hUsers);
+
+    cachedMaps.put("emptyFiles24hMemUsers", emptyFiles24hMemUsers);
+    cachedMaps.put("emptyDirs24hMemUsers", emptyDirs24hMemUsers);
+    cachedMaps.put("tinyFiles24hMemUsers", tinyFiles24hMemUsers);
+    cachedMaps.put("smallFiles24hMemUsers", smallFiles24hMemUsers);
+    cachedMaps.put("tinyFiles24hDsUsers", tinyFiles24hDsUsers);
+    cachedMaps.put("smallFiles24hDsUsers", smallFiles24hDsUsers);
+
     long perUser24hSuggFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUser24h took: {} ms.", perUser24hSuggFetchTime);
 
@@ -329,6 +404,10 @@ public class SuggestionsEngine {
         queryEngine.byUserHistogram(tinyFiles1yr, "count", null);
     final Map<String, Long> smallFiles1yrUsers =
         queryEngine.byUserHistogram(smallFiles1yr, "count", null);
+    cachedMaps.put("emptyFiles1yrUsers", emptyFiles1yrUsers);
+    cachedMaps.put("emptyDirs1yrUsers", emptyDirs1yrUsers);
+    cachedMaps.put("tinyFiles1yrUsers", tinyFiles1yrUsers);
+    cachedMaps.put("smallFiles1yrUsers", smallFiles1yrUsers);
     long perUser1yrSuggFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUser1yr took: {} ms.", perUser1yrSuggFetchTime);
 
@@ -341,6 +420,10 @@ public class SuggestionsEngine {
         queryEngine.byUserHistogram(tinyFiles, "memoryConsumed", null);
     final Map<String, Long> smallFilesMemUsers =
         queryEngine.byUserHistogram(smallFiles, "memoryConsumed", null);
+    cachedMaps.put("emptyFilesMemUsers", emptyFilesMemUsers);
+    cachedMaps.put("emptyDirsMemUsers", emptyDirsMemUsers);
+    cachedMaps.put("tinyFilesMemUsers", tinyFilesMemUsers);
+    cachedMaps.put("smallFilesMemUsers", smallFilesMemUsers);
     long perUserMemFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUserMem took: {} ms.", perUserMemFetchTime);
 
@@ -349,6 +432,8 @@ public class SuggestionsEngine {
         queryEngine.byUserHistogram(tinyFiles, "diskspaceConsumed", null);
     final Map<String, Long> smallFilesDsUsers =
         queryEngine.byUserHistogram(smallFiles, "diskspaceConsumed", null);
+    cachedMaps.put("tinyFilesDsUsers", tinyFilesDsUsers);
+    cachedMaps.put("smallFilesDsUsers", smallFilesDsUsers);
     long perUserDsFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUserDs took: {} ms.", perUserDsFetchTime);
 
@@ -388,6 +473,8 @@ public class SuggestionsEngine {
         dirDs.put(cachedDir, diskspaceConsumed);
       }
     }
+    cachedMaps.put("dirCount", dirCount);
+    cachedMaps.put("dirDs", dirDs);
     long cachedDirectoriesFetchTime = System.currentTimeMillis() - timer;
     LOG.info(
         "Performing SuggestionsEngine.cachedDirectories took: {} ms.", cachedDirectoriesFetchTime);
@@ -407,6 +494,8 @@ public class SuggestionsEngine {
       dirCount24h.put(dir, count);
       dirDs24h.put(dir, diskspaceConsumed);
     }
+    cachedMaps.put("dirCount24h", dirCount24h);
+    cachedMaps.put("dirDs24h", dirDs24h);
     long directories24hFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.directories24h took: {} ms.", directories24hFetchTime);
 
@@ -440,6 +529,14 @@ public class SuggestionsEngine {
       nsQuotaCountsUsers.put(user, (long) nsQuotaRatio.size());
       dsQuotaCountsUsers.put(user, (long) dsQuotaRatio.size());
     }
+    cachedValues.put("nsQuotaCount", nsQuotaCount);
+    cachedValues.put("dsQuotaCount", dsQuotaCount);
+    cachedValues.put("nsQuotaThreshCount", nsQuotaThreshCount);
+    cachedValues.put("dsQuotaThreshCount", dsQuotaThreshCount);
+    cachedMaps.put("nsQuotaCountsUsers", nsQuotaCountsUsers);
+    cachedMaps.put("dsQuotaCountsUsers", dsQuotaCountsUsers);
+    cachedMaps.put("nsQuotaThreshCountsUsers", nsQuotaThreshCountsUsers);
+    cachedMaps.put("dsQuotaThreshCountsUsers", dsQuotaThreshCountsUsers);
     long quotaFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.cachedQuotas took: {} ms.", quotaFetchTime);
 
@@ -454,99 +551,9 @@ public class SuggestionsEngine {
     final long timeTaken = (e1 - s1);
 
     final long s2 = System.currentTimeMillis();
-    cachedUsers.clear();
-    cachedUsers.addAll(users);
     cachedValues.put("timeTaken", timeTaken);
     cachedValues.put("reportTime", e1);
     cachedValues.put("nextReportEstimate", e1 + timeTaken + suggestionsReloadSleepMs);
-    cachedValues.put("capacity", capacity);
-    cachedValues.put("diskspace", diskspace);
-    cachedValues.put("diskspace24h", diskspace24h);
-    cachedValues.put("numFiles", numFiles);
-    cachedValues.put("numFiles24h", numFiles24h);
-    cachedValues.put("numDirs", numDirs);
-    cachedValues.put("totalFiles", numFiles);
-    cachedValues.put("totalDirs", numDirs);
-    cachedValues.put("emptyFiles", emptyFilesCount);
-    cachedValues.put("emptyDirs", emptyDirsCount);
-    cachedValues.put("tinyFiles", tinyFilesCount);
-    cachedValues.put("smallFiles", smallFilesCount);
-    cachedValues.put("emptyFiles24h", emptyFiles24hCount);
-    cachedValues.put("emptyDirs24h", emptyDirs24hCount);
-    cachedValues.put("tinyFiles24h", tinyFiles24hCount);
-    cachedValues.put("smallFiles24h", smallFiles24hCount);
-    cachedValues.put("emptyFiles1yr", emptyFiles1yrCount);
-    cachedValues.put("emptyDirs1yr", emptyDirs1yrCount);
-    cachedValues.put("tinyFiles1yr", tinyFiles1yrCount);
-    cachedValues.put("smallFiles1yr", smallFiles1yrCount);
-    cachedValues.put("mediumFiles", mediumFilesCount);
-    cachedValues.put("largeFiles", largeFilesCount);
-    cachedValues.put("emptyFilesMem", emptyFilesMem);
-    cachedValues.put("emptyDirsMem", emptyDirsMem);
-    cachedValues.put("tinyFilesMem", tinyFilesMem);
-    cachedValues.put("tinyFilesDs", tinyFilesDs);
-    cachedValues.put("smallFilesMem", smallFilesMem);
-    cachedValues.put("smallFilesDs", smallFilesDs);
-    cachedValues.put("emptyFiles24hMem", emptyFiles24hMem);
-    cachedValues.put("emptyDirs24hMem", emptyDirs24hMem);
-    cachedValues.put("tinyFiles24hMem", tinyFiles24hMem);
-    cachedValues.put("smallFiles24hMem", smallFiles24hMem);
-    cachedValues.put("tinyFiles24hDs", tinyFiles24hDs);
-    cachedValues.put("smallFiles24hDs", smallFiles24hDs);
-    cachedValues.put("oldFiles1yr", oldFiles1yrCount);
-    cachedValues.put("oldFiles1yrDs", oldFiles1yrDs);
-    cachedValues.put("oldFiles2yr", oldFiles2yrCount);
-    cachedValues.put("oldFiles2yrDs", oldFiles2yrDs);
-    cachedValues.put("nsQuotaCount", nsQuotaCount);
-    cachedValues.put("dsQuotaCount", dsQuotaCount);
-    cachedValues.put("nsQuotaThreshCount", nsQuotaThreshCount);
-    cachedValues.put("dsQuotaThreshCount", dsQuotaThreshCount);
-    cachedMaps.put("diskspaceUsers", diskspaceUsers);
-    cachedMaps.put("numFilesUsers", filesUsers);
-    cachedMaps.put("numDirsUsers", dirsUsers);
-    cachedMaps.put("emptyFilesUsers", emptyFilesUsers);
-    cachedMaps.put("emptyDirsUsers", emptyDirsUsers);
-    cachedMaps.put("emptyFilesMemUsers", emptyFilesMemUsers);
-    cachedMaps.put("emptyDirsMemUsers", emptyDirsMemUsers);
-    cachedMaps.put("tinyFilesUsers", tinyFilesUsers);
-    cachedMaps.put("smallFilesUsers", smallFilesUsers);
-    cachedMaps.put("tinyFilesMemUsers", tinyFilesMemUsers);
-    cachedMaps.put("smallFilesMemUsers", smallFilesMemUsers);
-    cachedMaps.put("tinyFilesDsUsers", tinyFilesDsUsers);
-    cachedMaps.put("smallFilesDsUsers", smallFilesDsUsers);
-    cachedMaps.put("diskspace24hUsers", diskspace24hUsers);
-    cachedMaps.put("numFiles24hUsers", numFiles24hUsers);
-    cachedMaps.put("emptyFiles24hUsers", emptyFiles24hUsers);
-    cachedMaps.put("emptyDirs24hUsers", emptyDirs24hUsers);
-    cachedMaps.put("emptyFiles24hMemUsers", emptyFiles24hMemUsers);
-    cachedMaps.put("emptyDirs24hMemUsers", emptyDirs24hMemUsers);
-    cachedMaps.put("tinyFiles24hUsers", tinyFiles24hUsers);
-    cachedMaps.put("smallFiles24hUsers", smallFiles24hUsers);
-    cachedMaps.put("tinyFiles24hMemUsers", tinyFiles24hMemUsers);
-    cachedMaps.put("smallFiles24hMemUsers", smallFiles24hMemUsers);
-    cachedMaps.put("tinyFiles24hDsUsers", tinyFiles24hDsUsers);
-    cachedMaps.put("smallFiles24hDsUsers", smallFiles24hDsUsers);
-    cachedMaps.put("emptyFiles1yrUsers", emptyFiles1yrUsers);
-    cachedMaps.put("emptyDirs1yrUsers", emptyDirs1yrUsers);
-    cachedMaps.put("tinyFiles1yrUsers", tinyFiles1yrUsers);
-    cachedMaps.put("smallFiles1yrUsers", smallFiles1yrUsers);
-    cachedMaps.put("mediumFilesUsers", mediumFilesUsers);
-    cachedMaps.put("largeFilesUsers", largeFilesUsers);
-    cachedMaps.put("oldFiles1yrUsers", oldFiles1yrCountUsers);
-    cachedMaps.put("oldFiles1yrDsUsers", oldFiles1yrDsUsers);
-    cachedMaps.put("oldFiles2yrUsers", oldFiles2yrCountUsers);
-    cachedMaps.put("oldFiles2yrDsUsers", oldFiles2yrDsUsers);
-    cachedMaps.put("dirCount", dirCount);
-    cachedMaps.put("dirDs", dirDs);
-    cachedMaps.put("dirCount24h", dirCount24h);
-    cachedMaps.put("dirDs24h", dirDs24h);
-    cachedMaps.put("modTimeCount", modTimeCount);
-    cachedMaps.put("modTimeDiskspace", modTimeDiskspace);
-    cachedMaps.put("nsQuotaCountsUsers", nsQuotaCountsUsers);
-    cachedMaps.put("dsQuotaCountsUsers", dsQuotaCountsUsers);
-    cachedMaps.put("nsQuotaThreshCountsUsers", nsQuotaThreshCountsUsers);
-    cachedMaps.put("dsQuotaThreshCountsUsers", dsQuotaThreshCountsUsers);
-
     long e2 = System.currentTimeMillis();
     LOG.info("Sync-switch of suggestions took: {} ms.", (e2 - s2));
     LOG.info("Reloading suggestions matrices took: {} ms.", timeTaken);
@@ -558,7 +565,7 @@ public class SuggestionsEngine {
       try {
         historyDbDriver.logHistoryPerUser(cachedValues, cachedMaps, cachedUsers);
       } catch (SQLException e) {
-        LOG.info("Failed to write historical data due to: {}", e);
+        LOG.error("Failed to write historical data.", e);
       }
       long e3 = System.currentTimeMillis();
       LOG.info("Writing to embedded SQL DB took: {} ms.", (e3 - s3));
@@ -570,7 +577,7 @@ public class SuggestionsEngine {
     try {
       performCustomQueries(nameNodeLoader);
     } catch (Exception e) {
-      LOG.error("Failed to write custom query data due to: {}", e);
+      LOG.error("Failed to write custom query data.", e);
     }
     long e4 = System.currentTimeMillis();
     LOG.info("Performing SuggestionsEngine.cachedQueries took: {} ms.", (e4 - s4));
@@ -579,7 +586,7 @@ public class SuggestionsEngine {
     try {
       cacheManager.commit();
     } catch (Exception e) {
-      LOG.error("Failed to write cache data due to: {}", e);
+      LOG.error("Failed to write cache data.", e);
     }
     long e5 = System.currentTimeMillis();
     LOG.info("Writing to embedded MapDB took: {} ms.", (e5 - s5));
@@ -720,8 +727,7 @@ public class SuggestionsEngine {
         String sortDescendingStr = params.get("sortDescending");
         final Boolean sortDescending =
             sortDescendingStr == null ? null : Boolean.parseBoolean(sortDescendingStr);
-        final boolean rawTimestamps =
-            rawTimestampsStr != null && Boolean.parseBoolean(rawTimestampsStr);
+        final boolean rawTimestamps = Boolean.parseBoolean(rawTimestampsStr);
         String topStr = params.get("top");
         final Integer top = (topStr == null) ? null : Integer.parseInt(topStr);
         String bottomStr = params.get("bottom");

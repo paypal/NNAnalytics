@@ -42,6 +42,7 @@ public class ApplicationConfiguration {
 
   private static final String NNA_PORT_DEFAULT = "8080";
   private static final String NNA_HISTORICAL_DEFAULT = "false";
+  private static final String NNA_CACHE_MMAP_ENABLE_DEFAULT = "true";
   private static final String LDAP_ENABLED_DEFAULT = "false";
   private static final String AUTHORIZATION_ENABLED_DEFAULT = "false";
   private static final String LDAP_USE_STARTTLS_DEFAULT = "false";
@@ -278,5 +279,10 @@ public class ApplicationConfiguration {
 
   public String getQueryEngineImplementation() {
     return properties.getProperty("nna.query.engine.impl", NNA_QUERY_ENGINE_DEFAULT);
+  }
+
+  public boolean getCacheMmapEnabled() {
+    return Boolean.parseBoolean(
+        properties.getProperty("nna.cache.mmap.enable", NNA_CACHE_MMAP_ENABLE_DEFAULT));
   }
 }

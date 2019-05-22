@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.slf4j.Logger;
@@ -231,6 +232,26 @@ public class Histograms {
       if (notMappedSum != 0L) {
         sortedHistogram.put("NO_MAPPING", notMappedSum);
       }
+    }
+    return sortedHistogram;
+  }
+
+  /**
+   * Creates a mapped histogram based on ID longs and functions that map the ID to Strings. The Map
+   * key's values are used an integers to index into the parameter long array.
+   *
+   * @param ids list of long ids that map to Strings: [1,2]
+   * @param histogram list of values for the keys, ex: [100,200]
+   * @return map of input key and value as histogram, ex: ["key1":200,"key2":100].
+   */
+  public static Map<String, Long> mapByIds(
+      long[] ids, Function<Long, String> idToString, long[] histogram) {
+    if (histogram.length == 0) {
+      return Collections.emptyMap();
+    }
+    Map<String, Long> sortedHistogram = new LinkedHashMap<>();
+    for (long id : ids) {
+      sortedHistogram.put(idToString.apply(id), histogram[(int) id - 1]);
     }
     return sortedHistogram;
   }

@@ -138,8 +138,7 @@ public class FileTypeHistogram {
       return key;
     } else {
       int extIndex = name.lastIndexOf(".");
-      if (extIndex != -1
-          && (key = suffixExtMap.get(name.substring(extIndex, name.length()))) != null) {
+      if (extIndex != -1 && (key = suffixExtMap.get(name.substring(extIndex))) != null) {
         return key;
       }
     }

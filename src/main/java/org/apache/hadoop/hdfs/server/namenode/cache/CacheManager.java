@@ -28,6 +28,7 @@ import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration
 import org.apache.hadoop.util.MapSerializer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.DBMaker.Maker;
 import org.mapdb.Serializer;
 
 /**
@@ -72,13 +73,15 @@ public class CacheManager {
     if (!expectedDbDir.exists()) {
       FileUtils.forceMkdir(new File(baseDir + "/db"));
     }
-    cache =
+    Maker maker =
         DBMaker.fileDB(baseDir + "/db/nna_cache")
-            .fileMmapEnableIfSupported()
-            .fileMmapPreclearDisable()
             .transactionEnable()
             .closeOnJvmShutdown()
-            .cleanerHackEnable()
-            .make();
+            .cleanerHackEnable();
+    boolean cacheMmapEnabled = conf.getCacheMmapEnabled();
+    if (cacheMmapEnabled) {
+      maker.fileMmapEnableIfSupported().fileMmapPreclearDisable();
+    }
+    cache = maker.make();
   }
 }
