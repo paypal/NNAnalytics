@@ -161,10 +161,10 @@ public class VersionContext implements VersionInterface {
         inodes.parallelStream(),
         node -> {
           int index = storageIds.indexOf((long) node.getStoragePolicyID());
-          if(index >= 0) {
+          if (index >= 0) {
             return storageKeys.get(index);
           }
-          return "NO_MAPPING";          
+          return "NO_MAPPING";
         },
         queryEngine.getSumFunctionForINode(sum));
   }

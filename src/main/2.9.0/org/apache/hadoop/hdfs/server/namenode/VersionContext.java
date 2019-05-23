@@ -187,7 +187,13 @@ public class VersionContext implements VersionInterface {
 
     return queryEngine.genericSummingHistogram(
         inodes.parallelStream(),
-        node -> storageKeys.get(storageIds.indexOf((long) node.getStoragePolicyID())),
+        node -> {
+          int index = storageIds.indexOf((long) node.getStoragePolicyID());
+          if (index >= 0) {
+            return storageKeys.get(index);
+          }
+          return "NO_MAPPING";
+        },
         queryEngine.getSumFunctionForINode(sum));
   }
 
