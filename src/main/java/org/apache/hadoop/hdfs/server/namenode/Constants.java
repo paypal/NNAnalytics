@@ -472,6 +472,34 @@ public interface Constants {
     find
   }
 
+  enum AnalysisState {
+    sleep,
+    capacity,
+    fileAges,
+    users,
+    diskspace,
+    files24h,
+    files1y2y,
+    systemFilter,
+    system24h,
+    system1y,
+    systemCount,
+    perUserCount,
+    perUserFilter,
+    perUser24h,
+    perUser1y,
+    perUserMem,
+    perUserDs,
+    directories,
+    cachedDirectories,
+    directories24h,
+    cachedQuotas,
+    cachedLogins,
+    history,
+    cachedQueries,
+    writeMapDb
+  }
+
   /**
    * Returns intersection of two EnumSets as a new EnumSet.
    *

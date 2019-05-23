@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.AnalysisState;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Filter;
 import org.apache.hadoop.hdfs.server.namenode.Constants.FilterOp;
@@ -419,6 +420,16 @@ public class WebServerMain implements ApplicationMain {
           sb.append("Ready to service queries: ").append(isInit).append("\n");
           sb.append("Ready to service history: ").append(isHistorical).append("\n");
           sb.append("Ready to service suggestions: ").append(isProvidingSuggestions).append("\n\n");
+          AnalysisState currentAnalysisState =
+              nameNodeLoader.getSuggestionsEngine().getCurrentState();
+          int analysisStateSetSize = AnalysisState.values().length;
+          sb.append("Current suggestion analysis state: ")
+              .append(nameNodeLoader.getSuggestionsEngine().getCurrentState().name())
+              .append("\n");
+          sb.append("Current suggestion analysis percentage: ")
+              .append(((currentAnalysisState.ordinal() * 100.0f) / analysisStateSetSize))
+              .append("%")
+              .append("\n\n");
           if (isInit) {
             long allSetSize = nameNodeLoader.getINodeSet(INodeSet.all.name()).size();
             long fileSetSize = nameNodeLoader.getINodeSet(INodeSet.files.name()).size();

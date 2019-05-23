@@ -132,7 +132,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             "You did not specify a set to use. Please check /sets for available sets.");
     }
     long end = System.currentTimeMillis();
-    LOG.info(
+    LOG.debug(
         "Fetching set of: {} had result size: {} and took: {} ms.",
         set,
         inodes.size(),
