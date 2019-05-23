@@ -472,32 +472,32 @@ public interface Constants {
     find
   }
 
-  enum ANALYSIS_STATE {
-    SLEEP,
-    CAPACITY,
-    FILE_AGES,
-    USERS,
-    DISKSPACE,
-    FILES_24H,
-    FILES_1Y_2Y,
-    SYSTEM_FILTER,
-    SYSTEM_24H,
-    SYSTEM_1Y,
-    SYSTEM_COUNT,
-    PER_USER_COUNT,
-    PER_USER_FILTER,
-    PER_USER_24H,
-    PER_USER_1Y,
-    PER_USER_MEM,
-    PER_USER_DS,
-    DIRECTORIES,
-    CACHED_DIRECTORIES,
-    DIRECTORIES_24H,
-    CACHED_QUOTAS,
-    CACHED_LOGINS,
-    HISTORY,
-    CACHED_QUERIES,
-    WRITE_MAPDB
+  enum AnalysisState {
+    sleep,
+    capacity,
+    fileAges,
+    users,
+    diskspace,
+    files24h,
+    files1y2y,
+    systemFilter,
+    system24h,
+    system1y,
+    systemCount,
+    perUserCount,
+    perUserFilter,
+    perUser24h,
+    perUser1y,
+    perUserMem,
+    perUserDs,
+    directories,
+    cachedDirectories,
+    directories24h,
+    cachedQuotas,
+    cachedLogins,
+    history,
+    cachedQueries,
+    writeMapDb
   }
 
   /**

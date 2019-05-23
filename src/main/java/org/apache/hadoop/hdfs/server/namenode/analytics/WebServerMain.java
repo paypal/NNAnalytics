@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
-import org.apache.hadoop.hdfs.server.namenode.Constants.ANALYSIS_STATE;
+import org.apache.hadoop.hdfs.server.namenode.Constants.AnalysisState;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Filter;
 import org.apache.hadoop.hdfs.server.namenode.Constants.FilterOp;
@@ -420,9 +420,9 @@ public class WebServerMain implements ApplicationMain {
           sb.append("Ready to service queries: ").append(isInit).append("\n");
           sb.append("Ready to service history: ").append(isHistorical).append("\n");
           sb.append("Ready to service suggestions: ").append(isProvidingSuggestions).append("\n\n");
-          ANALYSIS_STATE currentAnalysisState =
+          AnalysisState currentAnalysisState =
               nameNodeLoader.getSuggestionsEngine().getCurrentState();
-          int analysisStateSetSize = ANALYSIS_STATE.values().length;
+          int analysisStateSetSize = AnalysisState.values().length;
           sb.append("Current suggestion analysis state: ")
               .append(nameNodeLoader.getSuggestionsEngine().getCurrentState().name())
               .append("\n");
