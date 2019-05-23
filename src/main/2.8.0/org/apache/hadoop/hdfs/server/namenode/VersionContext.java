@@ -169,21 +169,13 @@ public class VersionContext implements VersionInterface {
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpu(
       Collection<INode> inodes, String sum, QueryEngine queryEngine) {
-    List<Long> distinctStorageIds = StorageTypeHistogram.bins;
-    List<String> distinctStorageKeys = StorageTypeHistogram.keys;
-    Map<String, Long> storageIdToIndexToKeyMap =
-        distinctStorageIds
-            .parallelStream()
-            .mapToInt(distinctStorageIds::indexOf)
-            .boxed()
-            .collect(Collectors.toMap(distinctStorageKeys::get, k -> (long) k));
+    List<Long> storageIds = StorageTypeHistogram.bins;
+    List<String> storageKeys = StorageTypeHistogram.keys;
 
-    return queryEngine.binMappingHistogram(
-        inodes,
-        sum,
-        queryEngine.getSumFunctionForINode(sum),
-        node -> (long) distinctStorageIds.indexOf((long) node.getStoragePolicyID()),
-        storageIdToIndexToKeyMap);
+    return queryEngine.genericSummingHistogram(
+        inodes.parallelStream(),
+        node -> storageKeys.get(storageIds.indexOf((long) node.getStoragePolicyID())),
+        queryEngine.getSumFunctionForINode(sum));
   }
 
   @Override // VersionInterface

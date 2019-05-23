@@ -19,7 +19,6 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Function;
@@ -27,6 +26,57 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class JavaStreamQueryEngine extends AbstractQueryEngine {
+
+  private Stream<INode> produceFilteredStream(
+      Collection<INode> inodes, String[] filters, String[] filterOps) {
+    @SuppressWarnings("unchecked")
+    final Function<INode, Boolean>[] filterArray =
+        (Function<INode, Boolean>[]) new Function[filters.length];
+
+    for (int i = 0; i < filters.length; i++) {
+      String filter = filters[i];
+      String[] filterOp = filterOps[i].split(":");
+      Function<INode, Boolean> filterFunc = getFilter(filter, filterOp);
+      filterArray[i] = filterFunc;
+    }
+
+    Stream<INode> stream = inodes.parallelStream();
+    for (Function<INode, Boolean> filter : filterArray) {
+      stream = stream.filter(filter::apply);
+    }
+
+    return stream;
+  }
+
+  /**
+   * Optimized filter method for filtering down a set of INodes to a smaller subset but returns a
+   * Stream for further processing.
+   *
+   * @param inodes the main inode set to work on
+   * @param filters set of filters to use
+   * @param filterOps matching length set of filter operands and operators
+   * @return the stream of filtered inodes
+   */
+  @Override // QueryEngine
+  public Stream<INode> combinedFilterToStream(
+      Collection<INode> inodes, String[] filters, String[] filterOps) {
+    if (filters == null || filterOps == null || filters.length == 0 || filterOps.length == 0) {
+      return inodes.parallelStream();
+    }
+    long start = System.currentTimeMillis();
+    try {
+      return produceFilteredStream(inodes, filters, filterOps);
+    } finally {
+      long end = System.currentTimeMillis();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "Settings filters: {} with filterOps: {} took: {} ms.",
+            Arrays.asList(filters),
+            Arrays.asList(filterOps),
+            (end - start));
+      }
+    }
+  }
 
   /**
    * Main filter method for filtering down a set of INodes to a smaller subset.
@@ -39,26 +89,12 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
   @Override // QueryEngine
   public Collection<INode> combinedFilter(
       Collection<INode> inodes, String[] filters, String[] filterOps) {
-    final ArrayList<Function<INode, Boolean>> filterArray = new ArrayList<>();
-
-    for (int i = 0; i < filters.length; i++) {
-      String filter = filters[i];
-      String[] filterOp = filterOps[i].split(":");
-      Function<INode, Boolean> filterFunc = getFilter(filter, filterOp);
-      filterArray.add(filterFunc);
-    }
-
-    if (filterArray.size() == 0) {
+    if (filters == null || filterOps == null || filters.length == 0 || filterOps.length == 0) {
       return inodes;
     }
-
     long start = System.currentTimeMillis();
     try {
-      Stream<INode> stream = inodes.parallelStream();
-      for (Function<INode, Boolean> filter : filterArray) {
-        stream = stream.filter(filter::apply);
-      }
-      return stream.collect(Collectors.toList());
+      return produceFilteredStream(inodes, filters, filterOps).collect(Collectors.toList());
     } finally {
       long end = System.currentTimeMillis();
       LOG.info(

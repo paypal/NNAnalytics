@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.util.GSet;
 import org.slf4j.Logger;
@@ -42,6 +43,9 @@ public interface QueryEngine {
 
   Collection<INode> combinedFilter(Collection<INode> inodes, String[] filters, String[] filterOps);
 
+  Stream<INode> combinedFilterToStream(
+      Collection<INode> inodes, String[] filters, String[] filterOps);
+
   Collection<INode> findFilter(Collection<INode> inodes, String find);
 
   Long sum(Collection<INode> inodes, String sum);
@@ -57,6 +61,11 @@ public interface QueryEngine {
   Function<Boolean, Boolean> getFilterFunctionForBoolean(Boolean value, String op);
 
   Function<Long, Boolean> getFilterFunctionForLong(Long value, String op);
+
+  Map<String, Long> genericSummingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      Function<INode, Long> dataFunction);
 
   Map<String, Long> diskspaceConsumedHistogram(
       Collection<INode> inodes,

@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MultivaluedMap;
@@ -321,6 +322,21 @@ public class JavaCollectionQEngine extends AbstractQueryEngine {
           Arrays.asList(filterOps),
           (end - start));
     }
+  }
+
+  /**
+   * Optimized filter method for filtering down a set of INodes to a smaller subset but returns a
+   * Stream for further processing.
+   *
+   * @param inodes the main inode set to work on
+   * @param filters set of filters to use
+   * @param filterOps matching length set of filter operands and operators
+   * @return the stream of filtered inodes
+   */
+  @Override // QueryEngine
+  public Stream<INode> combinedFilterToStream(
+      Collection<INode> inodes, String[] filters, String[] filterOps) {
+    return combinedFilter(inodes, filters, filterOps).parallelStream();
   }
 
   private Query<INode> getFilter(String filter, String[] filterOps) {

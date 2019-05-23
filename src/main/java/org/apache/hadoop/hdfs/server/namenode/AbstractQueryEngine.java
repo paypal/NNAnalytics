@@ -810,6 +810,23 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     return new long[][] {data, sums};
   }
 
+  /**
+   * Produces Histogram for generic summation.
+   *
+   * @param inodes inodes
+   * @param namingFunction function to string
+   * @param dataFunction function to long
+   * @return histogram of sums
+   */
+  public Map<String, Long> genericSummingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      Function<INode, Long> dataFunction) {
+    return inodes.collect(
+        Collectors.groupingBy(
+            namingFunction, Collectors.mapping(dataFunction, Collectors.summingLong(i -> i))));
+  }
+
   private Map<String, Long> strictMappingHistogram(
       Collection<INode> inodes,
       String sum,
@@ -1459,7 +1476,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             getFilterFunctionToLongForINode("fileReplica"), transformMap, "fileReplica");
     Function<INode, Long> sumFunc =
         getTransformFunction(getSumFunctionForINode(sum), transformMap, sum);
-    return strictMappingHistogram(inodes, sum, sumFunc, binFunc);
+    return genericSummingHistogram(
+        inodes.parallelStream(), inode -> binFunc.apply(inode).toString(), sumFunc);
   }
 
   private Map<String, Long> fileReplicaHistogramCpuWithFind(Collection<INode> inodes, String find) {
@@ -1599,14 +1617,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> byUserHistogramCpu(Collection<INode> inodes, String sum) {
-    Map<String, Long> userToIdMap = getDistinctUsers(inodes);
-
-    return binMappingHistogram(
-        inodes,
-        sum,
-        getSumFunctionForINode(sum),
-        node -> userToIdMap.get(node.getUserName()),
-        userToIdMap);
+    return genericSummingHistogram(
+        inodes.parallelStream(), INode::getUserName, getSumFunctionForINode(sum));
   }
 
   private Map<String, Long> byUserHistogramCpuWithFind(Collection<INode> inodes, String find) {
@@ -1652,14 +1664,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> byGroupHistogramCpu(Collection<INode> inodes, String sum) {
-    Map<String, Long> groupToIdMap = getDistinctGroups(inodes);
-
-    return binMappingHistogram(
-        inodes,
-        sum,
-        getSumFunctionForINode(sum),
-        node -> groupToIdMap.get(node.getGroupName()),
-        groupToIdMap);
+    return genericSummingHistogram(
+        inodes.parallelStream(), INode::getGroupName, getSumFunctionForINode(sum));
   }
 
   private Map<String, Long> byGroupHistogramCpuWithFind(Collection<INode> inodes, String find) {
@@ -1710,25 +1716,13 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       Collection<INode> inodes, Integer parentDirDepth, String sum) {
     int dirDepth =
         (parentDirDepth == null || parentDirDepth <= 0) ? Integer.MAX_VALUE : parentDirDepth;
-    List<String> distinctDirectories = getDirectoryToIdMappingAtDepth(inodes, dirDepth);
-
-    final AtomicLong id = new AtomicLong(0L);
-    final Map<String, Long> dirToIdMap =
-        distinctDirectories
-            .parallelStream()
-            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
-    if (!dirToIdMap.containsKey("NO_MAPPING")) {
-      dirToIdMap.put("NO_MAPPING", id.getAndIncrement());
-    }
-    final long noMappingId = dirToIdMap.get("NO_MAPPING");
 
     Map<String, Long> result =
-        binMappingHistogram(
-            inodes,
-            sum,
-            getSumFunctionForINode(sum),
-            getDirectoryToIdFunction(dirToIdMap, dirDepth, noMappingId),
-            dirToIdMap);
+        genericSummingHistogram(
+            inodes.parallelStream(),
+            getDirectoryAtDepthFunction(dirDepth),
+            getSumFunctionForINode(sum));
+
     result.remove("NO_MAPPING");
     return result;
   }
@@ -1762,6 +1756,24 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     return result;
   }
 
+  private Function<INode, String> getDirectoryAtDepthFunction(int dirDepth) {
+    return node -> {
+      try {
+        INodeDirectory parent = node.getParent();
+        int topParentDepth = new Path(parent.getFullPathName()).depth();
+        if (topParentDepth < dirDepth) {
+          return "NO_MAPPING";
+        }
+        for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
+          parent = parent.getParent();
+        }
+        return parent.getFullPathName();
+      } catch (Exception e) {
+        return "NO_MAPPING";
+      }
+    };
+  }
+
   @NotNull
   private Function<INode, Long> getDirectoryToIdFunction(
       Map<String, Long> dirToIdMap, int dirDepth, long noMappingId) {
@@ -1787,22 +1799,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   private List<String> getDirectoryToIdMappingAtDepth(Collection<INode> inodes, int dirDepth) {
     return inodes
         .parallelStream()
-        .map(
-            node -> {
-              try {
-                INodeDirectory parent = node.getParent();
-                int topParentDepth = new Path(parent.getFullPathName()).depth();
-                if (topParentDepth < dirDepth) {
-                  return "NO_MAPPING";
-                }
-                for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-                  parent = parent.getParent();
-                }
-                return parent.getFullPathName();
-              } catch (Exception e) {
-                return "NO_MAPPING";
-              }
-            })
+        .map(node -> getDirectoryAtDepthFunction(dirDepth).apply(node))
         .distinct()
         .collect(Collectors.toList());
   }
@@ -1818,14 +1815,29 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   @Override // QueryEngine
   public Map<String, Long> fileTypeHistogram(Collection<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
-      return fileTypeHistogramCpu(inodes, sum);
+      return fileTypeHistogramCpu(inodes.parallelStream(), sum);
     }
-    return fileTypeHistogramCpu(inodes, sum);
+    return fileTypeHistogramCpuWithFind(inodes, find);
   }
 
-  private Map<String, Long> fileTypeHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> fileTypeHistogramCpu(Stream<INode> inodes, String sum) {
     List<String> fileTypes = FileTypeHistogram.keys;
+    Map<String, Integer> typeToIdMap = FileTypeHistogram.typeToIdMap;
 
+    Function<INode, String> namingFunction =
+        node ->
+            fileTypes.get(typeToIdMap.get(FileTypeHistogram.determineType(node.getLocalName())));
+    Map<String, Long> histogram =
+        genericSummingHistogram(inodes, namingFunction, getSumFunctionForINode(sum));
+    return removeKeysOnConditional(histogram, "gt:0");
+  }
+
+  private Map<String, Long> fileTypeHistogramCpuWithFind(Collection<INode> inodes, String find) {
+    String[] finds = find.split(":");
+    String findOp = finds[0];
+    String findField = finds[1];
+
+    List<String> fileTypes = FileTypeHistogram.keys;
     Map<String, Long> typeToIdMap =
         fileTypes
             .parallelStream()
@@ -1834,10 +1846,10 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             .collect(Collectors.toMap(fileTypes::get, value -> (long) value));
 
     Map<String, Long> histogram =
-        binMappingHistogram(
+        binMappingHistogramWithFind(
             inodes,
-            sum,
-            getSumFunctionForINode(sum),
+            findOp,
+            getFilterFunctionToLongForINode(findField),
             node -> typeToIdMap.get(FileTypeHistogram.determineType(node.getLocalName())),
             typeToIdMap);
 
@@ -1846,6 +1858,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
 
   /**
    * Creates a histogram representation of INodes where the X-axis represents a directory quota.
+   * WARNING: This should only ever be called with a "small" set of directory INodes!
    *
    * @param inodes the filtered inodes to operate with
    * @param sum the Y-axis type
@@ -1857,23 +1870,9 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> dirQuotaHistogramCpu(Collection<INode> inodes, String sum) {
-    List<String> distinctDirectories =
-        inodes.parallelStream().map(INode::getFullPathName).distinct().collect(Collectors.toList());
-
-    final AtomicLong id = new AtomicLong(0L);
-    Map<String, Long> dirToIdMap =
-        distinctDirectories
-            .parallelStream()
-            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
-
     Map<String, Long> histogram =
-        binMappingHistogram(
-            inodes,
-            sum,
-            getSumFunctionForINode(sum),
-            node -> dirToIdMap.get(node.getFullPathName()),
-            dirToIdMap);
-
+        genericSummingHistogram(
+            inodes.parallelStream(), INode::getFullPathName, getSumFunctionForINode(sum));
     return removeKeysOnConditional(histogram, "gte:0");
   }
 

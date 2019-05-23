@@ -124,6 +124,9 @@ public class FileTypeHistogram {
       Collections.unmodifiableList(
           Arrays.stream(Types.values()).map(Enum::name).collect(Collectors.toList()));
 
+  public static final Map<String, Integer> typeToIdMap =
+      keys.stream().mapToInt(keys::indexOf).boxed().collect(Collectors.toMap(keys::get, v -> v));
+
   /**
    * Method for determining the file type based on the file name.
    *
