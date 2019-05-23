@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.ANALYSIS_STATE;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
 import org.apache.hadoop.hdfs.server.namenode.Constants.HistogramOutput;
 import org.apache.hadoop.hdfs.server.namenode.INode;
@@ -82,14 +83,20 @@ public class SuggestionsEngine {
 
   private AtomicBoolean loaded;
   private int suggestionsReloadSleepMs;
+  private ANALYSIS_STATE currentState;
 
   public SuggestionsEngine() {
     this.cacheManager = new CacheManager();
     this.loaded = new AtomicBoolean(false);
+    this.currentState = ANALYSIS_STATE.SLEEP;
   }
 
   public boolean isLoaded() {
     return loaded.get();
+  }
+
+  public ANALYSIS_STATE getCurrentState() {
+    return currentState;
   }
 
   private Map<String, Long> getCachedMap(String innerMapName) {
@@ -115,6 +122,7 @@ public class SuggestionsEngine {
     long timer;
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.CAPACITY;
     try {
       FileSystem fs = nameNodeLoader.getFileSystem();
       capacity = fs.getStatus().getCapacity();
@@ -125,6 +133,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.capacity took: {} ms.", capacityFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.FILE_AGES;
     QueryEngine queryEngine = nameNodeLoader.getQueryEngine();
     final Map<String, Long> modTimeCount =
         queryEngine.modTimeHistogram(files, "count", null, "monthly");
@@ -134,15 +143,17 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.fileAges took: {} ms.", fileAgesFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.USERS;
     final Set<String> fileUsers =
-        files.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toSet());
+        files.parallelStream().map(INode::getUserName).collect(Collectors.toSet());
     final Set<String> dirUsers =
-        dirs.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toSet());
+        dirs.parallelStream().map(INode::getUserName).collect(Collectors.toSet());
     final Set<String> users = Sets.union(fileUsers, dirUsers);
     long uniqueUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.users took: {} ms.", uniqueUsersFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.DISKSPACE;
     final long diskspace = queryEngine.sum(files, "diskspaceConsumed");
     final Map<String, Long> diskspaceUsers =
         queryEngine.byUserHistogram(files, "diskspaceConsumed", null);
@@ -150,6 +161,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.diskspace took: {} ms.", diskspaceUsersFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.FILES_24H;
     final Collection<INode> files24h =
         queryEngine.combinedFilter(files, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
     final long numFiles24h = files24h.size();
@@ -161,6 +173,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.files24hr took: {} ms.", files24hUsersFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.FILES_1Y_2Y;
     final Collection<INode> oldFiles1yr =
         queryEngine.combinedFilter(
             files, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
@@ -179,6 +192,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.files1yr2yr took: {} ms.", oldFilesUsersFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.SYSTEM_FILTER;
     final Collection<INode> emptyFiles =
         queryEngine.combinedFilter(files, new String[] {"fileSize"}, new String[] {"eq:0"});
     final Collection<INode> emptyDirs =
@@ -198,6 +212,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.systemFilter took: {} ms.", systemFilterFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.SYSTEM_24H;
     final Collection<INode> emptyFiles24h =
         queryEngine.combinedFilter(
             emptyFiles, new String[] {"modTime"}, new String[] {"hoursAgo:24"});
@@ -214,6 +229,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.system24hr took: {} ms.", system24hFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.SYSTEM_1Y;
     final Collection<INode> emptyFiles1yr =
         queryEngine.combinedFilter(
             emptyFiles, new String[] {"accessTime"}, new String[] {"olderThanYears:1"});
@@ -230,6 +246,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.system1yr took: {} ms.", system1yrSuggFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.SYSTEM_COUNT;
     final long emptyFilesCount = emptyFiles.size();
     final long emptyDirsCount = emptyDirs.size();
     final long emptyFilesMem = queryEngine.sum(emptyFiles, "memoryConsumed");
@@ -268,12 +285,14 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.systemCount took: {} ms.", systemCountsFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.PER_USER_COUNT;
     final Map<String, Long> filesUsers = queryEngine.byUserHistogram(files, "count", null);
     final Map<String, Long> dirsUsers = queryEngine.byUserHistogram(dirs, "count", null);
     long perUserCountFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUserCount took: {} ms.", perUserCountFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.PER_USER_FILTER;
     final Map<String, Long> emptyFilesUsers =
         queryEngine.byUserHistogram(emptyFiles, "count", null);
     final Map<String, Long> emptyDirsUsers = queryEngine.byUserHistogram(emptyDirs, "count", null);
@@ -294,9 +313,10 @@ public class SuggestionsEngine {
           largeFilesUsers.put(u, largeFiles);
         });
     long perUserSuggFetchTime = System.currentTimeMillis() - timer;
-    LOG.info("Performing SuggestionsEngine.perUserSuggest took: {} ms.", perUserSuggFetchTime);
+    LOG.info("Performing SuggestionsEngine.perUserFilter took: {} ms.", perUserSuggFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.PER_USER_24H;
     final Map<String, Long> emptyFiles24hUsers =
         queryEngine.byUserHistogram(emptyFiles24h, "count", null);
     final Map<String, Long> emptyDirs24hUsers =
@@ -321,6 +341,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.perUser24h took: {} ms.", perUser24hSuggFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.PER_USER_1Y;
     final Map<String, Long> emptyFiles1yrUsers =
         queryEngine.byUserHistogram(emptyFiles1yr, "count", null);
     final Map<String, Long> emptyDirs1yrUsers =
@@ -333,6 +354,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.perUser1yr took: {} ms.", perUser1yrSuggFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.PER_USER_MEM;
     final Map<String, Long> emptyFilesMemUsers =
         queryEngine.byUserHistogram(emptyFiles, "memoryConsumed", null);
     final Map<String, Long> emptyDirsMemUsers =
@@ -345,6 +367,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.perUserMem took: {} ms.", perUserMemFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.PER_USER_DS;
     final Map<String, Long> tinyFilesDsUsers =
         queryEngine.byUserHistogram(tinyFiles, "diskspaceConsumed", null);
     final Map<String, Long> smallFilesDsUsers =
@@ -353,6 +376,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.perUserDs took: {} ms.", perUserDsFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.DIRECTORIES;
     Map<String, Long> dirCount = queryEngine.parentDirHistogram(files, 3, "count", null);
     Map<String, Long> dirDs = queryEngine.parentDirHistogram(files, 3, "diskspaceConsumed", null);
     dirCount = Histograms.sliceToTop(dirCount, 1000);
@@ -361,6 +385,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.directories took: {} ms.", directoriesFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.CACHED_DIRECTORIES;
     VirtualINodeTree tree = new VirtualINodeTree();
     cachedDirs.forEach(tree::addElement);
     List<String> commonRoots = tree.getCommonAncestorsAsStrings();
@@ -393,6 +418,7 @@ public class SuggestionsEngine {
         "Performing SuggestionsEngine.cachedDirectories took: {} ms.", cachedDirectoriesFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.DIRECTORIES_24H;
     Map<String, Long> dirCount24h = queryEngine.parentDirHistogram(files24h, 3, "count", null);
     dirCount24h = Histograms.sliceToTop(dirCount24h, 1000);
     Map<String, Long> dirDs24h =
@@ -411,6 +437,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.directories24h took: {} ms.", directories24hFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.CACHED_QUOTAS;
     long nsQuotaCount = 0;
     long dsQuotaCount = 0;
     long nsQuotaThreshCount = 0;
@@ -444,6 +471,7 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.cachedQuotas took: {} ms.", quotaFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.CACHED_LOGINS;
     cachedLogins.putAll(nameNodeLoader.getTokenExtractor().getTokenLastLogins());
     users.forEach(u -> cachedLogins.putIfAbsent(u, -1L));
     cachedLogins.keySet().removeIf(u -> !fileUsers.contains(u) && !dirUsers.contains(u));
@@ -555,10 +583,11 @@ public class SuggestionsEngine {
     HsqlDriver historyDbDriver = nameNodeLoader.getEmbeddedHistoryDatabaseDriver();
     if (historyDbDriver != null && nameNodeLoader.isInit() && nameNodeLoader.isHistorical()) {
       long s3 = System.currentTimeMillis();
+      currentState = ANALYSIS_STATE.HISTORY;
       try {
         historyDbDriver.logHistoryPerUser(cachedValues, cachedMaps, cachedUsers);
       } catch (SQLException e) {
-        LOG.info("Failed to write historical data due to: {}", e);
+        LOG.error("Failed to write historical data.", e);
       }
       long e3 = System.currentTimeMillis();
       LOG.info("Writing to embedded SQL DB took: {} ms.", (e3 - s3));
@@ -567,22 +596,25 @@ public class SuggestionsEngine {
     }
 
     long s4 = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.CACHED_QUERIES;
     try {
       performCustomQueries(nameNodeLoader);
     } catch (Exception e) {
-      LOG.error("Failed to write custom query data due to: {}", e);
+      LOG.error("Failed to write custom query data.", e);
     }
     long e4 = System.currentTimeMillis();
     LOG.info("Performing SuggestionsEngine.cachedQueries took: {} ms.", (e4 - s4));
 
     long s5 = System.currentTimeMillis();
+    currentState = ANALYSIS_STATE.WRITE_MAPDB;
     try {
       cacheManager.commit();
     } catch (Exception e) {
-      LOG.error("Failed to write cache data due to: {}", e);
+      LOG.error("Failed to write cache data.", e);
     }
     long e5 = System.currentTimeMillis();
     LOG.info("Writing to embedded MapDB took: {} ms.", (e5 - s5));
+    currentState = ANALYSIS_STATE.SLEEP;
   }
 
   public String getTokens() {
@@ -645,7 +677,6 @@ public class SuggestionsEngine {
     String queryType = params.get("queryType");
     switch (queryType) {
       case "filter":
-        break;
       case "histogram":
         break;
       default:
@@ -720,8 +751,7 @@ public class SuggestionsEngine {
         String sortDescendingStr = params.get("sortDescending");
         final Boolean sortDescending =
             sortDescendingStr == null ? null : Boolean.parseBoolean(sortDescendingStr);
-        final boolean rawTimestamps =
-            rawTimestampsStr != null && Boolean.parseBoolean(rawTimestampsStr);
+        final boolean rawTimestamps = Boolean.parseBoolean(rawTimestampsStr);
         String topStr = params.get("top");
         final Integer top = (topStr == null) ? null : Integer.parseInt(topStr);
         String bottomStr = params.get("bottom");
