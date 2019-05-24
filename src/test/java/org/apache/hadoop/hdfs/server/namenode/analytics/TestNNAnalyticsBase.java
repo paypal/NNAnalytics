@@ -23,7 +23,6 @@ import static org.apache.hadoop.hdfs.server.namenode.Constants.UNSECURED_ENDPOIN
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.StringContains.containsString;
@@ -63,14 +62,10 @@ import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.queries.Transforms;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -1244,36 +1239,6 @@ public abstract class TestNNAnalyticsBase {
     }
     System.out.println("Total # of completed query check for benchmarking: " + count);
     System.out.println("Total time taken in milliseconds: " + timeTaken);
-  }
-
-  @Test
-  public void testSQL1() throws IOException {
-    HttpPost post = new HttpPost("http://localhost:4567/sql");
-    List<NameValuePair> postParams = new ArrayList<>();
-    postParams.add(
-        new BasicNameValuePair("sqlStatement", "SELECT * FROM FILES WHERE fileSize = 0"));
-    post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
-    HttpResponse res = client.execute(hostPort, post);
-    if (res.getStatusLine().getStatusCode() != HttpStatus.SC_NOT_FOUND) {
-      List<String> text = IOUtils.readLines(res.getEntity().getContent());
-      assertThat(text.size(), is(greaterThan(100)));
-      assertThat(res.getStatusLine().getStatusCode(), is(HttpStatus.SC_OK));
-    }
-  }
-
-  @Test
-  public void testSQL2() throws IOException {
-    HttpPost post = new HttpPost("http://localhost:4567/sql");
-    List<NameValuePair> postParams = new ArrayList<>();
-    postParams.add(
-        new BasicNameValuePair("sqlStatement", "SELECT * FROM DIRS WHERE dirNumChildren = 0"));
-    post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
-    HttpResponse res = client.execute(hostPort, post);
-    if (res.getStatusLine().getStatusCode() != HttpStatus.SC_NOT_FOUND) {
-      List<String> text = IOUtils.readLines(res.getEntity().getContent());
-      assertThat(text.size(), is(0));
-      assertThat(res.getStatusLine().getStatusCode(), is(HttpStatus.SC_OK));
-    }
   }
 
   private static HashMap<INodeSet, HashMap<Find, ArrayList<FindField>>> getSetFilterFindConfig() {
