@@ -22,6 +22,9 @@ package org.apache.hadoop.hdfs.server.namenode.analytics;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Collection;
+import java.util.function.Function;
+import java.util.function.ToLongFunction;
+import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.hdfs.server.namenode.INode;
@@ -132,6 +135,30 @@ public class Helper {
     }
 
     return nameNodeLoader.getQueryEngine().combinedFilter(inodes, filters, filterOps);
+  }
+
+  /**
+   * Utility method for setting up filtering against NameNode.
+   *
+   * @param nameNodeLoader the NameNodeLoader
+   * @param set whether set of files or dirs
+   * @param filters the filter types
+   * @param filterOps the filter operations
+   * @return the inodes collection that passed the filter
+   */
+  public static Stream<INode> setFilters(
+      NameNodeLoader nameNodeLoader, String set, String[] filters, String[] filterOps) {
+    Collection<INode> inodes = nameNodeLoader.getINodeSet(set);
+
+    if (filters == null || filters.length == 0 || filterOps == null || filterOps.length == 0) {
+      return inodes.parallelStream();
+    }
+
+    return nameNodeLoader.getQueryEngine().combinedFilterToStream(inodes, filters, filterOps);
+  }
+
+  public static <T> ToLongFunction<T> convertToLongFunction(Function<T, Long> function) {
+    return function::apply;
   }
 
   /**

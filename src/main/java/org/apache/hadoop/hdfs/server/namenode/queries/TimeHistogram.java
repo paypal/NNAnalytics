@@ -20,10 +20,15 @@
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import org.apache.commons.lang.math.LongRange;
 
 public class TimeHistogram {
 
@@ -109,4 +114,149 @@ public class TimeHistogram {
       yearly_keys0.stream().map(k -> k / 365 + " Years").collect(Collectors.toList());
   private static final Long[] yearly_binsArray =
       yearly_keys0.stream().mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
+
+  private static final Map<String, LongRange> dailyRanges =
+      new HashMap<String, LongRange>() {
+        {
+          // Construct first range.
+          long priorBin = 0L;
+          String dailyKey = daily_keys.get(0);
+          long dailyBin = daily_binsArray[0];
+          put(dailyKey, new LongRange(priorBin, dailyBin));
+
+          // Construct middle ranges.
+          priorBin = dailyBin;
+          for (int i = 1; i < daily_keys.size(); i++) {
+            dailyKey = daily_keys.get(i);
+            dailyBin = daily_binsArray[i];
+            put(dailyKey, new LongRange(priorBin + 1, dailyBin));
+            priorBin = dailyBin;
+          }
+
+          // Construct last range.
+          String lastKey = daily_keys.get(daily_keys.size() - 1) + "+";
+          put(lastKey, new LongRange(priorBin + 1, Long.MAX_VALUE));
+        }
+      };
+
+  private static final Map<String, LongRange> weeklyRanges =
+      new HashMap<String, LongRange>() {
+        {
+          // Construct first range.
+          long priorBin = 0L;
+          String weeklyKey = weekly_keys.get(0);
+          long weeklyBin = weekly_binsArray[0];
+          put(weeklyKey, new LongRange(priorBin, weeklyBin));
+
+          // Construct middle ranges.
+          priorBin = weeklyBin;
+          for (int i = 1; i < weekly_keys.size(); i++) {
+            weeklyKey = weekly_keys.get(i);
+            weeklyBin = weekly_binsArray[i];
+            put(weeklyKey, new LongRange(priorBin + 1, weeklyBin));
+            priorBin = weeklyBin;
+          }
+
+          // Construct last range.
+          String lastKey = weekly_keys.get(weekly_keys.size() - 1) + "+";
+          put(lastKey, new LongRange(priorBin + 1, Long.MAX_VALUE));
+        }
+      };
+
+  private static final Map<String, LongRange> monthlyRanges =
+      new HashMap<String, LongRange>() {
+        {
+          // Construct first range.
+          long priorBin = 0L;
+          String monthlyKey = monthly_keys.get(0);
+          long monthlyBin = monthly_binsArray[0];
+          put(monthlyKey, new LongRange(priorBin, monthlyBin));
+
+          // Construct middle ranges.
+          priorBin = monthlyBin;
+          for (int i = 1; i < monthly_keys.size(); i++) {
+            monthlyKey = monthly_keys.get(i);
+            monthlyBin = monthly_binsArray[i];
+            put(monthlyKey, new LongRange(priorBin + 1, monthlyBin));
+            priorBin = monthlyBin;
+          }
+
+          // Construct last range.
+          String lastKey = monthly_keys.get(monthly_keys.size() - 1) + "+";
+          put(lastKey, new LongRange(priorBin + 1, Long.MAX_VALUE));
+        }
+      };
+
+  private static final Map<String, LongRange> yearlyRanges =
+      new HashMap<String, LongRange>() {
+        {
+          // Construct first range.
+          long priorBin = 0L;
+          String yearlyKey = yearly_keys.get(0);
+          long yearlyBin = yearly_binsArray[0];
+          put(yearlyKey, new LongRange(priorBin, yearlyBin));
+
+          // Construct middle ranges.
+          priorBin = yearlyBin;
+          for (int i = 1; i < yearly_keys.size(); i++) {
+            yearlyKey = yearly_keys.get(i);
+            yearlyBin = yearly_binsArray[i];
+            put(yearlyKey, new LongRange(priorBin + 1, yearlyBin));
+            priorBin = yearlyBin;
+          }
+
+          // Construct last range.
+          String lastKey = yearly_keys.get(yearly_keys.size() - 1) + "+";
+          put(lastKey, new LongRange(priorBin + 1, Long.MAX_VALUE));
+        }
+      };
+
+  /**
+   * Function method for use by the QueryEngine to assign histogram buckets.
+   *
+   * @param timeRange defined time range
+   * @return function mapping input time to bucket string
+   */
+  public static Function<Long, String> computeBucketFunction(String timeRange) {
+    TimeRange timeRangeEnum = TimeRange.valueOf(timeRange);
+    switch (timeRangeEnum) {
+      case daily:
+        return time -> {
+          for (Entry<String, LongRange> range : dailyRanges.entrySet()) {
+            if (range.getValue().containsLong(time)) {
+              return range.getKey();
+            }
+          }
+          return "NO_MAPPING";
+        };
+      case monthly:
+        return time -> {
+          for (Entry<String, LongRange> range : monthlyRanges.entrySet()) {
+            if (range.getValue().containsLong(time)) {
+              return range.getKey();
+            }
+          }
+          return "NO_MAPPING";
+        };
+      case yearly:
+        return time -> {
+          for (Entry<String, LongRange> range : yearlyRanges.entrySet()) {
+            if (range.getValue().containsLong(time)) {
+              return range.getKey();
+            }
+          }
+          return "NO_MAPPING";
+        };
+      case weekly:
+      default:
+        return time -> {
+          for (Entry<String, LongRange> range : weeklyRanges.entrySet()) {
+            if (range.getValue().containsLong(time)) {
+              return range.getKey();
+            }
+          }
+          return "NO_MAPPING";
+        };
+    }
+  }
 }

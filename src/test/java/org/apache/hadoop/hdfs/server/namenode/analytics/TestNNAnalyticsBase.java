@@ -562,6 +562,16 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testAccessTimeHistogramFindMaxFileSize() throws IOException {
+    HttpGet get =
+        new HttpGet("http://localhost:4567/histogram?set=files&type=accessTime&find=max:fileSize");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testAccessTimeHistogramTop10() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/histogram?set=all&type=accessTime&top=10");
     HttpResponse res = client.execute(hostPort, get);

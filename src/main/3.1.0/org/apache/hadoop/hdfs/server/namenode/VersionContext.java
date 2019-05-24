@@ -22,16 +22,17 @@ package org.apache.hadoop.hdfs.server.namenode;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
+import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.queries.StorageTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
@@ -181,12 +182,12 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpu(
-      Collection<INode> inodes, String sum, QueryEngine queryEngine) {
+      Stream<INode> inodes, String sum, QueryEngine queryEngine) {
     List<Long> storageIds = StorageTypeHistogram.bins;
     List<String> storageKeys = StorageTypeHistogram.keys;
 
     return queryEngine.genericSummingHistogram(
-        inodes.parallelStream(),
+        inodes,
         node -> {
           int index = storageIds.indexOf((long) node.getStoragePolicyID());
           if (index >= 0) {
@@ -199,25 +200,25 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public Map<String, Long> storageTypeHistogramCpuWithFind(
-      Collection<INode> inodes, String find, QueryEngine queryEngine) {
-    List<Long> distinctStorageIds = StorageTypeHistogram.bins;
-    List<String> distinctStorageKeys = StorageTypeHistogram.keys;
-    Map<String, Long> storageIdToIndexToKeyMap =
-        distinctStorageIds
-            .parallelStream()
-            .mapToInt(distinctStorageIds::indexOf)
-            .boxed()
-            .collect(Collectors.toMap(distinctStorageKeys::get, k -> (long) k));
+      Stream<INode> inodes, String find, QueryEngine queryEngine) {
+    List<Long> storageIds = StorageTypeHistogram.bins;
+    List<String> storageKeys = StorageTypeHistogram.keys;
+
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
-    return queryEngine.binMappingHistogramWithFind(
+    return queryEngine.genericFindingHistogram(
         inodes,
-        findOp,
-        queryEngine.getFilterFunctionToLongForINode(findField),
-        node -> (long) distinctStorageIds.indexOf((long) node.getStoragePolicyID()),
-        storageIdToIndexToKeyMap);
+        node -> {
+          int index = storageIds.indexOf((long) node.getStoragePolicyID());
+          if (index >= 0) {
+            return storageKeys.get(index);
+          }
+          return "NO_MAPPING";
+        },
+        Helper.convertToLongFunction(queryEngine.getFilterFunctionToLongForINode(findField)),
+        findOp);
   }
 
   @Override // VersionInterface

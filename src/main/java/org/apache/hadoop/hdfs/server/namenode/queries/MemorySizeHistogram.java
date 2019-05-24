@@ -22,8 +22,13 @@ package org.apache.hadoop.hdfs.server.namenode.queries;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang.math.LongRange;
 
 public class MemorySizeHistogram {
 
@@ -54,6 +59,34 @@ public class MemorySizeHistogram {
   private static final List<Long> bins = Arrays.asList(binsArray);
   private static final List<String> keys =
       bins.stream().map(MemorySizeHistogram::readableFileSize).collect(Collectors.toList());
+
+  private static final Map<String, LongRange> ranges =
+      new HashMap<String, LongRange>() {
+        {
+          put("0 B", new LongRange(0L));
+          put("256 B", new LongRange(1L, 256L));
+          put("512 B", new LongRange(257L, 512L));
+          put("768 B", new LongRange(513L, 768L));
+          put("1 KB", new LongRange(768L, kilobyteBase));
+          put("2 KB", new LongRange(kilobyteBase + 1, 2 * kilobyteBase));
+          put("4 KB", new LongRange(2 * kilobyteBase + 1, 4 * kilobyteBase));
+          put("8 KB", new LongRange(4 * kilobyteBase + 1, 8 * kilobyteBase));
+          put("16 KB", new LongRange(8 * kilobyteBase + 1, 16 * kilobyteBase));
+          put("32 KB", new LongRange(16 * kilobyteBase + 1, 32 * kilobyteBase));
+          put("64 KB", new LongRange(32 * kilobyteBase + 1, 64 * kilobyteBase));
+          put("64 KB+", new LongRange(64 * kilobyteBase, Long.MAX_VALUE));
+        }
+      };
+
+  public static final Function<Long, String> determineBucketFunction =
+      size -> {
+        for (Entry<String, LongRange> range : ranges.entrySet()) {
+          if (range.getValue().containsLong(size)) {
+            return range.getKey();
+          }
+        }
+        return "NO_MAPPING";
+      };
 
   private static String readableFileSize(long size) {
     if (size <= 0) {

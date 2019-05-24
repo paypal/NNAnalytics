@@ -63,6 +63,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -1519,11 +1520,10 @@ public class NamenodeAnalyticsMethods {
         final String type = request.getParameter("type");
         final String find = request.getParameter("find");
         final String rawTimestampsStr = request.getParameter("rawTimestamps");
-        final boolean rawTimestamps =
-            rawTimestampsStr != null && Boolean.parseBoolean(rawTimestampsStr);
+        final boolean rawTimestamps = Boolean.parseBoolean(rawTimestampsStr);
 
         QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
-        Collection<INode> filteredINodes = Helper.performFilters(nnLoader, set, filters, filterOps);
+        Stream<INode> filteredINodes = Helper.setFilters(nnLoader, set, filters, filterOps);
 
         Histogram htEnum = Histogram.valueOf(histType);
         Map<String, Function<INode, Long>> transformMap =
@@ -1791,54 +1791,73 @@ public class NamenodeAnalyticsMethods {
           try {
             switch (htEnum) {
               case user:
-                histogram = nnLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
+                histogram =
+                    nnLoader
+                        .getQueryEngine()
+                        .byUserHistogram(filteredINodes.parallelStream(), sum, find);
                 break;
               case group:
-                histogram = nnLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
+                histogram =
+                    nnLoader
+                        .getQueryEngine()
+                        .byGroupHistogram(filteredINodes.parallelStream(), sum, find);
                 break;
               case accessTime:
                 histogram =
                     nnLoader
                         .getQueryEngine()
-                        .accessTimeHistogram(filteredINodes, sum, find, timeRange);
+                        .accessTimeHistogram(filteredINodes.parallelStream(), sum, find, timeRange);
                 break;
               case modTime:
                 histogram =
                     nnLoader
                         .getQueryEngine()
-                        .modTimeHistogram(filteredINodes, sum, find, timeRange);
+                        .modTimeHistogram(filteredINodes.parallelStream(), sum, find, timeRange);
                 break;
               case fileSize:
-                histogram = nnLoader.getQueryEngine().fileSizeHistogram(filteredINodes, sum, find);
+                histogram =
+                    nnLoader
+                        .getQueryEngine()
+                        .fileSizeHistogram(filteredINodes.parallelStream(), sum, find);
                 break;
               case diskspaceConsumed:
                 histogram =
                     nnLoader
                         .getQueryEngine()
-                        .diskspaceConsumedHistogram(filteredINodes, sum, find, transformMap);
+                        .diskspaceConsumedHistogram(
+                            filteredINodes.parallelStream(), sum, find, transformMap);
                 break;
               case fileReplica:
                 histogram =
                     nnLoader
                         .getQueryEngine()
-                        .fileReplicaHistogram(filteredINodes, sum, find, transformMap);
+                        .fileReplicaHistogram(
+                            filteredINodes.parallelStream(), sum, find, transformMap);
                 break;
               case storageType:
                 histogram =
-                    nnLoader.getQueryEngine().storageTypeHistogram(filteredINodes, sum, find);
+                    nnLoader
+                        .getQueryEngine()
+                        .storageTypeHistogram(filteredINodes.parallelStream(), sum, find);
                 break;
               case memoryConsumed:
                 histogram =
-                    nnLoader.getQueryEngine().memoryConsumedHistogram(filteredINodes, sum, find);
+                    nnLoader
+                        .getQueryEngine()
+                        .memoryConsumedHistogram(filteredINodes.parallelStream(), sum, find);
                 break;
               case parentDir:
                 histogram =
                     nnLoader
                         .getQueryEngine()
-                        .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
+                        .parentDirHistogram(
+                            filteredINodes.parallelStream(), parentDirDepth, sum, find);
                 break;
               case fileType:
-                histogram = nnLoader.getQueryEngine().fileTypeHistogram(filteredINodes, sum, find);
+                histogram =
+                    nnLoader
+                        .getQueryEngine()
+                        .fileTypeHistogram(filteredINodes.parallelStream(), sum, find);
                 break;
               default:
                 throw new IllegalArgumentException(
