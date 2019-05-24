@@ -35,11 +35,7 @@ public class SpaceSizeHistogram {
   private static final long kilobyteBase = 1024L;
   private static final long megabyteBase = kilobyteBase * kilobyteBase;
   private static final long gigabyteBase = kilobyteBase * megabyteBase;
-  private static final DecimalFormat ONE_DECIMAL_FORMAT = new DecimalFormat("#0.0");
-
-  public static Long[] getBinsArray() {
-    return binsArray.clone();
-  }
+  private static final DecimalFormat NO_DECIMAL_FORMAT = new DecimalFormat("#0");
 
   public static List<String> getKeys() {
     return Collections.unmodifiableList(keys);
@@ -87,12 +83,18 @@ public class SpaceSizeHistogram {
   private static final List<String> keys =
       bins.stream().map(SpaceSizeHistogram::readableFileSize).collect(Collectors.toList());
 
+  static {
+    {
+      keys.add("1 GB+");
+    }
+  }
+
   private static String readableFileSize(long size) {
     if (size <= 0) {
       return "0 B";
     }
     String[] units = new String[] {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
     int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
-    return ONE_DECIMAL_FORMAT.format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    return NO_DECIMAL_FORMAT.format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
   }
 }

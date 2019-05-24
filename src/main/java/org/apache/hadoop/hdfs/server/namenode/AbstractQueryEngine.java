@@ -47,6 +47,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
+import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
@@ -689,12 +690,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     keys.forEach(histogram::remove);
 
     long e1 = System.currentTimeMillis();
-    LOG.info(
-        "Removing {} keys from histogram of size {} using conditional String:'{}', took: {} ms.",
-        keys.size(),
-        originalHistSize,
-        histogramConditionsStr,
-        (e1 - s1));
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "Removing {} keys from histogram of size {} using conditional String:'{}', took: {} ms.",
+          keys.size(),
+          originalHistSize,
+          histogramConditionsStr,
+          (e1 - s1));
+    }
 
     return histogram;
   }
@@ -728,12 +731,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     keys.forEach(histogram::remove);
 
     long e1 = System.currentTimeMillis();
-    LOG.info(
-        "Removing {} keys from histogram2 of size {} using conditional String:'{}', took: {} ms.",
-        keys.size(),
-        originalHistSize,
-        histogramConditionsStr,
-        (e1 - s1));
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "Removing {} keys from histogram2 of size {} using conditional String:'{}', took: {} ms.",
+          keys.size(),
+          originalHistSize,
+          histogramConditionsStr,
+          (e1 - s1));
+    }
 
     return histogram;
   }
@@ -927,6 +932,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
 
   private Map<String, Long> diskspaceConsumedHistogramCpu(
       Stream<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
+    List<String> keys = SpaceSizeHistogram.getKeys();
     Function<INode, Long> binFunc =
         getTransformFunction(
             getFilterFunctionToLongForINode("diskspaceConsumed"),
@@ -934,15 +940,17 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             "diskspaceConsumed");
     Function<INode, Long> sumFunc =
         getTransformFunction(getSumFunctionForINode(sum), transformMap, sum);
-
-    return genericSummingHistogram(
-        inodes,
-        node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
-        sumFunc);
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
+            sumFunc);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> diskspaceConsumedHistogramCpuWithFind(
       Stream<INode> inodes, String find, Map<String, Function<INode, Long>> transformMap) {
+    List<String> keys = SpaceSizeHistogram.getKeys();
     Function<INode, Long> binFunc =
         getTransformFunction(
             getFilterFunctionToLongForINode("diskspaceConsumed"),
@@ -951,11 +959,13 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return genericFindingHistogram(
-        inodes,
-        node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
-        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-        findOp);
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -976,6 +986,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> memoryConsumedHistogramCpu(Stream<INode> inodes, String sum) {
+    List<String> keys = MemorySizeHistogram.getKeys();
     Function<INode, Long> memConsumedFunction =
         node -> {
           long inodeSize = 150L;
@@ -984,13 +995,17 @@ public abstract class AbstractQueryEngine implements QueryEngine {
           }
           return inodeSize;
         };
-    return genericSummingHistogram(
-        inodes,
-        node -> MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
-        getSumFunctionForINode(sum));
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node ->
+                MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
+            getSumFunctionForINode(sum));
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> memoryConsumedHistogramCpuWithFind(Stream<INode> inodes, String find) {
+    List<String> keys = MemorySizeHistogram.getKeys();
     Function<INode, Long> memConsumedFunction =
         node -> {
           long inodeSize = 150L;
@@ -1003,11 +1018,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     String findOp = finds[0];
     String findField = finds[1];
 
-    return genericFindingHistogram(
-        inodes,
-        node -> MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
-        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-        findOp);
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node ->
+                MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -1027,21 +1045,29 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> fileSizeHistogramCpu(Stream<INode> inodes, String sum) {
-    return genericSummingHistogram(
-        inodes,
-        node -> SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
-        getSumFunctionForINode(sum));
+    List<String> keys = SpaceSizeHistogram.getKeys();
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node ->
+                SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
+            getSumFunctionForINode(sum));
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> fileSizeHistogramCpuWithFind(Stream<INode> inodes, String find) {
+    List<String> keys = SpaceSizeHistogram.getKeys();
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return genericFindingHistogram(
-        inodes,
-        node -> SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
-        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-        findOp);
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node ->
+                SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -1131,8 +1157,13 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       Stream<INode> inodes, String sum, String timeRange) {
     Function<INode, Long> timeDiffFunc = node -> System.currentTimeMillis() - node.getAccessTime();
     Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
-    return genericSummingHistogram(
-        inodes, node -> bucketingFunc.apply(timeDiffFunc.apply(node)), getSumFunctionForINode(sum));
+    List<String> keys = TimeHistogram.getKeys(timeRange);
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            getSumFunctionForINode(sum));
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> accessTimeHistogramCpuWithFind(
@@ -1143,11 +1174,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
 
     Function<INode, Long> timeDiffFunc = node -> System.currentTimeMillis() - node.getAccessTime();
     Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
-    return genericFindingHistogram(
-        inodes,
-        node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
-        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-        findOp);
+    List<String> keys = TimeHistogram.getKeys(timeRange);
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -1173,8 +1207,13 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Function<INode, Long> timeDiffFunc =
         node -> System.currentTimeMillis() - node.getModificationTime();
     Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
-    return genericSummingHistogram(
-        inodes, node -> bucketingFunc.apply(timeDiffFunc.apply(node)), getSumFunctionForINode(sum));
+    List<String> keys = TimeHistogram.getKeys(timeRange);
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            getSumFunctionForINode(sum));
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> modTimeHistogramCpuWithFind(
@@ -1186,11 +1225,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Function<INode, Long> timeDiffFunc =
         node -> System.currentTimeMillis() - node.getModificationTime();
     Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
-    return genericFindingHistogram(
-        inodes,
-        node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
-        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-        findOp);
+    List<String> keys = TimeHistogram.getKeys(timeRange);
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**

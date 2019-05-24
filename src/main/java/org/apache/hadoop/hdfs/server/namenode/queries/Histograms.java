@@ -67,7 +67,7 @@ public class Histograms {
 
     long e1 = System.currentTimeMillis();
     String gson = new Gson().toJson(data);
-    LOG.info(
+    LOG.debug(
         "Time to convert histogram to JSON (for chart.js) of "
             + gson.length()
             + " chars took: "
@@ -147,7 +147,7 @@ public class Histograms {
 
     long e1 = System.currentTimeMillis();
     String csv = sb.toString();
-    LOG.info(
+    LOG.debug(
         "Time to dump histogram2 to CSV String of {} chars took: {} ms.", csv.length(), (e1 - s1));
     return csv;
   }
@@ -187,80 +187,18 @@ public class Histograms {
   }
 
   /**
-   * Creates sorted histogram from given list of keys and values corresponding to the keys. As long
-   * as the keys are in sorted order the output histogram will be as well.
+   * Result is a histogram ordered by the key order.
    *
-   * @param keys list of keys for histogram ex: ["key1", "key2"]
-   * @param histogram corresponding values for the given keys ex: [100,200]
-   * @return map of input key and value as histogram ex: ["key1":100,"key2":200]
+   * @param map the output map
+   * @param keys the ordered key list
+   * @return histogram with 0s for empty keys and ordered by key list
    */
-  public static Map<String, Long> sortByKeys(List<String> keys, long[] histogram) {
-    if (histogram.length == 0) {
-      return Collections.emptyMap();
+  public static Map<String, Long> orderByKeyOrder(Map<String, Long> map, List<String> keys) {
+    LinkedHashMap<String, Long> orderedMap = new LinkedHashMap<>(map.size());
+    for (String key : keys) {
+      orderedMap.put(key, map.getOrDefault(key, 0L));
     }
-    Map<String, Long> sortedHistogram = new LinkedHashMap<>();
-    for (int i = 0; i < keys.size(); i++) {
-      String column = keys.get(i);
-      sortedHistogram.put(column, histogram[i]);
-    }
-    int lastColumnIndex = keys.size() - 1;
-    String lastColumn = keys.get(lastColumnIndex);
-    sortedHistogram.put(lastColumn + "+", histogram[lastColumnIndex + 1]);
-    return sortedHistogram;
-  }
-
-  /**
-   * Creates a mapped histogram based on the input and the keys that go with the input. The Map
-   * key's values are used an integers to index into the parameter long array.
-   *
-   * @param binKeyMap map of key and value index in histogram, ex: ["key1":1L,"key2":0L]
-   * @param histogram list of values for the keys, ex: [100,200]
-   * @return map of input key and value as histogram, ex: ["key1":200,"key2":100].
-   */
-  public static Map<String, Long> mapByKeys(Map<String, Long> binKeyMap, long[] histogram) {
-    if (histogram.length == 0) {
-      return Collections.emptyMap();
-    }
-    Map<String, Long> sortedHistogram = new LinkedHashMap<>();
-    for (Map.Entry<String, Long> entry : binKeyMap.entrySet()) {
-      sortedHistogram.put(entry.getKey(), histogram[entry.getValue().intValue()]);
-    }
-    int notMappedIndice = histogram.length - 1;
-    if (notMappedIndice >= 0) {
-      long notMappedSum = histogram[notMappedIndice];
-      if (notMappedSum != 0L) {
-        sortedHistogram.put("NO_MAPPING", notMappedSum);
-      }
-    }
-    return sortedHistogram;
-  }
-
-  /**
-   * Creates a mapped histogram based on the input and the keys that go with the input. Long array
-   * values are used as keys; any "0" values in array are not mapped.
-   *
-   * @param histogram list of long data point values, ex: [100,0,200,300]
-   * @return mapped histogram based on the input and the keys that go with the input, ex:
-   *     ["0":100,"2":200,"2+":300].
-   */
-  public static Map<String, Long> mapToNonEmptyIndex(long[] histogram) {
-    if (histogram.length == 0) {
-      return Collections.emptyMap();
-    }
-    Map<String, Long> sortedHistogram = new LinkedHashMap<>();
-    for (int i = 0; i < histogram.length; i++) {
-      long currentColumnValue = histogram[i];
-      if (currentColumnValue != 0L) {
-        sortedHistogram.put(Integer.toString(i), histogram[i]);
-      }
-    }
-    int lastColumnIndex = histogram.length - 1;
-    String lastColumn = Integer.toString(lastColumnIndex);
-    long lastColumnValue = histogram[lastColumnIndex];
-    if (lastColumnValue != 0L) {
-      sortedHistogram.put(lastColumn + "+", histogram[lastColumnIndex]);
-    }
-    return sortedHistogram;
+    return orderedMap;
   }
 
   /**

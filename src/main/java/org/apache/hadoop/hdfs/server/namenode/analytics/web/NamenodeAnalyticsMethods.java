@@ -92,9 +92,7 @@ import org.apache.hadoop.hdfs.server.namenode.Constants.Operation;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Transform;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
-import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
@@ -185,28 +183,6 @@ public class NamenodeAnalyticsMethods {
       securityContext.logout(request, response);
       usageMetrics.userLoggedOut(securityContext, request);
       return Response.ok().build();
-    } catch (Exception ex) {
-      return handleException(ex);
-    } finally {
-      after();
-    }
-  }
-
-  /** SQL is used query the CQEngine using SQL-like syntax. */
-  @POST
-  @Path("/sql")
-  @Produces(MediaType.TEXT_PLAIN)
-  public Response sql(MultivaluedMap<String, String> formData) {
-    try {
-      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
-      before();
-      QueryEngine queryEngine = nnLoader.getQueryEngine();
-      if (queryEngine instanceof JavaCollectionQEngine) {
-        ((JavaCollectionQEngine) queryEngine).sql(request, response, formData);
-        return Response.ok().type(MediaType.TEXT_PLAIN).build();
-      }
-      response.getWriter().write("QueryEngine does not support SQL syntax.");
-      return Response.status(HttpStatus.SC_NOT_FOUND).type(MediaType.TEXT_PLAIN).build();
     } catch (Exception ex) {
       return handleException(ex);
     } finally {

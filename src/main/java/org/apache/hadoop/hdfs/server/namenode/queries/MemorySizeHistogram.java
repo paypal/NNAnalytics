@@ -33,11 +33,7 @@ import org.apache.commons.lang.math.LongRange;
 public class MemorySizeHistogram {
 
   private static final long kilobyteBase = 1024L;
-  private static final DecimalFormat ONE_DECIMAL_FORMAT = new DecimalFormat("#0.0");
-
-  public static Long[] getBinsArray() {
-    return binsArray.clone();
-  }
+  private static final DecimalFormat NO_DECIMAL_FORMAT = new DecimalFormat("#0");
 
   public static List<String> getKeys() {
     return Collections.unmodifiableList(keys);
@@ -60,10 +56,15 @@ public class MemorySizeHistogram {
   private static final List<String> keys =
       bins.stream().map(MemorySizeHistogram::readableFileSize).collect(Collectors.toList());
 
+  static {
+    {
+      keys.add("64 KB+");
+    }
+  }
+
   private static final Map<String, LongRange> ranges =
       new HashMap<String, LongRange>() {
         {
-          put("0 B", new LongRange(0L));
           put("256 B", new LongRange(1L, 256L));
           put("512 B", new LongRange(257L, 512L));
           put("768 B", new LongRange(513L, 768L));
@@ -94,6 +95,6 @@ public class MemorySizeHistogram {
     }
     String[] units = new String[] {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
     int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
-    return ONE_DECIMAL_FORMAT.format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    return NO_DECIMAL_FORMAT.format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
   }
 }

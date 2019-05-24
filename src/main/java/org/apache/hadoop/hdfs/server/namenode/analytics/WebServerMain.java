@@ -76,9 +76,7 @@ import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Transform;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
-import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
@@ -317,21 +315,6 @@ public class WebServerMain implements ApplicationMain {
           res.header("Content-Type", "text/plain");
           secContext.logout(req, res);
           usageMetrics.userLoggedOut(secContext, req);
-          return res;
-        });
-
-    /* SQL is used query the CQEngine using SQL-like syntax. */
-    post(
-        "/sql",
-        (req, res) -> {
-          res.header("Access-Control-Allow-Origin", "*");
-          res.header("Content-Type", "text/plain");
-          QueryEngine queryEngine = nameNodeLoader.getQueryEngine();
-          if (queryEngine instanceof JavaCollectionQEngine) {
-            return ((JavaCollectionQEngine) queryEngine).sql(req.raw(), res.raw());
-          }
-          res.status(HttpStatus.SC_NOT_FOUND);
-          res.body("QueryEngine does not support SQL syntax.");
           return res;
         });
 

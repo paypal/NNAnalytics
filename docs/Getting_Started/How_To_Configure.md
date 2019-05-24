@@ -47,7 +47,7 @@ Definitions of configuration NNA-specific properties:
 * `nna.readonly.users=<comma-seperated list of usernames>` - An * enables all users as READERs.
 * `nna.cache.users=<comma-seperated list of usernames>` - An * enables all users as CACHE users.
 * `nna.localonly.users=<comma-seperated list of username:password pairs>` - Local-only accounts; recommended for any applications that intend to use NNA API.
-* `nna.query.engine.impl=<string>` - The full canonical class name of the QueryEngine implementation to use. Current existing implementations are `org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine` (recommended and the default) and `org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine` (currently experimental).
+* `nna.query.engine.impl=<string>` - The full canonical class name of the QueryEngine implementation to use. Current existing implementations are `org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine` (recommended and the default). If you wish to create your own you may change this property to load it.
 
 ** If you have a `/usr/local/nn-analytics/config/security.properties` file please rename it to `/usr/local/nn-analytics/config/application.properties`. The `security.properties` file is now deprecated. Eventually the new `application.properties` file will also be moved to an XML file in the style of other Hadoop ecosystem configurations.
 

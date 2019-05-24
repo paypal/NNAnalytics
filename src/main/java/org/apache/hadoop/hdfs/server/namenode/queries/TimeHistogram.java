@@ -40,28 +40,6 @@ public class TimeHistogram {
   }
 
   /**
-   * Get range of Longs that represent the time range desired.
-   *
-   * @param timeRange the time range desired
-   * @return long array representing time range desired.
-   */
-  public static Long[] getBinsArray(String timeRange) {
-    TimeRange timeRangeEnum = TimeRange.valueOf(timeRange);
-    switch (timeRangeEnum) {
-      case daily:
-        return daily_binsArray.clone();
-      case weekly:
-        return weekly_binsArray.clone();
-      case monthly:
-        return monthly_binsArray.clone();
-      case yearly:
-        return yearly_binsArray.clone();
-      default:
-        return weekly_binsArray.clone();
-    }
-  }
-
-  /**
    * Get range of Strings that represent the time range desired.
    *
    * @param timeRange the time range desired
@@ -115,6 +93,15 @@ public class TimeHistogram {
   private static final Long[] yearly_binsArray =
       yearly_keys0.stream().mapToLong(TimeUnit.DAYS::toMillis).boxed().toArray(Long[]::new);
 
+  static {
+    {
+      daily_keys.add("364 Days+");
+      weekly_keys.add("49 Weeks+");
+      monthly_keys.add("23 Months+");
+      yearly_keys.add("4 Years+");
+    }
+  }
+
   private static final Map<String, LongRange> dailyRanges =
       new HashMap<String, LongRange>() {
         {
@@ -126,7 +113,7 @@ public class TimeHistogram {
 
           // Construct middle ranges.
           priorBin = dailyBin;
-          for (int i = 1; i < daily_keys.size(); i++) {
+          for (int i = 1; i < daily_keys0.size(); i++) {
             dailyKey = daily_keys.get(i);
             dailyBin = daily_binsArray[i];
             put(dailyKey, new LongRange(priorBin + 1, dailyBin));
@@ -134,7 +121,7 @@ public class TimeHistogram {
           }
 
           // Construct last range.
-          String lastKey = daily_keys.get(daily_keys.size() - 1) + "+";
+          String lastKey = daily_keys.get(daily_keys0.size() - 1) + "+";
           put(lastKey, new LongRange(priorBin + 1, Long.MAX_VALUE));
         }
       };
@@ -150,7 +137,7 @@ public class TimeHistogram {
 
           // Construct middle ranges.
           priorBin = weeklyBin;
-          for (int i = 1; i < weekly_keys.size(); i++) {
+          for (int i = 1; i < weekly_keys0.size(); i++) {
             weeklyKey = weekly_keys.get(i);
             weeklyBin = weekly_binsArray[i];
             put(weeklyKey, new LongRange(priorBin + 1, weeklyBin));
@@ -158,7 +145,7 @@ public class TimeHistogram {
           }
 
           // Construct last range.
-          String lastKey = weekly_keys.get(weekly_keys.size() - 1) + "+";
+          String lastKey = weekly_keys.get(weekly_keys0.size() - 1) + "+";
           put(lastKey, new LongRange(priorBin + 1, Long.MAX_VALUE));
         }
       };
@@ -174,7 +161,7 @@ public class TimeHistogram {
 
           // Construct middle ranges.
           priorBin = monthlyBin;
-          for (int i = 1; i < monthly_keys.size(); i++) {
+          for (int i = 1; i < monthly_keys0.size(); i++) {
             monthlyKey = monthly_keys.get(i);
             monthlyBin = monthly_binsArray[i];
             put(monthlyKey, new LongRange(priorBin + 1, monthlyBin));
@@ -182,7 +169,7 @@ public class TimeHistogram {
           }
 
           // Construct last range.
-          String lastKey = monthly_keys.get(monthly_keys.size() - 1) + "+";
+          String lastKey = monthly_keys.get(monthly_keys0.size() - 1) + "+";
           put(lastKey, new LongRange(priorBin + 1, Long.MAX_VALUE));
         }
       };
@@ -198,7 +185,7 @@ public class TimeHistogram {
 
           // Construct middle ranges.
           priorBin = yearlyBin;
-          for (int i = 1; i < yearly_keys.size(); i++) {
+          for (int i = 1; i < yearly_keys0.size(); i++) {
             yearlyKey = yearly_keys.get(i);
             yearlyBin = yearly_binsArray[i];
             put(yearlyKey, new LongRange(priorBin + 1, yearlyBin));
@@ -206,7 +193,7 @@ public class TimeHistogram {
           }
 
           // Construct last range.
-          String lastKey = yearly_keys.get(yearly_keys.size() - 1) + "+";
+          String lastKey = yearly_keys.get(yearly_keys0.size() - 1) + "+";
           put(lastKey, new LongRange(priorBin + 1, Long.MAX_VALUE));
         }
       };
