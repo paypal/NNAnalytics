@@ -144,11 +144,13 @@ public class JavaStreamQueryEngine extends AbstractQueryEngine {
               + "\nPossible filters and operations available at /filters and /filterOps.");
     } finally {
       long end = System.currentTimeMillis();
-      LOG.info(
-          "Obtaining filter: {} with filterOps:{} took: {} ms.",
-          filter,
-          Arrays.asList(filterOps),
-          (end - start));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "Obtaining filter: {} with filterOps:{} took: {} ms.",
+            filter,
+            Arrays.asList(filterOps),
+            (end - start));
+      }
     }
   }
 }
