@@ -22,6 +22,7 @@ package org.apache.hadoop.hdfs.server.namenode;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
@@ -67,6 +68,11 @@ public interface QueryEngine {
       throws IOException;
 
   Map<String, Long> genericSummingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      Function<INode, Long> dataFunction);
+
+  Map<String, LongSummaryStatistics> genericSummarizingHistogram(
       Stream<INode> inodes,
       Function<INode, String> namingFunction,
       Function<INode, Long> dataFunction);

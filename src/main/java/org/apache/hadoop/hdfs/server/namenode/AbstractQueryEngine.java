@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -815,6 +816,25 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             namingFunction, Collectors.mapping(dataFunction, Collectors.summingLong(i -> i))));
   }
 
+  /**
+   * Produces Histogram for generic summarization. Primarily for use by SuggestionEngine where
+   * obtaining sum and count is vital.
+   *
+   * @param inodes inodes
+   * @param namingFunction function to string
+   * @param dataFunction function to long
+   * @return histogram of sums
+   */
+  @Override // QueryEngine
+  public Map<String, LongSummaryStatistics> genericSummarizingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      Function<INode, Long> dataFunction) {
+    return inodes.collect(
+        Collectors.groupingBy(
+            namingFunction, Collectors.mapping(dataFunction, Collectors.summarizingLong(i -> i))));
+  }
+
   @Override // QueryEngine
   public Map<String, Long> genericFindingHistogram(
       Stream<INode> inodes,
@@ -1346,7 +1366,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     return result;
   }
 
-  private Function<INode, String> getDirectoryAtDepthFunction(int dirDepth) {
+  public static Function<INode, String> getDirectoryAtDepthFunction(int dirDepth) {
     return node -> {
       try {
         INodeDirectory parent = node.getParent();

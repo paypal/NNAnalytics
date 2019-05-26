@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,7 +50,6 @@ import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.QueryChecker;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
-import org.apache.hadoop.util.VirtualINodeTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,12 +68,12 @@ public class SuggestionsEngine {
   public static final Logger LOG = LoggerFactory.getLogger(SuggestionsEngine.class.getName());
 
   private final CacheManager cacheManager;
+  private final CachedDirectories cachedDirectories;
 
   private Map<String, Long> cachedValues;
   private Map<String, Map<String, Long>> cachedMaps;
   private Map<String, Long> cachedLogins;
   private Set<String> cachedUsers;
-  private Set<String> cachedDirs;
   private Map<String, String> cachedQueries;
   private Map<String, Map<String, Long>> cachedUserNsQuotas;
   private Map<String, Map<String, Long>> cachedUserDsQuotas;
@@ -89,6 +87,7 @@ public class SuggestionsEngine {
   /** Main constructor. */
   public SuggestionsEngine() {
     this.cacheManager = new CacheManager();
+    this.cachedDirectories = new CachedDirectories();
     this.loaded = new AtomicBoolean(false);
     this.currentState = AnalysisState.sleep;
   }
@@ -195,6 +194,27 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.files1yr2yr took: {} ms.", oldFilesUsersFetchTime);
 
     timer = System.currentTimeMillis();
+    currentState = AnalysisState.perUserCount;
+    final Map<String, Long> filesUsers =
+        queryEngine.byUserHistogram(files.parallelStream(), "count", null);
+    final Map<String, Long> dirsUsers =
+        queryEngine.byUserHistogram(dirs.parallelStream(), "count", null);
+    long perUserCountFetchTime = System.currentTimeMillis() - timer;
+    LOG.info("Performing SuggestionsEngine.perUserCount took: {} ms.", perUserCountFetchTime);
+
+    timer = System.currentTimeMillis();
+    currentState = AnalysisState.directories;
+    Map<String, Long> dirCount =
+        queryEngine.parentDirHistogram(files.parallelStream(), 3, "count", null);
+    dirCount = Histograms.sliceToTop(dirCount, 1000);
+    Map<String, Long> dirDs =
+        queryEngine.parentDirHistogram(files.parallelStream(), 3, "diskspaceConsumed", null);
+    dirDs = Histograms.sliceToTop(dirDs, 1000);
+    cachedDirectories.analyze(queryEngine, files, dirCount, dirDs);
+    long directoriesFetchTime = System.currentTimeMillis() - timer;
+    LOG.info("Performing SuggestionsEngine.directories took: {} ms.", directoriesFetchTime);
+
+    timer = System.currentTimeMillis();
     currentState = AnalysisState.systemFilter;
     final Collection<INode> emptyFiles =
         queryEngine.combinedFilter(files, new String[] {"fileSize"}, new String[] {"eq:0"});
@@ -288,15 +308,6 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.systemCount took: {} ms.", systemCountsFetchTime);
 
     timer = System.currentTimeMillis();
-    currentState = AnalysisState.perUserCount;
-    final Map<String, Long> filesUsers =
-        queryEngine.byUserHistogram(files.parallelStream(), "count", null);
-    final Map<String, Long> dirsUsers =
-        queryEngine.byUserHistogram(dirs.parallelStream(), "count", null);
-    long perUserCountFetchTime = System.currentTimeMillis() - timer;
-    LOG.info("Performing SuggestionsEngine.perUserCount took: {} ms.", perUserCountFetchTime);
-
-    timer = System.currentTimeMillis();
     currentState = AnalysisState.perUserFilter;
     final Map<String, Long> emptyFilesUsers =
         queryEngine.byUserHistogram(emptyFiles.parallelStream(), "count", null);
@@ -383,50 +394,6 @@ public class SuggestionsEngine {
     LOG.info("Performing SuggestionsEngine.perUserDs took: {} ms.", perUserDsFetchTime);
 
     timer = System.currentTimeMillis();
-    currentState = AnalysisState.directories;
-    Map<String, Long> dirCount =
-        queryEngine.parentDirHistogram(files.parallelStream(), 3, "count", null);
-    Map<String, Long> dirDs =
-        queryEngine.parentDirHistogram(files.parallelStream(), 3, "diskspaceConsumed", null);
-    dirCount = Histograms.sliceToTop(dirCount, 1000);
-    dirDs = Histograms.sliceToTop(dirDs, 1000);
-    long directoriesFetchTime = System.currentTimeMillis() - timer;
-    LOG.info("Performing SuggestionsEngine.directories took: {} ms.", directoriesFetchTime);
-
-    timer = System.currentTimeMillis();
-    currentState = AnalysisState.cachedDirectories;
-    VirtualINodeTree tree = new VirtualINodeTree();
-    cachedDirs.forEach(tree::addElement);
-    List<String> commonRoots = tree.getCommonAncestorsAsStrings();
-
-    for (String commonRoot : commonRoots) {
-      Collection<INode> commonINodes =
-          queryEngine.combinedFilter(
-              files, new String[] {"path"}, new String[] {"startsWith:" + commonRoot});
-
-      for (String cachedDir : cachedDirs) {
-        if (!cachedDir.startsWith(commonRoot)) {
-          continue;
-        }
-        Collection<INode> inodes;
-        if (cachedDir.equals(commonRoot)) {
-          inodes = commonINodes;
-        } else {
-          inodes =
-              queryEngine.combinedFilter(
-                  commonINodes, new String[] {"path"}, new String[] {"startsWith:" + cachedDir});
-        }
-        long count = inodes.size();
-        long diskspaceConsumed = queryEngine.sum(inodes, "diskspaceConsumed");
-        dirCount.put(cachedDir, count);
-        dirDs.put(cachedDir, diskspaceConsumed);
-      }
-    }
-    long cachedDirectoriesFetchTime = System.currentTimeMillis() - timer;
-    LOG.info(
-        "Performing SuggestionsEngine.cachedDirectories took: {} ms.", cachedDirectoriesFetchTime);
-
-    timer = System.currentTimeMillis();
     currentState = AnalysisState.directories24h;
     Map<String, Long> dirCount24h =
         queryEngine.parentDirHistogram(files24h.parallelStream(), 3, "count", null);
@@ -434,15 +401,7 @@ public class SuggestionsEngine {
     Map<String, Long> dirDs24h =
         queryEngine.parentDirHistogram(files24h.parallelStream(), 3, "diskspaceConsumed", null);
     dirDs24h = Histograms.sliceToTop(dirDs24h, 1000);
-    for (String dir : cachedDirs) {
-      Collection<INode> inodes =
-          queryEngine.combinedFilter(
-              files24h, new String[] {"path"}, new String[] {"startsWith:" + dir});
-      long count = inodes.size();
-      long diskspaceConsumed = queryEngine.sum(inodes, "diskspaceConsumed");
-      dirCount24h.put(dir, count);
-      dirDs24h.put(dir, diskspaceConsumed);
-    }
+    cachedDirectories.analyze(queryEngine, files24h, dirCount24h, dirDs24h);
     long directories24hFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.directories24h took: {} ms.", directories24hFetchTime);
 
@@ -646,7 +605,7 @@ public class SuggestionsEngine {
     if (directory.endsWith("/")) {
       directory = directory.substring(0, directory.length() - 1);
     }
-    boolean existed = cachedDirs.add(directory);
+    boolean existed = cachedDirectories.add(directory);
     if (existed) {
       throw new IOException(directory + " already set for analysis.");
     }
@@ -665,14 +624,14 @@ public class SuggestionsEngine {
     if (directory.endsWith("/")) {
       directory = directory.substring(0, directory.length() - 1);
     }
-    boolean removed = cachedDirs.remove(directory);
+    boolean removed = cachedDirectories.remove(directory);
     if (!removed) {
       throw new FileNotFoundException(directory + " was not scheduled for analysis.");
     }
   }
 
   public Set<String> getDirectoriesForAnalysis() {
-    return cachedDirs;
+    return cachedDirectories.getCachedDirSet();
   }
 
   /**
@@ -845,100 +804,88 @@ public class SuggestionsEngine {
                 Helper.performFilters(nameNodeLoader, set, filters, filterOps, find);
             long value = nameNodeLoader.getQueryEngine().sum(filteredINodes, sum);
             cachedValueQueries.put(queryName, value);
-          } else {
+          } else if ("histogram".equals(queryType)) {
             Stream<INode> filteredINodes =
                 Helper.setFilters(nameNodeLoader, set, filters, filterOps);
-            switch (queryType) {
-              case "histogram":
-                String histogramType = params.get("type");
-                String timeRangeStr = params.get("timeRange");
-                String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
-                String parentDirDepthStr = params.get("parentDirDepth");
-                final Integer parentDirDepth =
-                    (parentDirDepthStr == null) ? null : Integer.parseInt(parentDirDepthStr);
-                Histogram htEnum = Histogram.valueOf(histogramType);
-                Map<String, Long> histogram;
-                switch (htEnum) {
-                  case user:
-                    histogram =
-                        nameNodeLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
-                    break;
-                  case group:
-                    histogram =
-                        nameNodeLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
-                    break;
-                  case accessTime:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .accessTimeHistogram(filteredINodes, sum, find, timeRange);
-                    break;
-                  case modTime:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .modTimeHistogram(filteredINodes, sum, find, timeRange);
-                    break;
-                  case fileSize:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .fileSizeHistogram(filteredINodes, sum, find);
-                    break;
-                  case diskspaceConsumed:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .diskspaceConsumedHistogram(
-                                filteredINodes, sum, find, Collections.emptyMap());
-                    break;
-                  case fileReplica:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .fileReplicaHistogram(
-                                filteredINodes, sum, find, Collections.emptyMap());
-                    break;
-                  case storageType:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .storageTypeHistogram(filteredINodes, sum, find);
-                    break;
-                  case memoryConsumed:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .memoryConsumedHistogram(filteredINodes, sum, find);
-                    break;
-                  case parentDir:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
-                    break;
-                  case fileType:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .fileTypeHistogram(filteredINodes, sum, find);
-                    break;
-                  case dirQuota:
-                    histogram =
-                        nameNodeLoader.getQueryEngine().dirQuotaHistogram(filteredINodes, sum);
-                    break;
-                  default:
-                    throw new IllegalArgumentException(
-                        "Could not determine histogram type: "
-                            + histogramType
-                            + ".\nPlease check /histograms for available histograms.");
-                }
-                cachedMapQueries.put(queryName, histogram);
+            String histogramType = params.get("type");
+            String timeRangeStr = params.get("timeRange");
+            String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
+            String parentDirDepthStr = params.get("parentDirDepth");
+            final Integer parentDirDepth =
+                (parentDirDepthStr == null) ? null : Integer.parseInt(parentDirDepthStr);
+            Histogram htEnum = Histogram.valueOf(histogramType);
+            Map<String, Long> histogram;
+            switch (htEnum) {
+              case user:
+                histogram =
+                    nameNodeLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
+                break;
+              case group:
+                histogram =
+                    nameNodeLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
+                break;
+              case accessTime:
+                histogram =
+                    nameNodeLoader
+                        .getQueryEngine()
+                        .accessTimeHistogram(filteredINodes, sum, find, timeRange);
+                break;
+              case modTime:
+                histogram =
+                    nameNodeLoader
+                        .getQueryEngine()
+                        .modTimeHistogram(filteredINodes, sum, find, timeRange);
+                break;
+              case fileSize:
+                histogram =
+                    nameNodeLoader.getQueryEngine().fileSizeHistogram(filteredINodes, sum, find);
+                break;
+              case diskspaceConsumed:
+                histogram =
+                    nameNodeLoader
+                        .getQueryEngine()
+                        .diskspaceConsumedHistogram(
+                            filteredINodes, sum, find, Collections.emptyMap());
+                break;
+              case fileReplica:
+                histogram =
+                    nameNodeLoader
+                        .getQueryEngine()
+                        .fileReplicaHistogram(filteredINodes, sum, find, Collections.emptyMap());
+                break;
+              case storageType:
+                histogram =
+                    nameNodeLoader.getQueryEngine().storageTypeHistogram(filteredINodes, sum, find);
+                break;
+              case memoryConsumed:
+                histogram =
+                    nameNodeLoader
+                        .getQueryEngine()
+                        .memoryConsumedHistogram(filteredINodes, sum, find);
+                break;
+              case parentDir:
+                histogram =
+                    nameNodeLoader
+                        .getQueryEngine()
+                        .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
+                break;
+              case fileType:
+                histogram =
+                    nameNodeLoader.getQueryEngine().fileTypeHistogram(filteredINodes, sum, find);
+                break;
+              case dirQuota:
+                histogram = nameNodeLoader.getQueryEngine().dirQuotaHistogram(filteredINodes, sum);
                 break;
               default:
                 throw new IllegalArgumentException(
-                    "Query type " + queryType + " is not a valid query.");
+                    "Could not determine histogram type: "
+                        + histogramType
+                        + ".\nPlease check /histograms for available histograms.");
             }
+            cachedMapQueries.put(queryName, histogram);
+          } else {
+            throw new IllegalArgumentException(
+                "Query type " + queryType + " is not a valid query.");
           }
         });
   }
@@ -1218,7 +1165,7 @@ public class SuggestionsEngine {
    */
   public void start(ApplicationConfiguration conf) throws IOException {
     cacheManager.start(conf);
-    this.cachedDirs = Collections.synchronizedSet(cacheManager.getCachedSet("cachedDirs"));
+    this.cachedDirectories.start(cacheManager);
     this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));
     this.cachedValues = Collections.synchronizedMap(cacheManager.getCachedMap("cachedValues"));
     this.cachedLogins = Collections.synchronizedMap(cacheManager.getCachedMap("cachedLogins"));

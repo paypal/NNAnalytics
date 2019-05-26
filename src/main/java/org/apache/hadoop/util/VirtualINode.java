@@ -30,6 +30,8 @@ public class VirtualINode {
   private int score;
 
   private List<VirtualINode> children;
+  /* Mark used to tell if analyzed already */
+  private boolean marked;
 
   /**
    * VirtualINode constructor.
@@ -42,6 +44,7 @@ public class VirtualINode {
     this.children = new ArrayList<>();
     this.data = nodeValue;
     this.score = 0;
+    this.marked = false;
   }
 
   public VirtualINode parent() {
@@ -107,5 +110,17 @@ public class VirtualINode {
   @Override
   public String toString() {
     return data;
+  }
+
+  public void unmark() {
+    this.marked = false;
+  }
+
+  public void mark() {
+    this.marked = true;
+  }
+
+  public boolean isMarked() {
+    return marked;
   }
 }
