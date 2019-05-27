@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -52,6 +53,7 @@ import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.QueryChecker;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
+import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,10 +144,27 @@ public class SuggestionsEngine {
     timer = System.currentTimeMillis();
     currentState = AnalysisState.fileAges;
     QueryEngine queryEngine = nameNodeLoader.getQueryEngine();
+    Function<INode, Long> timeDiffFunc =
+        node -> System.currentTimeMillis() - node.getModificationTime();
+    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction("monthly");
+    List<String> keys = TimeHistogram.getKeys("monthly");
+    Map<String, LongSummaryStatistics> modTimeCountAndDisk =
+        queryEngine.genericSummarizingHistogram(
+            files.parallelStream(),
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            queryEngine.getSumFunctionForINode("diskspaceConsumed"));
     final Map<String, Long> modTimeCount =
-        queryEngine.modTimeHistogram(files.parallelStream(), "count", null, "monthly");
+        Histograms.orderByKeyOrder(modTimeCountAndDisk
+                .entrySet()
+                .parallelStream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getCount())),
+            keys);
     final Map<String, Long> modTimeDiskspace =
-        queryEngine.modTimeHistogram(files.parallelStream(), "diskspaceConsumed", null, "monthly");
+        Histograms.orderByKeyOrder(modTimeCountAndDisk
+                .entrySet()
+                .parallelStream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getSum())),
+            keys);
     long fileAgesFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.fileAges took: {} ms.", fileAgesFetchTime);
 
@@ -453,7 +472,7 @@ public class SuggestionsEngine {
     currentState = AnalysisState.directories24h;
     Map<String, LongSummaryStatistics> dirCountAndDisk24h =
         queryEngine.genericSummarizingHistogram(
-            files.parallelStream(),
+            files24h.parallelStream(),
             Helper.getDirectoryAtDepthFunction(3),
             queryEngine.getSumFunctionForINode("diskspaceConsumed"));
     dirCountAndDisk24h.remove("NO_MAPPING");
