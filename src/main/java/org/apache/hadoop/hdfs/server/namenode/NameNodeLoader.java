@@ -514,6 +514,12 @@ public class NameNodeLoader {
     return queryEngine.getINodeSet(set);
   }
 
+  /**
+   * Perform a content summary call against the underlying FSNamesystem.
+   *
+   * @param path the dir/file path to call content summary on
+   * @return a summary of the subtree or file
+   */
   public ContentSummary getContentSummary(String path) {
     try {
       return namesystem.getContentSummary(path);
