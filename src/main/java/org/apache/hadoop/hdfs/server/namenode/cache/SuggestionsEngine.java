@@ -100,6 +100,10 @@ public class SuggestionsEngine {
     return currentState;
   }
 
+  public void setCurrentState(AnalysisState state) {
+    this.currentState = state;
+  }
+
   private Map<String, Long> getCachedMap(String innerMapName) {
     return cachedMaps.getOrDefault(innerMapName, Collections.emptyMap());
   }

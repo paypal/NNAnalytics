@@ -40,6 +40,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.AnalysisState;
 import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.WebServerMain;
@@ -541,6 +542,7 @@ public class NameNodeLoader {
         internalService.submit(
             () -> {
               while (true) {
+                suggestionsEngine.setCurrentState(AnalysisState.sleep);
                 try {
                   suggestionsEngine.reloadSuggestions(this);
                 } catch (Throwable e) {
@@ -549,6 +551,7 @@ public class NameNodeLoader {
                     LOG.info(element.toString());
                   }
                 }
+                suggestionsEngine.setCurrentState(AnalysisState.sleep);
                 try {
                   Thread.sleep(conf.getSuggestionsReloadSleepMs());
                 } catch (InterruptedException ex) {

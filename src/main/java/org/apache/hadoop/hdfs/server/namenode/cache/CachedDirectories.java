@@ -21,6 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -65,11 +66,16 @@ public class CachedDirectories {
    */
   public void analyze(
       NameNodeLoader nnLoader, Map<String, Long> countMap, Map<String, Long> diskspaceMap) {
+    /* Make an in-mem copy of the cachedDirs so we can parallelize the stream. */
+    HashSet<String> inMemCachedDirsCopy = new HashSet<>(cachedDirs);
     Map<String, ContentSummary> contentSummaries =
-        cachedDirs
+        inMemCachedDirsCopy
             .parallelStream()
             .collect(Collectors.toMap(Function.identity(), nnLoader::getContentSummary));
     for (Entry<String, ContentSummary> entry : contentSummaries.entrySet()) {
+      if (entry.getKey() == null || entry.getValue() == null) {
+        continue;
+      }
       countMap.put(entry.getKey(), entry.getValue().getFileCount());
       diskspaceMap.put(entry.getKey(), entry.getValue().getSpaceConsumed());
     }
