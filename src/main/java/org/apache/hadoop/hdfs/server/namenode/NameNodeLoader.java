@@ -400,6 +400,9 @@ public class NameNodeLoader {
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
 
+      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_CONTENT_SUMMARY_LIMIT_KEY, 0);
+      conf.setInt(DFSConfigKeys.DFS_CONTENT_SUMMARY_LIMIT_KEY, 0);
+
       String baseDir = nnaConf.getBaseDir();
       LOG.info("Setting: {} to: {}/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir);
       conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, new URI(baseDir + "/dfs/name").getPath());

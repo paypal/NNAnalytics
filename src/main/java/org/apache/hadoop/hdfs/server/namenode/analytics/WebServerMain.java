@@ -920,8 +920,10 @@ public class WebServerMain implements ApplicationMain {
                     transformFieldsStr,
                     transformOutputsStr,
                     nameNodeLoader);
-            Map<String, Long> histogram;
+
             final long startTime = System.currentTimeMillis();
+
+            Map<String, Long> histogram;
             String binLabels;
 
             nameNodeLoader.namesystemWriteLock(useLock);

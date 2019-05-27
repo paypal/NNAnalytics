@@ -27,7 +27,9 @@ import java.util.function.ToLongFunction;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.server.namenode.INode;
+import org.apache.hadoop.hdfs.server.namenode.INodeDirectory;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.queries.BaseQuery;
 import org.apache.hadoop.io.IOUtils;
@@ -273,6 +275,30 @@ public class Helper {
       return filterOps;
     }
     return null;
+  }
+
+  /**
+   * Returns function that maps an inode to its parent directory down to a specific depth.
+   *
+   * @param dirDepth the depth of the parent to fetch
+   * @return a function
+   */
+  public static Function<INode, String> getDirectoryAtDepthFunction(int dirDepth) {
+    return node -> {
+      try {
+        INodeDirectory parent = node.getParent();
+        int topParentDepth = new Path(parent.getFullPathName()).depth();
+        if (topParentDepth < dirDepth) {
+          return "NO_MAPPING";
+        }
+        for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
+          parent = parent.getParent();
+        }
+        return parent.getFullPathName().intern();
+      } catch (Exception e) {
+        return "NO_MAPPING";
+      }
+    };
   }
 
   /**

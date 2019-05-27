@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 public class CachedDirectories {
 
   public static final Logger LOG = LoggerFactory.getLogger(SuggestionsEngine.class.getName());
+
   private Set<String> cachedDirs;
 
   public void start(CacheManager cacheManager) {
@@ -66,6 +67,8 @@ public class CachedDirectories {
    */
   public void analyze(
       NameNodeLoader nnLoader, Map<String, Long> countMap, Map<String, Long> diskspaceMap) {
+    long start = System.currentTimeMillis();
+
     /* Make an in-mem copy of the cachedDirs so we can parallelize the stream. */
     HashSet<String> inMemCachedDirsCopy = new HashSet<>(cachedDirs);
     Map<String, ContentSummary> contentSummaries =
@@ -79,6 +82,12 @@ public class CachedDirectories {
       countMap.put(entry.getKey(), entry.getValue().getFileCount());
       diskspaceMap.put(entry.getKey(), entry.getValue().getSpaceConsumed());
     }
+
+    long end = System.currentTimeMillis();
+    LOG.info(
+        "Performed cached directory analysis using getContentSummary calls in: "
+            + (end - start)
+            + "ms.");
   }
 
   /**
@@ -94,6 +103,8 @@ public class CachedDirectories {
       Collection<INode> inodeSet,
       Map<String, Long> countMap,
       Map<String, Long> diskspaceMap) {
+    long start = System.currentTimeMillis();
+
     VirtualINodeTree tree = new VirtualINodeTree();
     cachedDirs.forEach(tree::addElement);
     List<String> commonRoots = tree.getCommonAncestorsAsStrings();
@@ -121,5 +132,9 @@ public class CachedDirectories {
         diskspaceMap.put(cachedDir, diskspaceConsumed);
       }
     }
+
+    long end = System.currentTimeMillis();
+    LOG.info(
+        "Performed cached directory analysis using VirtualINodeTree in: " + (end - start) + "ms.");
   }
 }

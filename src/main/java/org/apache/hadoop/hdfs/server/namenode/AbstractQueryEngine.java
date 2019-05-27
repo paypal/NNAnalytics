@@ -1343,7 +1343,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
 
     Map<String, Long> result =
         genericSummingHistogram(
-            inodes, getDirectoryAtDepthFunction(dirDepth), getSumFunctionForINode(sum));
+            inodes, Helper.getDirectoryAtDepthFunction(dirDepth), getSumFunctionForINode(sum));
     result.remove("NO_MAPPING");
     return result;
   }
@@ -1359,35 +1359,11 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Map<String, Long> result =
         genericFindingHistogram(
             inodes,
-            getDirectoryAtDepthFunction(dirDepth),
+            Helper.getDirectoryAtDepthFunction(dirDepth),
             Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
             findOp);
     result.remove("NO_MAPPING");
     return result;
-  }
-
-  /**
-   * Returns function that maps an inode to its parent directory down to a specific depth.
-   *
-   * @param dirDepth the depth of the parent to fetch
-   * @return a function
-   */
-  public static Function<INode, String> getDirectoryAtDepthFunction(int dirDepth) {
-    return node -> {
-      try {
-        INodeDirectory parent = node.getParent();
-        int topParentDepth = new Path(parent.getFullPathName()).depth();
-        if (topParentDepth < dirDepth) {
-          return "NO_MAPPING";
-        }
-        for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-          parent = parent.getParent();
-        }
-        return parent.getFullPathName().intern();
-      } catch (Exception e) {
-        return "NO_MAPPING";
-      }
-    };
   }
 
   /**
