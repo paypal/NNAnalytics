@@ -34,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -511,6 +512,15 @@ public class NameNodeLoader {
    */
   public Collection<INode> getINodeSet(String set) {
     return queryEngine.getINodeSet(set);
+  }
+
+  public ContentSummary getContentSummary(String path) {
+    try {
+      return namesystem.getContentSummary(path);
+    } catch (IOException e) {
+      LOG.error("Error with getContentSummary.", e);
+    }
+    return null;
   }
 
   /**

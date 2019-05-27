@@ -210,7 +210,7 @@ public class SuggestionsEngine {
     Map<String, Long> dirDs =
         queryEngine.parentDirHistogram(files.parallelStream(), 3, "diskspaceConsumed", null);
     dirDs = Histograms.sliceToTop(dirDs, 1000);
-    cachedDirectories.analyze(queryEngine, files, dirCount, dirDs);
+    cachedDirectories.analyze(nameNodeLoader, dirCount, dirDs);
     long directoriesFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.directories took: {} ms.", directoriesFetchTime);
 

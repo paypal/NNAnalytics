@@ -1366,6 +1366,12 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     return result;
   }
 
+  /**
+   * Returns function that maps an inode to its parent directory down to a specific depth.
+   *
+   * @param dirDepth the depth of the parent to fetch
+   * @return a function
+   */
   public static Function<INode, String> getDirectoryAtDepthFunction(int dirDepth) {
     return node -> {
       try {
