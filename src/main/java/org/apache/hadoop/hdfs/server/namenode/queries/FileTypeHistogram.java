@@ -63,7 +63,16 @@ public class FileTypeHistogram {
     JS,
     YAML,
     SPLIT,
-    SPLITMETAINFO
+    SPLITMETAINFO,
+    MP3,
+    WAV,
+    JPEG,
+    PNG,
+    WAR,
+    PYTHON,
+    JAVA,
+    CLASS,
+    LOCK
   }
 
   private static final Map<String, String> startsWithMap =
@@ -117,6 +126,16 @@ public class FileTypeHistogram {
           put(".yml", Types.YAML.name());
           put(".split", Types.SPLIT.name());
           put(".splitmetainfo", Types.SPLITMETAINFO.name());
+          put(".mp3", Types.MP3.name());
+          put(".wav", Types.WAV.name());
+          put(".jpg", Types.JPEG.name());
+          put(".jpeg", Types.JPEG.name());
+          put(".png", Types.PNG.name());
+          put(".war", Types.WAR.name());
+          put(".py", Types.PYTHON.name());
+          put(".java", Types.JAVA.name());
+          put(".class", Types.CLASS.name());
+          put(".lock", Types.LOCK.name());
         }
       };
 
