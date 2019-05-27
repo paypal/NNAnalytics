@@ -214,10 +214,21 @@ public class SuggestionsEngine {
     final Stream<INode> oldFiles2yr =
         queryEngine.combinedFilterToStream(
             files, new String[] {"accessTime"}, new String[] {"olderThanYears:2"});
+    Map<String, LongSummaryStatistics> oldFiles2yrCountAndDisk =
+        queryEngine.genericSummarizingHistogram(
+            oldFiles2yr,
+            INode::getUserName,
+            queryEngine.getSumFunctionForINode("diskspaceConsumed"));
     final Map<String, Long> oldFiles2yrCountUsers =
-        queryEngine.byUserHistogram(oldFiles2yr, "count", null);
+        oldFiles2yrCountAndDisk
+            .entrySet()
+            .parallelStream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getCount()));
     final Map<String, Long> oldFiles2yrDsUsers =
-        queryEngine.byUserHistogram(oldFiles2yr, "diskspaceConsumed", null);
+        oldFiles2yrCountAndDisk
+            .entrySet()
+            .parallelStream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getSum()));
     long oldFilesUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.files1yr2yr took: {} ms.", oldFilesUsersFetchTime);
 
