@@ -125,33 +125,27 @@ public class CachedQuotas {
                                     / summary.getQuota()));
                       }
                     }));
-    ownerAndDirs
-        .entrySet()
-        .parallelStream()
-        .forEach(
-            entry -> {
-              String user = entry.getKey();
-              Map<String, Long> nsQuotaRatio =
-                  entry
-                      .getValue()
-                      .parallelStream()
-                      .collect(Collectors.toMap(Function.identity(), dirNsQuotaRatio::get));
-              Map<String, Long> dsQuotaRatio =
-                  entry
-                      .getValue()
-                      .parallelStream()
-                      .collect(Collectors.toMap(Function.identity(), dirDsQuotaRatio::get));
-              final long nsThreshExceeded =
-                  nsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
-              final long dsThreshExceeded =
-                  dsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
-              cachedUserNsQuotas.put(user, nsQuotaRatio);
-              cachedUserDsQuotas.put(user, dsQuotaRatio);
-              nsQuotaThreshCountsUsers.put(user, nsThreshExceeded);
-              dsQuotaThreshCountsUsers.put(user, dsThreshExceeded);
-              nsQuotaCountsUsers.put(user, (long) nsQuotaRatio.size());
-              dsQuotaCountsUsers.put(user, (long) dsQuotaRatio.size());
-            });
+    ownerAndDirs.forEach(
+        (user, dirList) -> {
+          Map<String, Long> nsQuotaRatio =
+              dirList
+                  .parallelStream()
+                  .collect(Collectors.toMap(Function.identity(), dirNsQuotaRatio::get));
+          Map<String, Long> dsQuotaRatio =
+              dirList
+                  .parallelStream()
+                  .collect(Collectors.toMap(Function.identity(), dirDsQuotaRatio::get));
+          final long nsThreshExceeded =
+              nsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
+          final long dsThreshExceeded =
+              dsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
+          cachedUserNsQuotas.put(user, nsQuotaRatio);
+          cachedUserDsQuotas.put(user, dsQuotaRatio);
+          nsQuotaThreshCountsUsers.put(user, nsThreshExceeded);
+          dsQuotaThreshCountsUsers.put(user, dsThreshExceeded);
+          nsQuotaCountsUsers.put(user, (long) nsQuotaRatio.size());
+          dsQuotaCountsUsers.put(user, (long) dsQuotaRatio.size());
+        });
   }
 
   public Map<String, Long> getDiskQuotaUsed(String user) {
