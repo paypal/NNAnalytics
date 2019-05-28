@@ -488,8 +488,8 @@ public class SuggestionsEngine {
             .entrySet()
             .parallelStream()
             .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getSum()));
-    dirDs = Histograms.sliceToTop(dirDs24h, 1000);
-    dirCount = Histograms.sliceToTop(dirCount24h, 1000);
+    dirDs24h = Histograms.sliceToTop(dirDs24h, 1000);
+    dirCount24h = Histograms.sliceToTop(dirCount24h, 1000);
     currentState = AnalysisState.cachedDirectories24h;
     cachedDirectories.analyze(queryEngine, files24h, dirCount24h, dirDs24h);
     long directories24hFetchTime = System.currentTimeMillis() - timer;
