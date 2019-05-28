@@ -291,7 +291,7 @@ public abstract class TestWithMiniClusterBase {
           break;
       }
       if (dirNumber1 == 1) {
-        fileSystem.setQuota(filePath.getParent(), 9999999L, 100000000000000L);
+        fileSystem.setQuota(filePath.getParent(), 100L, 100000000000L);
       }
       int user = RANDOM.nextInt(3);
       switch (user) {

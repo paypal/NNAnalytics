@@ -73,14 +73,13 @@ public class SuggestionsEngine {
 
   private final CacheManager cacheManager;
   private final CachedDirectories cachedDirectories;
+  private final CachedQuotas cachedQuotas;
 
   private Map<String, Long> cachedValues;
   private Map<String, Map<String, Long>> cachedMaps;
   private Map<String, Long> cachedLogins;
   private Set<String> cachedUsers;
   private Map<String, String> cachedQueries;
-  private Map<String, Map<String, Long>> cachedUserNsQuotas;
-  private Map<String, Map<String, Long>> cachedUserDsQuotas;
   private Map<String, Long> cachedValueQueries;
   private Map<String, Map<String, Long>> cachedMapQueries;
 
@@ -92,6 +91,7 @@ public class SuggestionsEngine {
   public SuggestionsEngine() {
     this.cacheManager = new CacheManager();
     this.cachedDirectories = new CachedDirectories();
+    this.cachedQuotas = new CachedQuotas();
     this.loaded = new AtomicBoolean(false);
     this.currentState = AnalysisState.sleep;
   }
@@ -154,13 +154,15 @@ public class SuggestionsEngine {
             node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
             queryEngine.getSumFunctionForINode("diskspaceConsumed"));
     final Map<String, Long> modTimeCount =
-        Histograms.orderByKeyOrder(modTimeCountAndDisk
+        Histograms.orderByKeyOrder(
+            modTimeCountAndDisk
                 .entrySet()
                 .parallelStream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getCount())),
             keys);
     final Map<String, Long> modTimeDiskspace =
-        Histograms.orderByKeyOrder(modTimeCountAndDisk
+        Histograms.orderByKeyOrder(
+            modTimeCountAndDisk
                 .entrySet()
                 .parallelStream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getSum())),
@@ -495,37 +497,25 @@ public class SuggestionsEngine {
 
     timer = System.currentTimeMillis();
     currentState = AnalysisState.cachedQuotas;
-    long nsQuotaCount = 0;
-    long dsQuotaCount = 0;
-    long nsQuotaThreshCount = 0;
-    long dsQuotaThreshCount = 0;
-    final Map<String, Long> nsQuotaThreshCountsUsers = new HashMap<>();
-    final Map<String, Long> dsQuotaThreshCountsUsers = new HashMap<>();
-    final Map<String, Long> nsQuotaCountsUsers = new HashMap<>();
-    final Map<String, Long> dsQuotaCountsUsers = new HashMap<>();
-    for (String user : users) {
-      Collection<INode> quotaDirs =
-          queryEngine.combinedFilter(
-              dirs, new String[] {"user", "hasQuota"}, new String[] {"eq:" + user, "eq:true"});
-      Map<String, Long> nsQuotaRatio =
-          queryEngine.dirQuotaHistogram(quotaDirs.parallelStream(), "nsQuotaRatioUsed");
-      Map<String, Long> dsQuotaRatio =
-          queryEngine.dirQuotaHistogram(quotaDirs.parallelStream(), "dsQuotaRatioUsed");
-      final long nsThreshExceeded =
-          nsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
-      final long dsThreshExceeded =
-          dsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
-      cachedUserNsQuotas.put(user, nsQuotaRatio);
-      cachedUserDsQuotas.put(user, dsQuotaRatio);
-      nsQuotaThreshCountsUsers.put(user, nsThreshExceeded);
-      dsQuotaThreshCountsUsers.put(user, dsThreshExceeded);
-      nsQuotaCount += nsQuotaRatio.size();
-      dsQuotaCount += dsQuotaRatio.size();
-      nsQuotaThreshCount += nsThreshExceeded;
-      dsQuotaThreshCount += dsThreshExceeded;
-      nsQuotaCountsUsers.put(user, (long) nsQuotaRatio.size());
-      dsQuotaCountsUsers.put(user, (long) dsQuotaRatio.size());
-    }
+    Map<String, Long> dsQuotaCountsUsers = new HashMap<>();
+    Map<String, Long> nsQuotaCountsUsers = new HashMap<>();
+    Map<String, Long> dsQuotaThreshCountsUsers = new HashMap<>();
+    Map<String, Long> nsQuotaThreshCountsUsers = new HashMap<>();
+    cachedQuotas.analyze(
+        nameNodeLoader,
+        dirs,
+        dsQuotaCountsUsers,
+        nsQuotaCountsUsers,
+        dsQuotaThreshCountsUsers,
+        nsQuotaThreshCountsUsers);
+    final long dsQuotaCount =
+        dsQuotaCountsUsers.entrySet().parallelStream().mapToLong(Entry::getValue).sum();
+    final long nsQuotaCount =
+        nsQuotaCountsUsers.entrySet().parallelStream().mapToLong(Entry::getValue).sum();
+    final long dsQuotaThreshCount =
+        dsQuotaThreshCountsUsers.entrySet().parallelStream().mapToLong(Entry::getValue).sum();
+    final long nsQuotaThreshCount =
+        nsQuotaThreshCountsUsers.entrySet().parallelStream().mapToLong(Entry::getValue).sum();
     long quotaFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.cachedQuotas took: {} ms.", quotaFetchTime);
 
@@ -985,8 +975,8 @@ public class SuggestionsEngine {
    */
   public String getAllQuotasAsJson() {
     Map<String, Map<String, Map<String, Long>>> allQuotaRatios = new HashMap<>();
-    Map<String, Map<String, Long>> nsQuotas = cachedUserNsQuotas;
-    Map<String, Map<String, Long>> dsQuotas = cachedUserDsQuotas;
+    Map<String, Map<String, Long>> nsQuotas = cachedQuotas.getAllNsQuotaUsed();
+    Map<String, Map<String, Long>> dsQuotas = cachedQuotas.getAllDsQuotaUsed();
     allQuotaRatios.put("nsQuotas", nsQuotas);
     allQuotaRatios.put("dsQuotas", dsQuotas);
     return Histograms.toJson(allQuotaRatios);
@@ -1007,9 +997,11 @@ public class SuggestionsEngine {
     if (user != null && user.length() > 0) {
       switch (sum) {
         case "dsQuotaRatioUsed":
-          return Histograms.toJson(Histograms.sortByValue(cachedUserDsQuotas.get(user), false));
+          Map<String, Long> dsHistogram = cachedQuotas.getDiskQuotaUsed(user);
+          return Histograms.toJson(Histograms.sortByValue(dsHistogram, false));
         case "nsQuotaRatioUsed":
-          return Histograms.toJson(Histograms.sortByValue(cachedUserNsQuotas.get(user), false));
+          Map<String, Long> nsHistogram = cachedQuotas.getNameQuotaUsed(user);
+          return Histograms.toJson(Histograms.sortByValue(nsHistogram, false));
         default:
           throw new IllegalArgumentException(
               "Please choose between diskspaceConsumed or count for Quotas.");
@@ -1017,9 +1009,9 @@ public class SuggestionsEngine {
     } else {
       switch (sum) {
         case "dsQuotaRatioUsed":
-          return Histograms.toJson(cachedUserDsQuotas);
+          return Histograms.toJson(cachedQuotas.getAllDsQuotaUsed());
         case "nsQuotaRatioUsed":
-          return Histograms.toJson(cachedUserNsQuotas);
+          return Histograms.toJson(cachedQuotas.getAllNsQuotaUsed());
         default:
           throw new IllegalArgumentException(
               "Please choose between diskspaceConsumed or count for Quotas.");
@@ -1254,14 +1246,11 @@ public class SuggestionsEngine {
   public void start(ApplicationConfiguration conf) throws IOException {
     cacheManager.start(conf);
     this.cachedDirectories.start(cacheManager);
+    this.cachedQuotas.start(cacheManager);
     this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));
     this.cachedValues = Collections.synchronizedMap(cacheManager.getCachedMap("cachedValues"));
     this.cachedLogins = Collections.synchronizedMap(cacheManager.getCachedMap("cachedLogins"));
     this.cachedMaps = Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedMaps"));
-    this.cachedUserNsQuotas =
-        Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserNsQuotas"));
-    this.cachedUserDsQuotas =
-        Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedUserDsQuotas"));
     this.cachedQueries =
         Collections.synchronizedMap(cacheManager.getCachedStringMap("cachedQueries"));
     this.cachedValueQueries =
