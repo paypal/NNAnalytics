@@ -502,8 +502,9 @@ public class SuggestionsEngine {
     Map<String, Long> dsQuotaThreshCountsUsers = new HashMap<>();
     Map<String, Long> nsQuotaThreshCountsUsers = new HashMap<>();
     cachedQuotas.analyze(
-        nameNodeLoader,
+        queryEngine,
         dirs,
+        users,
         dsQuotaCountsUsers,
         nsQuotaCountsUsers,
         dsQuotaThreshCountsUsers,
