@@ -19,7 +19,6 @@
 
 package org.apache.hadoop.hdfs.server.namenode.cache;
 
-import com.google.common.collect.Sets;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -34,6 +33,7 @@ import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -172,19 +172,17 @@ public class SuggestionsEngine {
 
     timer = System.currentTimeMillis();
     currentState = AnalysisState.users;
-    final Set<String> fileUsers =
-        files.parallelStream().map(INode::getUserName).collect(Collectors.toSet());
-    final Set<String> dirUsers =
-        dirs.parallelStream().map(INode::getUserName).collect(Collectors.toSet());
-    final Set<String> users = Sets.union(fileUsers, dirUsers);
+    final Stream<String> fileUsers = files.parallelStream().map(INode::getUserName);
+    final Stream<String> dirUsers = dirs.parallelStream().map(INode::getUserName);
+    final Set<String> users = Stream.concat(fileUsers, dirUsers).collect(Collectors.toSet());
     long uniqueUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.users took: {} ms.", uniqueUsersFetchTime);
 
     timer = System.currentTimeMillis();
     currentState = AnalysisState.diskspace;
-    final long diskspace = queryEngine.sum(files, "diskspaceConsumed");
     final Map<String, Long> diskspaceUsers =
         queryEngine.byUserHistogram(files.parallelStream(), "diskspaceConsumed", null);
+    final long diskspace = diskspaceUsers.values().parallelStream().mapToLong(v -> v).sum();
     long diskspaceUsersFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.diskspace took: {} ms.", diskspaceUsersFetchTime);
 
@@ -497,14 +495,13 @@ public class SuggestionsEngine {
 
     timer = System.currentTimeMillis();
     currentState = AnalysisState.cachedQuotas;
-    Map<String, Long> dsQuotaCountsUsers = new HashMap<>();
-    Map<String, Long> nsQuotaCountsUsers = new HashMap<>();
-    Map<String, Long> dsQuotaThreshCountsUsers = new HashMap<>();
-    Map<String, Long> nsQuotaThreshCountsUsers = new HashMap<>();
+    Map<String, Long> dsQuotaCountsUsers = new ConcurrentHashMap<>(users.size());
+    Map<String, Long> nsQuotaCountsUsers = new ConcurrentHashMap<>(users.size());
+    Map<String, Long> dsQuotaThreshCountsUsers = new ConcurrentHashMap<>(users.size());
+    Map<String, Long> nsQuotaThreshCountsUsers = new ConcurrentHashMap<>(users.size());
     cachedQuotas.analyze(
-        queryEngine,
+        nameNodeLoader,
         dirs,
-        users,
         dsQuotaCountsUsers,
         nsQuotaCountsUsers,
         dsQuotaThreshCountsUsers,
@@ -524,7 +521,7 @@ public class SuggestionsEngine {
     currentState = AnalysisState.cachedLogins;
     cachedLogins.putAll(nameNodeLoader.getTokenExtractor().getTokenLastLogins());
     users.forEach(u -> cachedLogins.putIfAbsent(u, -1L));
-    cachedLogins.keySet().removeIf(u -> !fileUsers.contains(u) && !dirUsers.contains(u));
+    cachedLogins.keySet().removeIf(u -> !users.contains(u));
     long cachedLoginsFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.cachedLogins took: {} ms.", cachedLoginsFetchTime);
 
