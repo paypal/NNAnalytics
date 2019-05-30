@@ -22,8 +22,11 @@ package org.apache.hadoop.hdfs.server.namenode;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.ToLongFunction;
+import java.util.stream.Stream;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.util.GSet;
 import org.slf4j.Logger;
@@ -42,6 +45,9 @@ public interface QueryEngine {
 
   Collection<INode> combinedFilter(Collection<INode> inodes, String[] filters, String[] filterOps);
 
+  Stream<INode> combinedFilterToStream(
+      Collection<INode> inodes, String[] filters, String[] filterOps);
+
   Collection<INode> findFilter(Collection<INode> inodes, String find);
 
   Long sum(Collection<INode> inodes, String sum);
@@ -58,57 +64,59 @@ public interface QueryEngine {
 
   Function<Long, Boolean> getFilterFunctionForLong(Long value, String op);
 
-  Map<String, Long> diskspaceConsumedHistogram(
-      Collection<INode> inodes,
-      String sum,
-      String find,
-      Map<String, Function<INode, Long>> transformMap);
-
-  Map<String, Long> memoryConsumedHistogram(Collection<INode> inodes, String sum, String find);
-
-  Map<String, Long> fileSizeHistogram(Collection<INode> inodes, String sum, String find);
-
-  Map<String, Long> fileReplicaHistogram(
-      Collection<INode> inodes,
-      String sum,
-      String find,
-      Map<String, Function<INode, Long>> transformMap);
-
-  Map<String, Long> storageTypeHistogram(Collection<INode> inodes, String sum, String find);
-
-  Map<String, Long> accessTimeHistogram(
-      Collection<INode> inodes, String sum, String find, String timeRange);
-
-  Map<String, Long> modTimeHistogram(
-      Collection<INode> inodes, String sum, String find, String timeRange);
-
   void dumpINodePaths(Collection<INode> inodes, Integer limit, HttpServletResponse resp)
       throws IOException;
 
-  Map<String, Long> byUserHistogram(Collection<INode> inodes, String sum, String find);
+  Map<String, Long> genericSummingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      Function<INode, Long> dataFunction);
 
-  Map<String, Long> byGroupHistogram(Collection<INode> inodes, String sum, String find);
+  Map<String, LongSummaryStatistics> genericSummarizingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      Function<INode, Long> dataFunction);
+
+  Map<String, Long> genericFindingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      ToLongFunction<INode> dataFunction,
+      String findOp);
+
+  Map<String, Long> diskspaceConsumedHistogram(
+      Stream<INode> inodes,
+      String sum,
+      String find,
+      Map<String, Function<INode, Long>> transformMap);
+
+  Map<String, Long> memoryConsumedHistogram(Stream<INode> inodes, String sum, String find);
+
+  Map<String, Long> fileSizeHistogram(Stream<INode> inodes, String sum, String find);
+
+  Map<String, Long> fileReplicaHistogram(
+      Stream<INode> inodes,
+      String sum,
+      String find,
+      Map<String, Function<INode, Long>> transformMap);
+
+  Map<String, Long> storageTypeHistogram(Stream<INode> inodes, String sum, String find);
+
+  Map<String, Long> accessTimeHistogram(
+      Stream<INode> inodes, String sum, String find, String timeRange);
+
+  Map<String, Long> modTimeHistogram(
+      Stream<INode> inodes, String sum, String find, String timeRange);
+
+  Map<String, Long> byUserHistogram(Stream<INode> inodes, String sum, String find);
+
+  Map<String, Long> byGroupHistogram(Stream<INode> inodes, String sum, String find);
 
   Map<String, Long> parentDirHistogram(
-      Collection<INode> inodes, Integer parentDirDepth, String sum, String find);
+      Stream<INode> inodes, Integer parentDirDepth, String sum, String find);
 
-  Map<String, Long> fileTypeHistogram(Collection<INode> inodes, String sum, String find);
+  Map<String, Long> fileTypeHistogram(Stream<INode> inodes, String sum, String find);
 
-  Map<String, Long> dirQuotaHistogram(Collection<INode> inodes, String sum);
-
-  Map<String, Long> binMappingHistogram(
-      Collection<INode> inodes,
-      String sum,
-      Function<INode, Long> sumFunc,
-      Function<INode, Long> nodeToLong,
-      Map<String, Long> binKeyMap);
-
-  Map<String, Long> binMappingHistogramWithFind(
-      Collection<INode> inodes,
-      String findFunc,
-      Function<INode, Long> findToLong,
-      Function<INode, Long> nodeToLong,
-      Map<String, Long> binKeyMap);
+  Map<String, Long> dirQuotaHistogram(Stream<INode> inodes, String sum);
 
   Function<INode, Long> getSumFunctionForINode(String sum);
 

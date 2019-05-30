@@ -59,6 +59,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
@@ -75,9 +76,7 @@ import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Transform;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.hdfs.server.namenode.JavaCollectionQEngine;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
-import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
@@ -316,21 +315,6 @@ public class WebServerMain implements ApplicationMain {
           res.header("Content-Type", "text/plain");
           secContext.logout(req, res);
           usageMetrics.userLoggedOut(secContext, req);
-          return res;
-        });
-
-    /* SQL is used query the CQEngine using SQL-like syntax. */
-    post(
-        "/sql",
-        (req, res) -> {
-          res.header("Access-Control-Allow-Origin", "*");
-          res.header("Content-Type", "text/plain");
-          QueryEngine queryEngine = nameNodeLoader.getQueryEngine();
-          if (queryEngine instanceof JavaCollectionQEngine) {
-            return ((JavaCollectionQEngine) queryEngine).sql(req.raw(), res.raw());
-          }
-          res.status(HttpStatus.SC_NOT_FOUND);
-          res.body("QueryEngine does not support SQL syntax.");
           return res;
         });
 
@@ -852,12 +836,12 @@ public class WebServerMain implements ApplicationMain {
                   }
                   MailOutput.write(subject, message, emailHost, emailsTo, emailsCc, emailFrom);
                 } catch (Exception e) {
-                  LOG.info("Failed to email output with exception: {}", e);
+                  LOG.error("Failed to email output with exception.", e);
                 }
               }
               LOG.info("Returning filter result: {}.", message);
               res.body(message);
-            } else if (sums.length > 1 && sumStr != null) {
+            } else if (sums.length > 1) {
               StringBuilder message = new StringBuilder();
               for (String sum : sums) {
                 long sumValue = nameNodeLoader.getQueryEngine().sum(filteredINodes, sum);
@@ -926,8 +910,8 @@ public class WebServerMain implements ApplicationMain {
             final boolean rawTimestamps = rawTimestampsBool != null ? rawTimestampsBool : false;
 
             QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
-            Collection<INode> filteredINodes =
-                Helper.performFilters(nameNodeLoader, set, filters, filterOps);
+            Stream<INode> filteredINodes =
+                Helper.setFilters(nameNodeLoader, set, filters, filterOps);
 
             Histogram htEnum = Histogram.valueOf(histType);
             Map<String, Function<INode, Long>> transformMap =
@@ -936,8 +920,10 @@ public class WebServerMain implements ApplicationMain {
                     transformFieldsStr,
                     transformOutputsStr,
                     nameNodeLoader);
-            Map<String, Long> histogram;
+
             final long startTime = System.currentTimeMillis();
+
+            Map<String, Long> histogram;
             String binLabels;
 
             nameNodeLoader.namesystemWriteLock(useLock);
@@ -1173,65 +1159,73 @@ public class WebServerMain implements ApplicationMain {
                 switch (htEnum) {
                   case user:
                     histogram =
-                        nameNodeLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .byUserHistogram(filteredINodes.parallelStream(), sum, find);
                     break;
                   case group:
                     histogram =
-                        nameNodeLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
+                        nameNodeLoader
+                            .getQueryEngine()
+                            .byGroupHistogram(filteredINodes.parallelStream(), sum, find);
                     break;
                   case accessTime:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .accessTimeHistogram(filteredINodes, sum, find, timeRange);
+                            .accessTimeHistogram(
+                                filteredINodes.parallelStream(), sum, find, timeRange);
                     break;
                   case modTime:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .modTimeHistogram(filteredINodes, sum, find, timeRange);
+                            .modTimeHistogram(
+                                filteredINodes.parallelStream(), sum, find, timeRange);
                     break;
                   case fileSize:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .fileSizeHistogram(filteredINodes, sum, find);
+                            .fileSizeHistogram(filteredINodes.parallelStream(), sum, find);
                     break;
                   case diskspaceConsumed:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .diskspaceConsumedHistogram(filteredINodes, sum, find, null);
+                            .diskspaceConsumedHistogram(
+                                filteredINodes.parallelStream(), sum, find, null);
                     break;
                   case fileReplica:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .fileReplicaHistogram(filteredINodes, sum, find, null);
+                            .fileReplicaHistogram(filteredINodes.parallelStream(), sum, find, null);
                     break;
                   case storageType:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .storageTypeHistogram(filteredINodes, sum, find);
+                            .storageTypeHistogram(filteredINodes.parallelStream(), sum, find);
                     break;
                   case memoryConsumed:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .memoryConsumedHistogram(filteredINodes, sum, find);
+                            .memoryConsumedHistogram(filteredINodes.parallelStream(), sum, find);
                     break;
                   case parentDir:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
+                            .parentDirHistogram(
+                                filteredINodes.parallelStream(), parentDirDepth, sum, find);
                     break;
                   case fileType:
                     histogram =
                         nameNodeLoader
                             .getQueryEngine()
-                            .fileTypeHistogram(filteredINodes, sum, find);
+                            .fileTypeHistogram(filteredINodes.parallelStream(), sum, find);
                     break;
                   default:
                     throw new IllegalArgumentException(
@@ -1253,7 +1247,7 @@ public class WebServerMain implements ApplicationMain {
                         Collectors.groupingBy(
                             Entry::getKey,
                             Collector.of(
-                                ArrayList<Long>::new,
+                                ArrayList::new,
                                 (list, item) -> list.add(item.getValue()),
                                 (left, right) -> {
                                   left.addAll(right);

@@ -34,11 +34,13 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.AnalysisState;
 import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.WebServerMain;
@@ -398,6 +400,9 @@ public class NameNodeLoader {
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
       conf.setBoolean(DFSConfigKeys.DFS_HA_STANDBY_CHECKPOINTS_KEY, false);
 
+      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_CONTENT_SUMMARY_LIMIT_KEY, 0);
+      conf.setInt(DFSConfigKeys.DFS_CONTENT_SUMMARY_LIMIT_KEY, 0);
+
       String baseDir = nnaConf.getBaseDir();
       LOG.info("Setting: {} to: {}/dfs/name", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, baseDir);
       conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, new URI(baseDir + "/dfs/name").getPath());
@@ -514,6 +519,21 @@ public class NameNodeLoader {
   }
 
   /**
+   * Perform a content summary call against the underlying FSNamesystem.
+   *
+   * @param path the dir/file path to call content summary on
+   * @return a summary of the subtree or file
+   */
+  public ContentSummary getContentSummary(String path) {
+    try {
+      return namesystem.getContentSummary(path);
+    } catch (IOException e) {
+      LOG.error("Error with getContentSummary.", e);
+    }
+    return new ContentSummary.Builder().fileCount(0L).directoryCount(0L).build();
+  }
+
+  /**
    * Initializes the background thread that performs cached reporting for all users. Initializes the
    * background thread that refreshes Kerberos keytab for NNA process.
    *
@@ -525,6 +545,7 @@ public class NameNodeLoader {
         internalService.submit(
             () -> {
               while (true) {
+                suggestionsEngine.setCurrentState(AnalysisState.sleep);
                 try {
                   suggestionsEngine.reloadSuggestions(this);
                 } catch (Throwable e) {
@@ -533,6 +554,7 @@ public class NameNodeLoader {
                     LOG.info(element.toString());
                   }
                 }
+                suggestionsEngine.setCurrentState(AnalysisState.sleep);
                 try {
                   Thread.sleep(conf.getSuggestionsReloadSleepMs());
                 } catch (InterruptedException ex) {

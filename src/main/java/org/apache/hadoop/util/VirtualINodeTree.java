@@ -182,6 +182,7 @@ public class VirtualINodeTree {
       }
     }
     toRemove.forEach(ancestorPaths::remove);
+    ancestorPaths.values().forEach(VirtualINode::unmark);
     return new HashSet<>(ancestorPaths.values());
   }
 }

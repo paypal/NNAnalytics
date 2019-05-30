@@ -22,7 +22,6 @@ package org.apache.hadoop.hdfs.server.namenode;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
-import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,21 +30,23 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
@@ -55,7 +56,6 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
 import org.apache.hadoop.util.GSetSeperatorWrapper;
-import org.jetbrains.annotations.NotNull;
 
 public abstract class AbstractQueryEngine implements QueryEngine {
 
@@ -691,12 +691,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     keys.forEach(histogram::remove);
 
     long e1 = System.currentTimeMillis();
-    LOG.info(
-        "Removing {} keys from histogram of size {} using conditional String:'{}', took: {} ms.",
-        keys.size(),
-        originalHistSize,
-        histogramConditionsStr,
-        (e1 - s1));
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "Removing {} keys from histogram of size {} using conditional String:'{}', took: {} ms.",
+          keys.size(),
+          originalHistSize,
+          histogramConditionsStr,
+          (e1 - s1));
+    }
 
     return histogram;
   }
@@ -730,12 +732,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     keys.forEach(histogram::remove);
 
     long e1 = System.currentTimeMillis();
-    LOG.info(
-        "Removing {} keys from histogram2 of size {} using conditional String:'{}', took: {} ms.",
-        keys.size(),
-        originalHistSize,
-        histogramConditionsStr,
-        (e1 - s1));
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "Removing {} keys from histogram2 of size {} using conditional String:'{}', took: {} ms.",
+          keys.size(),
+          originalHistSize,
+          histogramConditionsStr,
+          (e1 - s1));
+    }
 
     return histogram;
   }
@@ -794,456 +798,108 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     return check;
   }
 
-  private long[][] fetchDataViaCpu(
-      Collection<INode> inodes,
-      String sum,
-      Function<INode, Long> sumFunc,
-      Function<INode, Long> nodeToLong) {
-    long start = System.currentTimeMillis();
-
-    long[] data = inodes.parallelStream().mapToLong(nodeToLong::apply).toArray();
-    long[] sums = inodes.parallelStream().mapToLong(sumFunc::apply).toArray();
-
-    long end = System.currentTimeMillis();
-    LOG.info("Fetching {} data took: {} ms.", sum, (end - start));
-
-    return new long[][] {data, sums};
+  /**
+   * Produces Histogram for generic summation.
+   *
+   * @param inodes inodes
+   * @param namingFunction function to string
+   * @param dataFunction function to long
+   * @return histogram of sums
+   */
+  @Override // QueryEngine
+  public Map<String, Long> genericSummingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      Function<INode, Long> dataFunction) {
+    return inodes.collect(
+        Collectors.groupingBy(
+            namingFunction, Collectors.mapping(dataFunction, Collectors.summingLong(i -> i))));
   }
 
-  private Map<String, Long> strictMappingHistogram(
-      Collection<INode> inodes,
-      String sum,
-      Function<INode, Long> sumFunc,
-      Function<INode, Long> nodeToLong) {
-    long[][] datas = fetchDataViaCpu(inodes, sum, sumFunc, nodeToLong);
-    long[] data = datas[0];
-    long[] sums = datas[1];
-
-    long start1 = System.currentTimeMillis();
-    int maxId = (int) LongStream.of(data).parallel().max().orElse(data.length);
-    long[] histogram;
-    try {
-      if (data.length == 0) {
-        histogram = data;
-        LOG.info("Empty data set; skipping.");
-      } else {
-        histogram = new long[maxId + 2];
-        IntStream.range(0, data.length)
-            .parallel()
-            .forEach(
-                idx -> {
-                  int id = (int) data[idx];
-                  int chosenBin = maxId + 1;
-                  if (id < chosenBin && id != -1) {
-                    // Lock in the bin.
-                    chosenBin = id;
-                  }
-                  synchronized (histogram) {
-                    histogram[chosenBin] += sums[idx];
-                  }
-                });
-        LOG.info("Histogram returned an array of size: {}", histogram.length);
-      }
-    } catch (Throwable e) {
-      LOG.info("Encountered exception during loading.", e);
-      for (StackTraceElement stacktrace : e.getStackTrace()) {
-        LOG.info(stacktrace.toString());
-      }
-      throw e;
-    }
-    long end1 = System.currentTimeMillis();
-    LOG.info("Histogram took: {} ms.", (end1 - start1));
-    LOG.info("Histogram result has size: {}.", histogram.length);
-    if (histogram.length > 100) {
-      LOG.info("It is too big to console out.");
-    } else {
-      LOG.info("Result is: {}", Arrays.toString(histogram));
-    }
-    return Histograms.mapToNonEmptyIndex(histogram);
-  }
-
-  private Map<String, Long> strictMappingHistogramWithFind(
-      Collection<INode> inodes,
-      String findOp,
-      String find,
-      Function<INode, Long> findFunc,
-      Function<INode, Long> nodeToLong) {
-    long[][] fetchData = fetchDataViaCpu(inodes, findOp, findFunc, nodeToLong);
-    long[] data = fetchData[0];
-    long[] sums = fetchData[1];
-
-    long start1 = System.currentTimeMillis();
-    long[] histogram;
-    try {
-      if (data.length == 0) {
-        histogram = data;
-        LOG.info("Empty data set; skipping.");
-      } else {
-        histogram = new long[data.length + 1];
-        IntStream.range(0, data.length)
-            .parallel()
-            .forEach(
-                idx -> {
-                  int id = (int) data[idx];
-                  int chosenBin = data.length;
-                  if (id < chosenBin && id != -1) {
-                    // Lock in the bin.
-                    chosenBin = id;
-                  }
-                  synchronized (histogram) {
-                    long currentVal = histogram[chosenBin];
-                    long compareVal = sums[idx];
-                    switch (find) {
-                      case "max":
-                        if (currentVal < compareVal) {
-                          histogram[chosenBin] = compareVal;
-                        }
-                        break;
-                      case "min":
-                        if (compareVal == 0 || currentVal > compareVal) {
-                          histogram[chosenBin] = compareVal;
-                        }
-                        break;
-                      default:
-                        break;
-                    }
-                  }
-                });
-        LOG.info("Histogram returned an array of size: {}", histogram.length);
-      }
-    } catch (Throwable e) {
-      LOG.info("Encountered exception during loading.", e);
-      for (StackTraceElement stacktrace : e.getStackTrace()) {
-        LOG.info(stacktrace.toString());
-      }
-      throw e;
-    }
-    long end1 = System.currentTimeMillis();
-    LOG.info("Histogram (with find) took: {} ms.", (end1 - start1));
-    LOG.info("Histogram (with find) result has size: {} ", histogram.length);
-    if (histogram.length > 100) {
-      LOG.info(". It is too big to console out.");
-    } else {
-      LOG.info(", is: {}", Arrays.toString(histogram));
-    }
-    return Histograms.mapToNonEmptyIndex(histogram);
+  /**
+   * Produces Histogram for generic summarization. Primarily for use by SuggestionEngine where
+   * obtaining sum and count is vital.
+   *
+   * @param inodes inodes
+   * @param namingFunction function to string
+   * @param dataFunction function to long
+   * @return histogram of sums
+   */
+  @Override // QueryEngine
+  public Map<String, LongSummaryStatistics> genericSummarizingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      Function<INode, Long> dataFunction) {
+    return inodes.collect(
+        Collectors.groupingBy(
+            namingFunction, Collectors.mapping(dataFunction, Collectors.summarizingLong(i -> i))));
   }
 
   @Override // QueryEngine
-  public Map<String, Long> binMappingHistogram(
-      Collection<INode> inodes,
-      String sum,
-      Function<INode, Long> sumFunc,
-      Function<INode, Long> nodeToLong,
-      Map<String, Long> binKeyMap) {
-    long[][] datas = fetchDataViaCpu(inodes, sum, sumFunc, nodeToLong);
-    long[] data = datas[0];
-    long[] sums = datas[1];
-    int length = Math.min(data.length, sums.length);
-
-    long start1 = System.currentTimeMillis();
-    long[] histogram;
-    try {
-      if (data.length == 0 || sums.length == 0) {
-        histogram = data;
-        LOG.info("Empty data set; skipping.");
-      } else {
-        histogram = new long[binKeyMap.size() + 1];
-        IntStream.range(0, length)
-            .parallel()
-            .forEach(
-                idx -> {
-                  int id = (int) data[idx];
-                  int chosenBin = binKeyMap.size();
-                  if (id < chosenBin && id != -1) {
-                    // Lock in the bin.
-                    chosenBin = id;
-                  }
-                  synchronized (histogram) {
-                    histogram[chosenBin] += sums[idx];
-                  }
-                });
-        LOG.info("Histogram returned an array of size: {}", histogram.length);
-      }
-    } catch (Throwable e) {
-      LOG.info("Encountered exception during loading.", e);
-      for (StackTraceElement stacktrace : e.getStackTrace()) {
-        LOG.info(stacktrace.toString());
-      }
-      throw e;
-    }
-    long end1 = System.currentTimeMillis();
-    logHistogram(start1, histogram, end1);
-    return Histograms.mapByKeys(binKeyMap, histogram);
-  }
-
-  @Override // QueryEngine
-  public Map<String, Long> binMappingHistogramWithFind(
-      Collection<INode> inodes,
-      String find,
-      Function<INode, Long> findToLong,
-      Function<INode, Long> nodeToLong,
-      Map<String, Long> binKeyMap) {
-    long[][] datas = fetchDataViaCpu(inodes, find, findToLong, nodeToLong);
-    long[] data = datas[0];
-    long[] sums = datas[1];
-    int length = Math.min(data.length, sums.length);
-
-    long start1 = System.currentTimeMillis();
-    long[] histogram;
-    try {
-      if (data.length == 0 || sums.length == 0) {
-        histogram = data;
-        LOG.info("Empty data set; skipping.");
-      } else if ("avg".equals(find)) {
-        BigInteger[] bigHistogram = new BigInteger[binKeyMap.size() + 1];
-        long[] counts = new long[binKeyMap.size() + 1];
-        Arrays.fill(bigHistogram, BigInteger.valueOf(-1));
-        IntStream.range(0, length)
-            .parallel()
-            .forEach(
-                idx -> {
-                  int id = (int) data[idx];
-                  int chosenBin = binKeyMap.size();
-                  if (id < chosenBin && id != -1) {
-                    // Lock in the bin.
-                    chosenBin = id;
-                  }
-                  synchronized (bigHistogram) {
-                    BigInteger currentVal = bigHistogram[chosenBin];
-                    long sum = sums[idx];
-                    if (currentVal.equals(BigInteger.valueOf(-1))) {
-                      bigHistogram[chosenBin] = BigInteger.valueOf(sum);
-                    } else {
-                      bigHistogram[chosenBin] =
-                          bigHistogram[chosenBin].add(BigInteger.valueOf(sum));
-                    }
-                    counts[chosenBin]++;
-                  }
-                });
-        if (bigHistogram[binKeyMap.size()].equals(BigInteger.valueOf(-1))) {
-          bigHistogram[binKeyMap.size()] = BigInteger.ZERO;
-        }
-        for (int i = 0; i < bigHistogram.length; i++) {
-          if (counts[i] != 0) {
-            bigHistogram[i] = bigHistogram[i].divide(BigInteger.valueOf(counts[i]));
-          }
-        }
-        histogram = Arrays.stream(bigHistogram).mapToLong(BigInteger::longValue).toArray();
-        LOG.info("Histogram returned an array of size: {}", histogram.length);
-      } else {
-        histogram = new long[binKeyMap.size() + 1];
-        Arrays.fill(histogram, -1L);
-        IntStream.range(0, length)
-            .parallel()
-            .forEach(
-                idx -> {
-                  int id = (int) data[idx];
-                  int chosenBin = binKeyMap.size();
-                  if (id < chosenBin && id != -1) {
-                    // Lock in the bin.
-                    chosenBin = id;
-                  }
-                  synchronized (histogram) {
-                    long currentVal = histogram[chosenBin];
-                    long compareVal = sums[idx];
-                    switch (find) {
-                      case "max":
-                        if (currentVal < compareVal) {
-                          histogram[chosenBin] = compareVal;
-                        }
-                        break;
-                      case "min":
-                        if (currentVal == -1 || currentVal > compareVal) {
-                          histogram[chosenBin] = compareVal;
-                        }
-                        break;
-                      default:
-                        break;
-                    }
-                  }
-                });
-        if (histogram[binKeyMap.size()] == -1) {
-          histogram[binKeyMap.size()] = 0;
-        }
-        LOG.info("Histogram returned an array of size: {}", histogram.length);
-      }
-    } catch (Throwable e) {
-      LOG.info("Encountered exception during loading.", e);
-      for (StackTraceElement stacktrace : e.getStackTrace()) {
-        LOG.info(stacktrace.toString());
-      }
-      throw e;
-    }
-    long end1 = System.currentTimeMillis();
-    logHistogramFind(start1, histogram, end1);
-    return Histograms.mapByKeys(binKeyMap, histogram);
-  }
-
-  private Map<String, Long> filteringHistogram(
-      Collection<INode> inodes,
-      String sum,
-      Function<INode, Long> sumFunc,
-      Function<INode, Long> nodeToLong,
-      final Long[] binsArray,
-      List<String> keys) {
-    long[][] datas = fetchDataViaCpu(inodes, sum, sumFunc, nodeToLong);
-    long[] data = datas[0];
-    long[] sums = datas[1];
-
-    long start1 = System.currentTimeMillis();
-    long[] histogram;
-    try {
-      if (data.length == 0) {
-        histogram = data;
-        LOG.info("Empty data set; skipping.");
-      } else {
-        histogram = new long[binsArray.length + 1];
-        IntStream.range(0, data.length)
-            .parallel()
-            .forEach(
-                idx -> {
-                  long datum = data[idx];
-                  int chosenBin = binsArray.length;
-                  for (int i = 0; i < binsArray.length; i++) {
-                    if (datum <= binsArray[i] && chosenBin == binsArray.length) {
-                      chosenBin = i;
-                    }
-                  }
-                  synchronized (histogram) {
-                    histogram[chosenBin] += sums[idx];
-                  }
-                });
-        LOG.info("Histogram returned an array of size: {}", histogram.length);
-      }
-    } catch (Throwable e) {
-      LOG.info("Encountered exception during loading.", e);
-      for (StackTraceElement stacktrace : e.getStackTrace()) {
-        LOG.info(stacktrace.toString());
-      }
-      throw e;
-    }
-    long end1 = System.currentTimeMillis();
-    logHistogram(start1, histogram, end1);
-    return Histograms.sortByKeys(keys, histogram);
-  }
-
-  private Map<String, Long> filteringHistogramWithFind(
-      Collection<INode> inodes,
-      String findOp,
-      String find,
-      Function<INode, Long> findFunc,
-      Function<INode, Long> nodeToLong,
-      final Long[] binsArray,
-      List<String> keys) {
-    long[][] fetchData = fetchDataViaCpu(inodes, findOp, findFunc, nodeToLong);
-    long[] data = fetchData[0];
-    long[] sums = fetchData[1];
-
-    long start1 = System.currentTimeMillis();
-    long[] histogram;
-    try {
-      if (data.length == 0) {
-        histogram = data;
-        LOG.info("Empty data set; skipping.");
-      } else if ("avg".equals(find)) {
-        BigInteger[] bigHistogram = new BigInteger[binsArray.length + 1];
-        long[] counts = new long[binsArray.length + 1];
-        IntStream.range(0, data.length)
-            .parallel()
-            .forEach(
-                idx -> {
-                  long datum = data[idx];
-                  int chosenBin = binsArray.length;
-                  for (int i = 0; i < binsArray.length; i++) {
-                    if (datum <= binsArray[i] && chosenBin == binsArray.length) {
-                      chosenBin = i;
-                    }
-                  }
-                  synchronized (bigHistogram) {
-                    BigInteger currentVal = bigHistogram[chosenBin];
-                    long sum = sums[idx];
-                    if (currentVal == null) {
-                      bigHistogram[chosenBin] = BigInteger.valueOf(sum);
-                    } else {
-                      bigHistogram[chosenBin] =
-                          bigHistogram[chosenBin].add(BigInteger.valueOf(sum));
-                    }
-                    counts[chosenBin]++;
-                  }
-                });
-        for (int i = 0; i < bigHistogram.length; i++) {
-          if (counts[i] != 0) {
-            bigHistogram[i] = bigHistogram[i].divide(BigInteger.valueOf(counts[i]));
-          }
-        }
-        histogram =
-            Arrays.stream(bigHistogram).mapToLong(x -> x == null ? 0L : x.longValue()).toArray();
-        LOG.info("Histogram returned an array of size: {}", histogram.length);
-      } else {
-        histogram = new long[binsArray.length + 1];
-        IntStream.range(0, data.length)
-            .parallel()
-            .forEach(
-                idx -> {
-                  long datum = data[idx];
-                  int chosenBin = binsArray.length;
-                  for (int i = 0; i < binsArray.length; i++) {
-                    if (datum <= binsArray[i] && chosenBin == binsArray.length) {
-                      chosenBin = i;
-                    }
-                  }
-                  synchronized (histogram) {
-                    long currentVal = histogram[chosenBin];
-                    long compareVal = sums[idx];
-                    switch (find) {
-                      case "max":
-                        if (currentVal < compareVal) {
-                          histogram[chosenBin] = compareVal;
-                        }
-                        break;
-                      case "min":
-                        if (compareVal == 0 || currentVal > compareVal) {
-                          histogram[chosenBin] = compareVal;
-                        }
-                        break;
-                      default:
-                        break;
-                    }
-                  }
-                });
-        LOG.info("Histogram returned an array of size: {}", histogram.length);
-      }
-    } catch (Throwable e) {
-      LOG.info("Encountered exception during loading.", e);
-      for (StackTraceElement stacktrace : e.getStackTrace()) {
-        LOG.info(stacktrace.toString());
-      }
-      throw e;
-    }
-    long end1 = System.currentTimeMillis();
-    logHistogramFind(start1, histogram, end1);
-    return Histograms.sortByKeys(keys, histogram);
-  }
-
-  private void logHistogram(long start1, long[] histogram, long end1) {
-    LOG.info("Histogram took: {} ms.", (end1 - start1));
-    LOG.info("Histogram result has size: {}", histogram.length);
-    if (histogram.length > 100) {
-      LOG.info(". It is too big to console out.");
-    } else {
-      LOG.info(", is: {}", Arrays.toString(histogram));
+  public Map<String, Long> genericFindingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      ToLongFunction<INode> dataFunction,
+      String findOp) {
+    switch (findOp) {
+      case "max":
+        return genericMaxxingHistogram(inodes, namingFunction, dataFunction);
+      case "min":
+        return genericMinningHistogram(inodes, namingFunction, dataFunction);
+      case "avg":
+        return genericAvgingHistogram(inodes, namingFunction, dataFunction);
+      default:
+        throw new IllegalArgumentException(
+            "findOp: " + findOp + ", is not a valid find. Check /finds for valid options.");
     }
   }
 
-  private void logHistogramFind(long start1, long[] histogram, long end1) {
-    LOG.info("Histogram (with find) took: {} ms.", (end1 - start1));
-    LOG.info("Histogram (with find) result has size: {}", histogram.length);
-    if (histogram.length > 100) {
-      LOG.info(". It is too big to console out.");
-    } else {
-      LOG.info(", is: {}", Arrays.toString(histogram));
+  private Map<String, Long> genericMinningHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      ToLongFunction<INode> dataFunction) {
+    Map<String, Optional<INode>> collect =
+        inodes.collect(
+            Collectors.groupingBy(
+                namingFunction, Collectors.minBy(Comparator.comparingLong(dataFunction))));
+    HashMap<String, Long> histogram = new HashMap<>(collect.size());
+    for (Entry<String, Optional<INode>> entry : collect.entrySet()) {
+      if (entry.getValue().isPresent()) {
+        histogram.put(entry.getKey(), dataFunction.applyAsLong(entry.getValue().get()));
+      }
     }
+    return histogram;
+  }
+
+  private Map<String, Long> genericMaxxingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      ToLongFunction<INode> dataFunction) {
+    Map<String, Optional<INode>> collect =
+        inodes.collect(
+            Collectors.groupingBy(
+                namingFunction, Collectors.maxBy(Comparator.comparingLong(dataFunction))));
+    HashMap<String, Long> histogram = new HashMap<>(collect.size());
+    for (Entry<String, Optional<INode>> entry : collect.entrySet()) {
+      if (entry.getValue().isPresent()) {
+        histogram.put(entry.getKey(), dataFunction.applyAsLong(entry.getValue().get()));
+      }
+    }
+    return histogram;
+  }
+
+  private Map<String, Long> genericAvgingHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      ToLongFunction<INode> dataFunction) {
+    Map<String, Double> collect =
+        inodes.collect(
+            Collectors.groupingBy(namingFunction, Collectors.averagingLong(dataFunction)));
+    HashMap<String, Long> histogram = new HashMap<>(collect.size());
+    for (Entry<String, Double> entry : collect.entrySet()) {
+      histogram.put(entry.getKey(), entry.getValue().longValue());
+    }
+    return histogram;
   }
 
   /**
@@ -1284,7 +940,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> diskspaceConsumedHistogram(
-      Collection<INode> inodes,
+      Stream<INode> inodes,
       String sum,
       String find,
       Map<String, Function<INode, Long>> transformMap) {
@@ -1295,7 +951,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> diskspaceConsumedHistogramCpu(
-      Collection<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
+      Stream<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
+    List<String> keys = SpaceSizeHistogram.getKeys();
     Function<INode, Long> binFunc =
         getTransformFunction(
             getFilterFunctionToLongForINode("diskspaceConsumed"),
@@ -1303,17 +960,17 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             "diskspaceConsumed");
     Function<INode, Long> sumFunc =
         getTransformFunction(getSumFunctionForINode(sum), transformMap, sum);
-    return filteringHistogram(
-        inodes,
-        sum,
-        sumFunc,
-        binFunc,
-        SpaceSizeHistogram.getBinsArray(),
-        SpaceSizeHistogram.getKeys());
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
+            sumFunc);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> diskspaceConsumedHistogramCpuWithFind(
-      Collection<INode> inodes, String find, Map<String, Function<INode, Long>> transformMap) {
+      Stream<INode> inodes, String find, Map<String, Function<INode, Long>> transformMap) {
+    List<String> keys = SpaceSizeHistogram.getKeys();
     Function<INode, Long> binFunc =
         getTransformFunction(
             getFilterFunctionToLongForINode("diskspaceConsumed"),
@@ -1322,14 +979,13 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return filteringHistogramWithFind(
-        inodes,
-        findField,
-        findOp,
-        getFilterFunctionToLongForINode(findField),
-        binFunc,
-        SpaceSizeHistogram.getBinsArray(),
-        SpaceSizeHistogram.getKeys());
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -1341,8 +997,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    * @return a map representing bins as Strings and the sum/finds as Longs
    */
   @Override // QueryEngine
-  public Map<String, Long> memoryConsumedHistogram(
-      Collection<INode> inodes, String sum, String find) {
+  public Map<String, Long> memoryConsumedHistogram(Stream<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return memoryConsumedHistogramCpu(inodes, sum);
     } else {
@@ -1350,7 +1005,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     }
   }
 
-  private Map<String, Long> memoryConsumedHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> memoryConsumedHistogramCpu(Stream<INode> inodes, String sum) {
+    List<String> keys = MemorySizeHistogram.getKeys();
     Function<INode, Long> memConsumedFunction =
         node -> {
           long inodeSize = 150L;
@@ -1359,17 +1015,17 @@ public abstract class AbstractQueryEngine implements QueryEngine {
           }
           return inodeSize;
         };
-    return filteringHistogram(
-        inodes,
-        sum,
-        getSumFunctionForINode(sum),
-        memConsumedFunction,
-        MemorySizeHistogram.getBinsArray(),
-        MemorySizeHistogram.getKeys());
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node ->
+                MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
+            getSumFunctionForINode(sum));
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
-  private Map<String, Long> memoryConsumedHistogramCpuWithFind(
-      Collection<INode> inodes, String find) {
+  private Map<String, Long> memoryConsumedHistogramCpuWithFind(Stream<INode> inodes, String find) {
+    List<String> keys = MemorySizeHistogram.getKeys();
     Function<INode, Long> memConsumedFunction =
         node -> {
           long inodeSize = 150L;
@@ -1382,14 +1038,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     String findOp = finds[0];
     String findField = finds[1];
 
-    return filteringHistogramWithFind(
-        inodes,
-        findField,
-        findOp,
-        getFilterFunctionToLongForINode(findField),
-        memConsumedFunction,
-        MemorySizeHistogram.getBinsArray(),
-        MemorySizeHistogram.getKeys());
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node ->
+                MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -1401,35 +1057,37 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    * @return a map representing bins as Strings and the sum/finds as Longs
    */
   @Override // QueryEngine
-  public Map<String, Long> fileSizeHistogram(Collection<INode> inodes, String sum, String find) {
+  public Map<String, Long> fileSizeHistogram(Stream<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return fileSizeHistogramCpu(inodes, sum);
     }
     return fileSizeHistogramCpuWithFind(inodes, find);
   }
 
-  private Map<String, Long> fileSizeHistogramCpu(Collection<INode> inodes, String sum) {
-    return filteringHistogram(
-        inodes,
-        sum,
-        getSumFunctionForINode(sum),
-        node -> node.asFile().computeFileSize(),
-        SpaceSizeHistogram.getBinsArray(),
-        SpaceSizeHistogram.getKeys());
+  private Map<String, Long> fileSizeHistogramCpu(Stream<INode> inodes, String sum) {
+    List<String> keys = SpaceSizeHistogram.getKeys();
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node ->
+                SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
+            getSumFunctionForINode(sum));
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
-  private Map<String, Long> fileSizeHistogramCpuWithFind(Collection<INode> inodes, String find) {
+  private Map<String, Long> fileSizeHistogramCpuWithFind(Stream<INode> inodes, String find) {
+    List<String> keys = SpaceSizeHistogram.getKeys();
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return filteringHistogramWithFind(
-        inodes,
-        findField,
-        findOp,
-        getFilterFunctionToLongForINode(findField),
-        node -> node.asFile().computeFileSize(),
-        SpaceSizeHistogram.getBinsArray(),
-        SpaceSizeHistogram.getKeys());
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node ->
+                SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -1442,7 +1100,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> fileReplicaHistogram(
-      Collection<INode> inodes,
+      Stream<INode> inodes,
       String sum,
       String find,
       Map<String, Function<INode, Long>> transformMap) {
@@ -1453,22 +1111,25 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> fileReplicaHistogramCpu(
-      Collection<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
+      Stream<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
     Function<INode, Long> binFunc =
         getTransformFunction(
             getFilterFunctionToLongForINode("fileReplica"), transformMap, "fileReplica");
     Function<INode, Long> sumFunc =
         getTransformFunction(getSumFunctionForINode(sum), transformMap, sum);
-    return strictMappingHistogram(inodes, sum, sumFunc, binFunc);
+    return genericSummingHistogram(inodes, inode -> binFunc.apply(inode).toString(), sumFunc);
   }
 
-  private Map<String, Long> fileReplicaHistogramCpuWithFind(Collection<INode> inodes, String find) {
+  private Map<String, Long> fileReplicaHistogramCpuWithFind(Stream<INode> inodes, String find) {
     Function<INode, Long> binFunc = getFilterFunctionToLongForINode("fileReplica");
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    Function<INode, Long> findFunc = getFilterFunctionToLongForINode(findField);
-    return strictMappingHistogramWithFind(inodes, findField, findOp, findFunc, binFunc);
+    return genericFindingHistogram(
+        inodes,
+        inode -> binFunc.apply(inode).toString(),
+        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+        findOp);
   }
 
   /**
@@ -1480,18 +1141,18 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    * @return a map representing bins as Strings and the sum/finds as Longs
    */
   @Override // QueryEngine
-  public Map<String, Long> storageTypeHistogram(Collection<INode> inodes, String sum, String find) {
+  public Map<String, Long> storageTypeHistogram(Stream<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return storageTypeHistogramCpu(inodes, sum);
     }
     return storageTypeHistogramCpuWithFind(inodes, find);
   }
 
-  private Map<String, Long> storageTypeHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> storageTypeHistogramCpu(Stream<INode> inodes, String sum) {
     return versionLoader.storageTypeHistogramCpu(inodes, sum, this);
   }
 
-  private Map<String, Long> storageTypeHistogramCpuWithFind(Collection<INode> inodes, String find) {
+  private Map<String, Long> storageTypeHistogramCpuWithFind(Stream<INode> inodes, String find) {
     return versionLoader.storageTypeHistogramCpuWithFind(inodes, find, this);
   }
 
@@ -1505,7 +1166,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> accessTimeHistogram(
-      Collection<INode> inodes, String sum, String find, String timeRange) {
+      Stream<INode> inodes, String sum, String find, String timeRange) {
     if (find == null || find.length() == 0) {
       return accessTimeHistogramCpu(inodes, sum, timeRange);
     }
@@ -1513,29 +1174,34 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> accessTimeHistogramCpu(
-      Collection<INode> inodes, String sum, String timeRange) {
-    return filteringHistogram(
-        inodes,
-        sum,
-        getSumFunctionForINode(sum),
-        node -> System.currentTimeMillis() - node.getAccessTime(),
-        TimeHistogram.getBinsArray(timeRange),
-        TimeHistogram.getKeys(timeRange));
+      Stream<INode> inodes, String sum, String timeRange) {
+    Function<INode, Long> timeDiffFunc = node -> System.currentTimeMillis() - node.getAccessTime();
+    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
+    List<String> keys = TimeHistogram.getKeys(timeRange);
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            getSumFunctionForINode(sum));
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> accessTimeHistogramCpuWithFind(
-      Collection<INode> inodes, String find, String timeRange) {
+      Stream<INode> inodes, String find, String timeRange) {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return filteringHistogramWithFind(
-        inodes,
-        findField,
-        findOp,
-        getFilterFunctionToLongForINode(findField),
-        node -> System.currentTimeMillis() - node.getAccessTime(),
-        TimeHistogram.getBinsArray(timeRange),
-        TimeHistogram.getKeys(timeRange));
+
+    Function<INode, Long> timeDiffFunc = node -> System.currentTimeMillis() - node.getAccessTime();
+    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
+    List<String> keys = TimeHistogram.getKeys(timeRange);
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -1549,7 +1215,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> modTimeHistogram(
-      Collection<INode> inodes, String sum, String find, String timeRange) {
+      Stream<INode> inodes, String sum, String find, String timeRange) {
     if (find == null || find.length() == 0) {
       return modTimeHistogramCpu(inodes, sum, timeRange);
     }
@@ -1557,29 +1223,36 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> modTimeHistogramCpu(
-      Collection<INode> inodes, String sum, String timeRange) {
-    return filteringHistogram(
-        inodes,
-        sum,
-        getSumFunctionForINode(sum),
-        node -> System.currentTimeMillis() - node.getModificationTime(),
-        TimeHistogram.getBinsArray(timeRange),
-        TimeHistogram.getKeys(timeRange));
+      Stream<INode> inodes, String sum, String timeRange) {
+    Function<INode, Long> timeDiffFunc =
+        node -> System.currentTimeMillis() - node.getModificationTime();
+    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
+    List<String> keys = TimeHistogram.getKeys(timeRange);
+    Map<String, Long> histogram =
+        genericSummingHistogram(
+            inodes,
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            getSumFunctionForINode(sum));
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> modTimeHistogramCpuWithFind(
-      Collection<INode> inodes, String find, String timeRange) {
+      Stream<INode> inodes, String find, String timeRange) {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
-    return filteringHistogramWithFind(
-        inodes,
-        findField,
-        findOp,
-        getFilterFunctionToLongForINode(findField),
-        node -> System.currentTimeMillis() - node.getModificationTime(),
-        TimeHistogram.getBinsArray(timeRange),
-        TimeHistogram.getKeys(timeRange));
+
+    Function<INode, Long> timeDiffFunc =
+        node -> System.currentTimeMillis() - node.getModificationTime();
+    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
+    List<String> keys = TimeHistogram.getKeys(timeRange);
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
+    return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   /**
@@ -1591,48 +1264,27 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    * @return a map representing bins as Strings and the sum/finds as Longs
    */
   @Override // QueryEngine
-  public Map<String, Long> byUserHistogram(Collection<INode> inodes, String sum, String find) {
+  public Map<String, Long> byUserHistogram(Stream<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return byUserHistogramCpu(inodes, sum);
     }
     return byUserHistogramCpuWithFind(inodes, find);
   }
 
-  private Map<String, Long> byUserHistogramCpu(Collection<INode> inodes, String sum) {
-    Map<String, Long> userToIdMap = getDistinctUsers(inodes);
-
-    return binMappingHistogram(
-        inodes,
-        sum,
-        getSumFunctionForINode(sum),
-        node -> userToIdMap.get(node.getUserName()),
-        userToIdMap);
+  private Map<String, Long> byUserHistogramCpu(Stream<INode> inodes, String sum) {
+    return genericSummingHistogram(inodes, INode::getUserName, getSumFunctionForINode(sum));
   }
 
-  private Map<String, Long> byUserHistogramCpuWithFind(Collection<INode> inodes, String find) {
-    Map<String, Long> userToIdMap = getDistinctUsers(inodes);
-
+  private Map<String, Long> byUserHistogramCpuWithFind(Stream<INode> inodes, String find) {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
-    return binMappingHistogramWithFind(
+    return genericFindingHistogram(
         inodes,
-        findOp,
-        getFilterFunctionToLongForINode(findField),
-        node -> userToIdMap.get(node.getUserName()),
-        userToIdMap);
-  }
-
-  @NotNull
-  private Map<String, Long> getDistinctUsers(Collection<INode> inodes) {
-    List<String> distinctUsers =
-        inodes.parallelStream().map(INode::getUserName).distinct().collect(Collectors.toList());
-    return distinctUsers
-        .parallelStream()
-        .mapToInt(distinctUsers::indexOf)
-        .boxed()
-        .collect(Collectors.toMap(distinctUsers::get, value -> (long) value));
+        INode::getUserName,
+        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+        findOp);
   }
 
   /**
@@ -1644,48 +1296,27 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    * @return a map representing bins as Strings and the sum/finds as Longs
    */
   @Override // QueryEngine
-  public Map<String, Long> byGroupHistogram(Collection<INode> inodes, String sum, String find) {
+  public Map<String, Long> byGroupHistogram(Stream<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return byGroupHistogramCpu(inodes, sum);
     }
     return byGroupHistogramCpuWithFind(inodes, find);
   }
 
-  private Map<String, Long> byGroupHistogramCpu(Collection<INode> inodes, String sum) {
-    Map<String, Long> groupToIdMap = getDistinctGroups(inodes);
-
-    return binMappingHistogram(
-        inodes,
-        sum,
-        getSumFunctionForINode(sum),
-        node -> groupToIdMap.get(node.getGroupName()),
-        groupToIdMap);
+  private Map<String, Long> byGroupHistogramCpu(Stream<INode> inodes, String sum) {
+    return genericSummingHistogram(inodes, INode::getGroupName, getSumFunctionForINode(sum));
   }
 
-  private Map<String, Long> byGroupHistogramCpuWithFind(Collection<INode> inodes, String find) {
-    Map<String, Long> groupToIdMap = getDistinctGroups(inodes);
-
+  private Map<String, Long> byGroupHistogramCpuWithFind(Stream<INode> inodes, String find) {
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
-    return binMappingHistogramWithFind(
+    return genericFindingHistogram(
         inodes,
-        findOp,
-        getFilterFunctionToLongForINode(findField),
-        node -> groupToIdMap.get(node.getGroupName()),
-        groupToIdMap);
-  }
-
-  @NotNull
-  private Map<String, Long> getDistinctGroups(Collection<INode> inodes) {
-    List<String> distinctGroups =
-        inodes.parallelStream().map(INode::getGroupName).distinct().collect(Collectors.toList());
-    return distinctGroups
-        .parallelStream()
-        .mapToInt(distinctGroups::indexOf)
-        .boxed()
-        .collect(Collectors.toMap(distinctGroups::get, value -> (long) value));
+        INode::getGroupName,
+        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+        findOp);
   }
 
   /**
@@ -1699,7 +1330,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> parentDirHistogram(
-      Collection<INode> inodes, Integer parentDirDepth, String sum, String find) {
+      Stream<INode> inodes, Integer parentDirDepth, String sum, String find) {
     if (find == null || find.length() == 0) {
       return parentDirHistogramCpu(inodes, parentDirDepth, sum);
     }
@@ -1707,104 +1338,32 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> parentDirHistogramCpu(
-      Collection<INode> inodes, Integer parentDirDepth, String sum) {
-    int dirDepth =
-        (parentDirDepth == null || parentDirDepth <= 0) ? Integer.MAX_VALUE : parentDirDepth;
-    List<String> distinctDirectories = getDirectoryToIdMappingAtDepth(inodes, dirDepth);
-
-    final AtomicLong id = new AtomicLong(0L);
-    final Map<String, Long> dirToIdMap =
-        distinctDirectories
-            .parallelStream()
-            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
-    if (!dirToIdMap.containsKey("NO_MAPPING")) {
-      dirToIdMap.put("NO_MAPPING", id.getAndIncrement());
-    }
-    final long noMappingId = dirToIdMap.get("NO_MAPPING");
+      Stream<INode> inodes, Integer parentDirDepth, String sum) {
+    int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
 
     Map<String, Long> result =
-        binMappingHistogram(
-            inodes,
-            sum,
-            getSumFunctionForINode(sum),
-            getDirectoryToIdFunction(dirToIdMap, dirDepth, noMappingId),
-            dirToIdMap);
+        genericSummingHistogram(
+            inodes, Helper.getDirectoryAtDepthFunction(dirDepth), getSumFunctionForINode(sum));
     result.remove("NO_MAPPING");
     return result;
   }
 
   private Map<String, Long> parentDirHistogramCpuWithFind(
-      Collection<INode> inodes, Integer parentDirDepth, String find) {
+      Stream<INode> inodes, Integer parentDirDepth, String find) {
     int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
-    List<String> distinctDirectories = getDirectoryToIdMappingAtDepth(inodes, dirDepth);
 
-    final AtomicLong id = new AtomicLong(0L);
-    Map<String, Long> dirToIdMap =
-        distinctDirectories
-            .parallelStream()
-            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
-    if (!dirToIdMap.containsKey("NO_MAPPING")) {
-      dirToIdMap.put("NO_MAPPING", id.getAndIncrement());
-    }
-    final long noMappingId = dirToIdMap.get("NO_MAPPING");
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
 
     Map<String, Long> result =
-        binMappingHistogramWithFind(
+        genericFindingHistogram(
             inodes,
-            findOp,
-            getFilterFunctionToLongForINode(findField),
-            getDirectoryToIdFunction(dirToIdMap, dirDepth, noMappingId),
-            dirToIdMap);
+            Helper.getDirectoryAtDepthFunction(dirDepth),
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
     result.remove("NO_MAPPING");
     return result;
-  }
-
-  @NotNull
-  private Function<INode, Long> getDirectoryToIdFunction(
-      Map<String, Long> dirToIdMap, int dirDepth, long noMappingId) {
-    return node -> {
-      try {
-        INodeDirectory parent = node.getParent();
-        int topParentDepth = new Path(parent.getFullPathName()).depth();
-        if (topParentDepth < dirDepth) {
-          return noMappingId;
-        }
-        for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-          parent = parent.getParent();
-        }
-        Long index = dirToIdMap.get(parent.getFullPathName());
-        return index != null ? index : noMappingId;
-      } catch (Throwable e) {
-        return noMappingId;
-      }
-    };
-  }
-
-  @NotNull
-  private List<String> getDirectoryToIdMappingAtDepth(Collection<INode> inodes, int dirDepth) {
-    return inodes
-        .parallelStream()
-        .map(
-            node -> {
-              try {
-                INodeDirectory parent = node.getParent();
-                int topParentDepth = new Path(parent.getFullPathName()).depth();
-                if (topParentDepth < dirDepth) {
-                  return "NO_MAPPING";
-                }
-                for (int parentTravs = topParentDepth; parentTravs > dirDepth; parentTravs--) {
-                  parent = parent.getParent();
-                }
-                return parent.getFullPathName();
-              } catch (Exception e) {
-                return "NO_MAPPING";
-              }
-            })
-        .distinct()
-        .collect(Collectors.toList());
   }
 
   /**
@@ -1816,64 +1375,61 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    * @return a map representing bins as Strings and the sum/finds as Longs
    */
   @Override // QueryEngine
-  public Map<String, Long> fileTypeHistogram(Collection<INode> inodes, String sum, String find) {
+  public Map<String, Long> fileTypeHistogram(Stream<INode> inodes, String sum, String find) {
     if (find == null || find.length() == 0) {
       return fileTypeHistogramCpu(inodes, sum);
     }
-    return fileTypeHistogramCpu(inodes, sum);
+    return fileTypeHistogramCpuWithFind(inodes, find);
   }
 
-  private Map<String, Long> fileTypeHistogramCpu(Collection<INode> inodes, String sum) {
+  private Map<String, Long> fileTypeHistogramCpu(Stream<INode> inodes, String sum) {
     List<String> fileTypes = FileTypeHistogram.keys;
+    Map<String, Integer> typeToIdMap = FileTypeHistogram.typeToIdMap;
 
-    Map<String, Long> typeToIdMap =
-        fileTypes
-            .parallelStream()
-            .mapToInt(fileTypes::indexOf)
-            .boxed()
-            .collect(Collectors.toMap(fileTypes::get, value -> (long) value));
-
+    Function<INode, String> namingFunction =
+        node ->
+            fileTypes.get(typeToIdMap.get(FileTypeHistogram.determineType(node.getLocalName())));
     Map<String, Long> histogram =
-        binMappingHistogram(
-            inodes,
-            sum,
-            getSumFunctionForINode(sum),
-            node -> typeToIdMap.get(FileTypeHistogram.determineType(node.getLocalName())),
-            typeToIdMap);
+        genericSummingHistogram(inodes, namingFunction, getSumFunctionForINode(sum));
+    return removeKeysOnConditional(histogram, "gt:0");
+  }
 
+  private Map<String, Long> fileTypeHistogramCpuWithFind(Stream<INode> inodes, String find) {
+    String[] finds = find.split(":");
+    String findOp = finds[0];
+    String findField = finds[1];
+
+    List<String> fileTypes = FileTypeHistogram.keys;
+    Map<String, Integer> typeToIdMap = FileTypeHistogram.typeToIdMap;
+
+    Function<INode, String> namingFunction =
+        node ->
+            fileTypes.get(typeToIdMap.get(FileTypeHistogram.determineType(node.getLocalName())));
+    Map<String, Long> histogram =
+        genericFindingHistogram(
+            inodes,
+            namingFunction,
+            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+            findOp);
     return removeKeysOnConditional(histogram, "gt:0");
   }
 
   /**
    * Creates a histogram representation of INodes where the X-axis represents a directory quota.
+   * WARNING: This should only ever be called with a "small" set of directory INodes!
    *
    * @param inodes the filtered inodes to operate with
    * @param sum the Y-axis type
    * @return a map representing bins as Strings and the sum/finds as Longs
    */
   @Override // QueryEngine
-  public Map<String, Long> dirQuotaHistogram(Collection<INode> inodes, String sum) {
+  public Map<String, Long> dirQuotaHistogram(Stream<INode> inodes, String sum) {
     return dirQuotaHistogramCpu(inodes, sum);
   }
 
-  private Map<String, Long> dirQuotaHistogramCpu(Collection<INode> inodes, String sum) {
-    List<String> distinctDirectories =
-        inodes.parallelStream().map(INode::getFullPathName).distinct().collect(Collectors.toList());
-
-    final AtomicLong id = new AtomicLong(0L);
-    Map<String, Long> dirToIdMap =
-        distinctDirectories
-            .parallelStream()
-            .collect(Collectors.toMap(dir -> dir, dir -> id.getAndIncrement()));
-
+  private Map<String, Long> dirQuotaHistogramCpu(Stream<INode> inodes, String sum) {
     Map<String, Long> histogram =
-        binMappingHistogram(
-            inodes,
-            sum,
-            getSumFunctionForINode(sum),
-            node -> dirToIdMap.get(node.getFullPathName()),
-            dirToIdMap);
-
+        genericSummingHistogram(inodes, INode::getFullPathName, getSumFunctionForINode(sum));
     return removeKeysOnConditional(histogram, "gte:0");
   }
 
