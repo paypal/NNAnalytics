@@ -2,10 +2,11 @@
 
 `/quotas` is a GET only call that only CACHE users can access.
 It takes an optional parameter `?user=<user>` to specify looking at cached directory quota information for a specific user.
-It also takes a required parameter `&sum=<nsQuotaRatioUsed|dsQuotaRatioUsed>` to specify which quota you wish to look at; either namespace or diskspace.
-Directories can be added to NNA for quota scanning via `/addDirectory` and `/removeDirectory` ADMIN endpoints.
+It also takes a required parameter `&sum=<nsQuotaRatioUsed|dsQuotaRatioUsed|nsQuotaAssigned|dsQuotaAssigned|nsQuotaUsed|dsQuotaUsed>` to specify which quota information you wish to look at; either namespace or diskspace, percentage usage, assignment, and raw usage.
+Any directories that are marked for with a quota will automatically appear here after the next scan.
 
 If you make the call with `?all` as the parameter then the JSON dump will contain information of all directory quotas.
+If you use the `?all` call, you may also add `&sum=<quotaUsed|quotaAssigned|quotaRatioUsed>` to the call those breakdowns; by default it will return the ratio used if no `sum` is specified.
 
 Example response:
 ```json

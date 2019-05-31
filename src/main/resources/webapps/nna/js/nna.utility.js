@@ -80,6 +80,28 @@ function addParameterToURL(key, value, sourceURL){
     return kvp.join('&');
 }
 
+function determineNsColumnName() {
+    var name = getUrlParameter("sum");
+    if (name == "quotaAssigned") {
+        return "Namespace Quota Assigned";
+    } else if (name == "quotaUsed") {
+        return "Namespace Quota Used";
+    } else {
+        return "Namespace Quota % Used";
+    }
+}
+
+function determineDsColumnName() {
+    var name = getUrlParameter("sum");
+    if (name == "quotaAssigned") {
+        return "Diskspace Quota Assigned";
+    } else if (name == "quotaUsed") {
+        return "Diskspace Quota Used";
+    } else {
+        return "Diskspace Quota % Used";
+    }
+}
+
 function getParameter(name, sourceUrl) {
     name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
     var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');

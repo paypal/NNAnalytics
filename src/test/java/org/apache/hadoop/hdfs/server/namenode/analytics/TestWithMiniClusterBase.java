@@ -239,6 +239,19 @@ public abstract class TestWithMiniClusterBase {
     assertThat(output.size(), is(greaterThan(0)));
     assertThat(output.get(0), containsString("numFilesUsers"));
     assertThat(output.get(0), containsString("diskspaceUsers"));
+
+    // Test quotas are visible.
+    HttpGet quotaAssigned = new HttpGet("http://localhost:4567/quotas?all&sum=quotaAssigned");
+    HttpResponse quotaAssignedRes = client.execute(hostPort, quotaAssigned);
+    output = IOUtils.readLines(quotaAssignedRes.getEntity().getContent());
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(output.size(), is(greaterThan(0)));
+
+    HttpGet quotaUsed = new HttpGet("http://localhost:4567/quotas?all&sum=quotaUsed");
+    HttpResponse quotaUsedRes = client.execute(hostPort, quotaUsed);
+    output = IOUtils.readLines(quotaUsedRes.getEntity().getContent());
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(output.size(), is(greaterThan(0)));
   }
 
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {

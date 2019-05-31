@@ -58,7 +58,7 @@
         <h1>Welcome to NNAnalytics</h1>
         <div id="connection"></div>
         <p>
-            View directories that have quotas set on them and how filled those quotas are.<br />
+            View directories that have quotas set on them and information about those quotas.<br />
         </p>
         <br />
         <br />
@@ -68,9 +68,9 @@
             <thead>
             <tr>
                 <th>Path</th>
-                <th>Owner</th>
-                <th>Namespace Quota % Used</th>
-                <th>Diskspace Quota % Used</th>
+                <th>Username</th>
+                <th id="quotaNsHeader">Namespace Quota</th>
+                <th id="quotaDsHeader">Diskspace Quota</th>
             </tr>
             </thead>
         </table>
@@ -142,7 +142,7 @@
 
         let table = $('#quotaDataTable').DataTable( {
             "ajax": {
-                "url": "./quotas?all",
+                "url": "./quotas" + window.location.search + "&all",
                 "type": "GET",
                 "dataSrc": function(json) {
                     console.log(json);
@@ -164,8 +164,8 @@
                         return data;
                     }
                 },
-                { title: "Namespace Quota % Used" },
-                { title: "Diskspace Quota % Used" }
+                { title: determineNsColumnName() },
+                { title: determineDsColumnName() }
             ],
             "columnDefs": [
                 { width: "20%", targets: [1,2,3] }
