@@ -72,14 +72,27 @@ public class FileTypeHistogram {
     PYTHON,
     JAVA,
     CLASS,
-    LOCK
+    LOCK,
+    APP_LOG,
+    AVSC,
+    NAMES,
+    NN,
+    GBT,
+    TEMP,
+    LZ4,
+    LZO,
+    DELTA,
+    SNAPSHOT,
+    SQL
   }
 
   private static final Map<String, String> startsWithMap =
       new HashMap<String, String>() {
         {
           put("part_r", Types.PART_R.name());
+          put("part-r", Types.PART_R.name());
           put("part_m", Types.PART_M.name());
+          put("part-m", Types.PART_M.name());
         }
       };
 
@@ -96,6 +109,7 @@ public class FileTypeHistogram {
   private static final Map<String, String> suffixExtMap =
       new HashMap<String, String>() {
         {
+          put("_45454", Types.APP_LOG.name());
           put(".batch", Types.BATCH.name());
           put(".txt", Types.TXT.name());
           put(".tsv", Types.TSV.name());
@@ -103,6 +117,7 @@ public class FileTypeHistogram {
           put(".csv", Types.CSV.name());
           put(".log", Types.LOG.name());
           put(".avro", Types.AVRO.name());
+          put(".avsc", Types.AVSC.name());
           put(".snappy", Types.SNAPPY.name());
           put(".parquet", Types.PARQUET.name());
           put(".gz", Types.GZIP.name());
@@ -117,6 +132,16 @@ public class FileTypeHistogram {
           put(".jar", Types.JAR.name());
           put(".zip", Types.ZIP.name());
           put(".gzip", Types.GZIP.name());
+          put(".names", Types.NAMES.name());
+          put(".nn", Types.NN.name());
+          put(".gbt", Types.GBT.name());
+          put(".tmp", Types.TEMP.name());
+          put(".temp", Types.TEMP.name());
+          put(".lz4", Types.LZ4.name());
+          put(".lzo", Types.LZO.name());
+          put(".delta", Types.DELTA.name());
+          put(".snapshot", Types.SNAPSHOT.name());
+          put(".sql", Types.SQL.name());
           put(".dtdone", Types.DTDONE.name());
           put(".done", Types.DONE.name());
           put(".jhist", Types.JHIST.name());
