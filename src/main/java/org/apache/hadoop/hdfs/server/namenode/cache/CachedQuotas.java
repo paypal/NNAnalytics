@@ -91,18 +91,18 @@ public class CachedQuotas {
     Stream<INode> quotaDirsStream =
         queryEngine.combinedFilterToStream(
             dirs, new String[] {"hasQuota"}, new String[] {"eq:true"});
-    Map<String, List<String>> ownerAndDirs =
+    final Map<String, List<String>> ownerAndDirs =
         quotaDirsStream.collect(
             Collectors.groupingBy(
                 INode::getUserName,
                 Collectors.mapping(INode::getFullPathName, Collectors.toList())));
-    Map<String, ContentSummary> dirToContentSummary =
+    final Map<String, ContentSummary> dirToContentSummary =
         ownerAndDirs
             .values()
             .parallelStream()
             .flatMap(List::stream)
             .collect(Collectors.toMap(Function.identity(), loader::getContentSummary));
-    Map<String, Long> dirDsQuotaAssigned =
+    final Map<String, Long> dirDsQuotaAssigned =
         dirToContentSummary
             .entrySet()
             .parallelStream()
@@ -117,7 +117,7 @@ public class CachedQuotas {
                         return summary.getSpaceQuota();
                       }
                     }));
-    Map<String, Long> dirDsQuotaUsed =
+    final Map<String, Long> dirDsQuotaUsed =
         dirToContentSummary
             .entrySet()
             .parallelStream()
@@ -128,7 +128,7 @@ public class CachedQuotas {
                       ContentSummary summary = e.getValue();
                       return summary.getSpaceConsumed();
                     }));
-    Map<String, Long> dirDsQuotaRatio =
+    final Map<String, Long> dirDsQuotaRatio =
         dirToContentSummary
             .entrySet()
             .parallelStream()
@@ -144,7 +144,7 @@ public class CachedQuotas {
                             (100 * ((double) summary.getSpaceConsumed()) / summary.getSpaceQuota());
                       }
                     }));
-    Map<String, Long> dirNsQuotaAssigned =
+    final Map<String, Long> dirNsQuotaAssigned =
         dirToContentSummary
             .entrySet()
             .parallelStream()
@@ -159,7 +159,7 @@ public class CachedQuotas {
                         return summary.getQuota();
                       }
                     }));
-    Map<String, Long> dirNsQuotaUsed =
+    final Map<String, Long> dirNsQuotaUsed =
         dirToContentSummary
             .entrySet()
             .parallelStream()
@@ -170,7 +170,7 @@ public class CachedQuotas {
                       ContentSummary summary = e.getValue();
                       return (summary.getFileCount() + summary.getDirectoryCount());
                     }));
-    Map<String, Long> dirNsQuotaRatio =
+    final Map<String, Long> dirNsQuotaRatio =
         dirToContentSummary
             .entrySet()
             .parallelStream()
@@ -194,32 +194,32 @@ public class CachedQuotas {
         .forEach(
             entry -> {
               String user = entry.getKey();
-              Map<String, Long> nsQuotaRatio =
+              final Map<String, Long> nsQuotaRatio =
                   entry
                       .getValue()
                       .parallelStream()
                       .collect(Collectors.toMap(Function.identity(), dirNsQuotaRatio::get));
-              Map<String, Long> nsQuotaAssigned =
+              final Map<String, Long> nsQuotaAssigned =
                   entry
                       .getValue()
                       .parallelStream()
                       .collect(Collectors.toMap(Function.identity(), dirNsQuotaAssigned::get));
-              Map<String, Long> nsQuotaUsed =
+              final Map<String, Long> nsQuotaUsed =
                   entry
                       .getValue()
                       .parallelStream()
                       .collect(Collectors.toMap(Function.identity(), dirNsQuotaUsed::get));
-              Map<String, Long> dsQuotaRatio =
+              final Map<String, Long> dsQuotaRatio =
                   entry
                       .getValue()
                       .parallelStream()
                       .collect(Collectors.toMap(Function.identity(), dirDsQuotaRatio::get));
-              Map<String, Long> dsQuotaAssigned =
+              final Map<String, Long> dsQuotaAssigned =
                   entry
                       .getValue()
                       .parallelStream()
                       .collect(Collectors.toMap(Function.identity(), dirDsQuotaAssigned::get));
-              Map<String, Long> dsQuotaUsed =
+              final Map<String, Long> dsQuotaUsed =
                   entry
                       .getValue()
                       .parallelStream()
