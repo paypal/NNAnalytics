@@ -1698,11 +1698,11 @@ public class WebServerMain implements ApplicationMain {
           res.header("Access-Control-Allow-Origin", "*");
           res.header("Content-Type", "application/json");
           boolean allJson = req.queryMap().toMap().containsKey("all");
+          String sum = req.queryMap("sum").value();
           if (allJson) {
-            return nameNodeLoader.getSuggestionsEngine().getAllQuotasAsJson();
+            return nameNodeLoader.getSuggestionsEngine().getAllQuotasAsJson(sum);
           } else {
             String user = req.queryMap("user").value();
-            String sum = req.queryMap("sum").value();
             return nameNodeLoader.getSuggestionsEngine().getQuotaAsJson(user, sum);
           }
         });

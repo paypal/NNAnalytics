@@ -952,12 +952,12 @@ public class NamenodeAnalyticsMethods {
       final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
       before();
       boolean allJson = request.getParameterMap().containsKey("all");
+      String sum = request.getParameter("sum");
       String resp;
       if (allJson) {
-        resp = nnLoader.getSuggestionsEngine().getAllQuotasAsJson();
+        resp = nnLoader.getSuggestionsEngine().getAllQuotasAsJson(sum);
       } else {
         String user = request.getParameter("user");
-        String sum = request.getParameter("sum");
         resp = nnLoader.getSuggestionsEngine().getQuotaAsJson(user, sum);
       }
       return Response.ok(resp, MediaType.APPLICATION_JSON).build();

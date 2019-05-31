@@ -971,10 +971,24 @@ public class SuggestionsEngine {
    *
    * @return quota info returned as JSON string
    */
-  public String getAllQuotasAsJson() {
+  public String getAllQuotasAsJson(String sum) {
     Map<String, Map<String, Map<String, Long>>> allQuotaRatios = new HashMap<>();
-    Map<String, Map<String, Long>> nsQuotas = cachedQuotas.getAllNsQuotaUsed();
-    Map<String, Map<String, Long>> dsQuotas = cachedQuotas.getAllDsQuotaUsed();
+    Map<String, Map<String, Long>> nsQuotas = cachedQuotas.getAllNsQuotaRatio();
+    Map<String, Map<String, Long>> dsQuotas = cachedQuotas.getAllDsQuotaRatio();
+    if (sum != null && sum.length() != 0) {
+      switch (sum) {
+        case "quotaAssigned":
+          nsQuotas = cachedQuotas.getAllNsQuotaAssigned();
+          dsQuotas = cachedQuotas.getAllDsQuotaAssigned();
+          break;
+        case "quotaUsed":
+          nsQuotas = cachedQuotas.getAllNsQuotaUsed();
+          dsQuotas = cachedQuotas.getAllDsQuotaUsed();
+          break;
+        case "quotaRatioUsed":
+        default:
+      }
+    }
     allQuotaRatios.put("nsQuotas", nsQuotas);
     allQuotaRatios.put("dsQuotas", dsQuotas);
     return Histograms.toJson(allQuotaRatios);
@@ -990,29 +1004,52 @@ public class SuggestionsEngine {
   public String getQuotaAsJson(String user, String sum) {
     if (sum == null || sum.length() == 0) {
       throw new IllegalArgumentException(
-          "Please define a sum of either diskspaceConsumed or count for Quotas.");
+          "Please choose between dsQuotaAssigned, dsQuotaUsed, dsQuotaRatioUsed, "
+              + "nsQuotaAssigned, nsQuotaUsed, or nsQuotaRatioUsed for Quotas.");
     }
     if (user != null && user.length() > 0) {
       switch (sum) {
+        case "dsQuotaAssigned":
+          Map<String, Long> dsAssignedHistogram = cachedQuotas.getDiskQuotaAssigned(user);
+          return Histograms.toJson(Histograms.sortByValue(dsAssignedHistogram, false));
+        case "dsQuotaUsed":
+          Map<String, Long> dsUsedHistogram = cachedQuotas.getDiskQuotaUsed(user);
+          return Histograms.toJson(Histograms.sortByValue(dsUsedHistogram, false));
         case "dsQuotaRatioUsed":
-          Map<String, Long> dsHistogram = cachedQuotas.getDiskQuotaUsed(user);
+          Map<String, Long> dsHistogram = cachedQuotas.getDiskQuotaRatio(user);
           return Histograms.toJson(Histograms.sortByValue(dsHistogram, false));
+        case "nsQuotaAssigned":
+          Map<String, Long> nsAssignedHistogram = cachedQuotas.getNameQuotaAssigned(user);
+          return Histograms.toJson(Histograms.sortByValue(nsAssignedHistogram, false));
+        case "nsQuotaUsed":
+          Map<String, Long> nsUsedHistogram = cachedQuotas.getNameQuotaUsed(user);
+          return Histograms.toJson(Histograms.sortByValue(nsUsedHistogram, false));
         case "nsQuotaRatioUsed":
-          Map<String, Long> nsHistogram = cachedQuotas.getNameQuotaUsed(user);
+          Map<String, Long> nsHistogram = cachedQuotas.getNameQuotaRatio(user);
           return Histograms.toJson(Histograms.sortByValue(nsHistogram, false));
         default:
           throw new IllegalArgumentException(
-              "Please choose between diskspaceConsumed or count for Quotas.");
+              "Please choose between dsQuotaAssigned, dsQuotaUsed, dsQuotaRatioUsed, "
+                  + "nsQuotaAssigned, nsQuotaUsed, or nsQuotaRatioUsed for Quotas.");
       }
     } else {
       switch (sum) {
-        case "dsQuotaRatioUsed":
+        case "dsQuotaAssigned":
+          return Histograms.toJson(cachedQuotas.getAllDsQuotaAssigned());
+        case "dsQuotaUsed":
           return Histograms.toJson(cachedQuotas.getAllDsQuotaUsed());
-        case "nsQuotaRatioUsed":
+        case "dsQuotaRatioUsed":
+          return Histograms.toJson(cachedQuotas.getAllDsQuotaRatio());
+        case "nsQuotaAssigned":
+          return Histograms.toJson(cachedQuotas.getAllNsQuotaAssigned());
+        case "nsQuotaUsed":
           return Histograms.toJson(cachedQuotas.getAllNsQuotaUsed());
+        case "nsQuotaRatioUsed":
+          return Histograms.toJson(cachedQuotas.getAllNsQuotaRatio());
         default:
           throw new IllegalArgumentException(
-              "Please choose between diskspaceConsumed or count for Quotas.");
+              "Please choose between dsQuotaAssigned, dsQuotaUsed, dsQuotaRatioUsed, "
+                  + "nsQuotaAssigned, nsQuotaUsed, or nsQuotaRatioUsed for Quotas.");
       }
     }
   }

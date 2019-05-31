@@ -1154,17 +1154,17 @@
         document.getElementById("nsQuotaCached").href = 'quotas?sum=nsQuotaRatioUsed&user=' + getUrlParameter("username");
         document.getElementById("nsQuotaCached").innerHTML = "<b>GET CACHED NAMESPACE QUOTA USED PERCENTAGE</b>";
 
-        document.getElementById("dsQuota").href = getModalSpecificURL('histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuota&sortDescending=true&histogramOutput=csv');
-        document.getElementById("dsQuota").innerHTML = "<b>LIST DIRECTORIES BY DISKSPACE QUOTA ASSIGNED</b>";
+        document.getElementById("dsQuota").href = 'quotas?sum=dsQuotaAssigned&user=' + getUrlParameter("username");
+        document.getElementById("dsQuota").innerHTML = "<b>GET CACHED DISKSPACE QUOTA ASSIGNED</b>";
 
-        document.getElementById("nsQuota").href = getModalSpecificURL('histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuota&sortDescending=true&histogramOutput=csv');
-        document.getElementById("nsQuota").innerHTML = "<b>LIST DIRECTORIES BY NAMESPACE QUOTA ASSIGNED</b>";
+        document.getElementById("nsQuota").href = 'quotas?sum=nsQuotaAssigned&user=' + getUrlParameter("username");
+        document.getElementById("nsQuota").innerHTML = "<b>GET CACHED NAMESPACE QUOTA ASSIGNED</b>";
 
-        document.getElementById("dsQuotaUsed").href = getModalSpecificURL('histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=dsQuotaUsed&sortDescending=true&histogramOutput=csv');
-        document.getElementById("dsQuotaUsed").innerHTML = "<b>LIST DIRECTORIES BY DISKSPACE QUOTA USED</b>";
+        document.getElementById("dsQuotaUsed").href = 'quotas?sum=dsQuotaUsed&user=' + getUrlParameter("username");
+        document.getElementById("dsQuotaUsed").innerHTML = "<b>GET CACHED DISKSPACE QUOTA USED</b>";
 
-        document.getElementById("nsQuotaUsed").href = getModalSpecificURL('histogram?set=dirs&filters=hasQuota:eq:true&type=dirQuota&sum=nsQuotaUsed&sortDescending=true&histogramOutput=csv');
-        document.getElementById("nsQuotaUsed").innerHTML = "<b>LIST DIRECTORIES BY NAMESPACE QUOTA USED</b>";
+        document.getElementById("nsQuotaUsed").href = 'quotas?sum=nsQuotaUsed&user=' + getUrlParameter("username");
+        document.getElementById("nsQuotaUsed").innerHTML = "<b>GET CACHED NAMESPACE QUOTA USED</b>";
 </script>
 </body>
 </html>
