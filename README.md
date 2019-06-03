@@ -17,9 +17,22 @@ Then go to http://localhost:4567 and you will have an NNA instance complete with
 
 __________________________________________________________________________________________________________________
 
+# Architecture: Legacy vs NNA
+
+<img src="docs/images/NNA-arch-1.png" width="917" height="478" />
+<img src="docs/images/NNA-arch-2.png" width="917" height="478" />
+
+__________________________________________________________________________________________________________________
 
 # Documentation & Getting Started
 
   * [Click here to read the docs](http://nnanalytics.readthedocs.io/)
+
+__________________________________________________________________________________________________________________
+
+# Presentations
+
+  * [SlideShare](https://www.slideshare.net/Hadoop_Summit/namenode-analytics-scouting-the-hdfs-metadata-103202302)
+  * [DataWorks Summit](https://www.youtube.com/watch?v=9xlB5C88tbk)
 
 __________________________________________________________________________________________________________________
