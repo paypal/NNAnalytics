@@ -80,6 +80,7 @@ public class TestWithMiniClusterWithStreamEngine extends TestWithMiniClusterBase
     nnaConf.set("authorization.enable", "false");
     nnaConf.set("nna.historical", "true");
     nnaConf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
+    nnaConf.set("nna.web.base.dir", "src/main/resources/webapps/nna");
     nnaConf.set("nna.query.engine.impl", JavaStreamQueryEngine.class.getCanonicalName());
     nna.init(nnaConf, null, CONF);
     hostPort = new HttpHost("localhost", 4567);

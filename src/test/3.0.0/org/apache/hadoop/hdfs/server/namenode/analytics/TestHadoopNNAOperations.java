@@ -44,6 +44,7 @@ public class TestHadoopNNAOperations extends TestOperationsBase {
     conf.set("authorization.enable", "false");
     conf.set("nna.historical", "false");
     conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
+    conf.set("nna.web.base.dir", "src/main/resources/webapps/nna");
     conf.set("nna.query.engine.impl", JavaStreamQueryEngine.class.getCanonicalName());
     nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);

@@ -42,6 +42,7 @@ public class TestWebServerMainAuthorization extends TestAuthorizationBase {
     conf.set("ldap.enable", "false");
     conf.set("authorization.enable", "true");
     conf.set("nna.base.dir", MiniDFSCluster.getBaseDirectory());
+    conf.set("nna.web.base.dir", "src/main/resources/webapps/nna");
     nna.init(conf, gset);
     hostPort = new HttpHost("localhost", 4567);
   }

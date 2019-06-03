@@ -70,17 +70,19 @@ public class CachedDirectories {
     long start = System.currentTimeMillis();
 
     /* Make an in-mem copy of the cachedDirs so we can parallelize the stream. */
-    HashSet<String> inMemCachedDirsCopy = new HashSet<>(cachedDirs);
-    Map<String, ContentSummary> contentSummaries =
-        inMemCachedDirsCopy
-            .parallelStream()
-            .collect(Collectors.toMap(Function.identity(), nnLoader::getContentSummary));
-    for (Entry<String, ContentSummary> entry : contentSummaries.entrySet()) {
-      if (entry.getKey() == null || entry.getValue() == null) {
-        continue;
+    if (cachedDirs.size() > 0) {
+      HashSet<String> inMemCachedDirsCopy = new HashSet<>(cachedDirs);
+      Map<String, ContentSummary> contentSummaries =
+          inMemCachedDirsCopy
+              .parallelStream()
+              .collect(Collectors.toMap(Function.identity(), nnLoader::getContentSummary));
+      for (Entry<String, ContentSummary> entry : contentSummaries.entrySet()) {
+        if (entry.getKey() == null || entry.getValue() == null) {
+          continue;
+        }
+        countMap.put(entry.getKey(), entry.getValue().getFileCount());
+        diskspaceMap.put(entry.getKey(), entry.getValue().getSpaceConsumed());
       }
-      countMap.put(entry.getKey(), entry.getValue().getFileCount());
-      diskspaceMap.put(entry.getKey(), entry.getValue().getSpaceConsumed());
     }
 
     long end = System.currentTimeMillis();
