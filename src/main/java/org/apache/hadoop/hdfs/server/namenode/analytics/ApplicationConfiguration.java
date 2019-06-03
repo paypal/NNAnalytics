@@ -49,6 +49,7 @@ public class ApplicationConfiguration {
   private static final String LDAP_RESPONSE_TIMEOUT_DEFAULT = "1000";
   private static final String NNA_SUGGESTIONS_RELOAD_TIMEOUT_DEFAULT = "900000";
   private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
+  private static final String NNA_WEB_BASE_DIR_DEFAULT = NNA_BASE_DIR_DEFAULT + "/webapps/nna";
   private static final String NNA_SUPPORT_BOOTSTRAP_OVERRIDES = "true";
   private static final String NNA_QUERY_ENGINE_DEFAULT =
       JavaStreamQueryEngine.class.getCanonicalName();
@@ -84,6 +85,10 @@ public class ApplicationConfiguration {
 
   public String getBaseDir() {
     return properties.getProperty("nna.base.dir", NNA_BASE_DIR_DEFAULT);
+  }
+
+  public String getWebBaseDir() {
+    return properties.getProperty("nna.web.base.dir", NNA_WEB_BASE_DIR_DEFAULT);
   }
 
   public boolean getHistoricalEnabled() {

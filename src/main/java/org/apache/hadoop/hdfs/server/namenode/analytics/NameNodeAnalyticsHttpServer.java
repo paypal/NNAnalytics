@@ -180,6 +180,7 @@ public class NameNodeAnalyticsHttpServer {
     httpServer = builder.build();
 
     // Main load of NNA classes and API into NNA Http Server.
+    httpServer.getWebAppContext().setWar(nnaConf.getWebBaseDir());
     httpServer.getWebAppContext().setAttribute(NNA_NN_LOADER, nnLoader);
     httpServer.getWebAppContext().setAttribute(NNA_SECURITY_CONTEXT, secContext);
     httpServer.getWebAppContext().setAttribute(NNA_USAGE_METRICS, usageMetrics);

@@ -294,7 +294,7 @@ public class WebServerMain implements ApplicationMain {
     }
 
     /* This is the call to load everything under ./resources/public as HTML resources. */
-    Spark.staticFileLocation("/webapps/nna");
+    Spark.externalStaticFileLocation(conf.getWebBaseDir());
 
     /* LOGIN is used to log into authenticated web sessions. */
     post(

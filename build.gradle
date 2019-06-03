@@ -228,5 +228,10 @@ ospackage {
         fileType CONFIG | NOREPLACE
         into 'config'
     }
+    from('src/main/resources/webapps') {
+        fileType CONFIG | NOREPLACE
+        into 'webapps'
+        fileMode = 0755
+    }
 
 }

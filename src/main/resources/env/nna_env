@@ -21,7 +21,7 @@
 
 export WORKING_DIR=/usr/local/nn-analytics
 export JAVA_HOME=/usr/java/latest
-export JAVA_CLASSPATH=${WORKING_DIR}/config:${WORKING_DIR}/lib/*
+export JAVA_CLASSPATH=${WORKING_DIR}/config:${WORKING_DIR}/lib/*:${WORKING_DIR}/webapps
 
 export NNA_JVM_OPTIONS="-server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:NewSize=25600m -XX:MaxNewSize=25600m \
 -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps \
