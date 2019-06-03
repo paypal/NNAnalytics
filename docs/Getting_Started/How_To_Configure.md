@@ -23,6 +23,8 @@ For example:
 
 Definitions of configuration NNA-specific properties:
 
+* `nna.base.dir=<path>` - Default is `/usr/local/nn-analytics`. Change this if you plan to install / move NNA into a different directory.
+* `nna.web.base.dir=<path>` - Default is `/usr/local/nn-analytics/webapps/nna`. Change this is you plan to load NNA web resources from a different directory.
 * `nna.port=<integer>` - Default is 8080. Represents the main web UI port.
 * `nna.historical=<true | false>` - Default is false. True enables a locally embedded HSQL DB to trend data. Not recommended in production.
 * `nna.support.bootstrap.overrides=<true | false>` - Default is true. True will override certain hdfs-site.xml configurations to prevent NNA from communicating with the active cluster. False means it will use configurations as-is. Recommended true in production.
