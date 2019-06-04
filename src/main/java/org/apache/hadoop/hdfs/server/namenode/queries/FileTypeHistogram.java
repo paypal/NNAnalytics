@@ -181,7 +181,7 @@ public class FileTypeHistogram {
     String key;
     if ((key = equalsMap.get(name)) != null) {
       return key;
-    } else if (name.length() > 6 && (key = startsWithMap.get(name.substring(0, 7))) != null) {
+    } else if (name.length() > 6 && (key = startsWithMap.get(name.substring(0, 6))) != null) {
       return key;
     } else {
       int extIndex = name.lastIndexOf(".");

@@ -20,6 +20,7 @@ Getting Started
 Query Parameters
 =================
 
+  * [CachedMaps](Query_Parameters/CachedMaps.md)
   * [FilterOps](Query_Parameters/FilterOps.md)
   * [Filters](Query_Parameters/Filters.md)
   * [Finds](Query_Parameters/Finds.md)
@@ -52,6 +53,7 @@ REST Endpoints
   * [Log](REST_Endpoints/Log.md)
   * [Login](REST_Endpoints/Login.md)
   * [Logout](REST_Endpoints/Logout.md)
+  * [Metrics](REST_Endpoints/Metrics.md)
   * [Operations](REST_Endpoints/Operations.md)
   * [Quotas](REST_Endpoints/Quotas.md)
   * [Refresh](REST_Endpoints/Refresh.md)

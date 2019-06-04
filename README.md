@@ -20,7 +20,7 @@ ________________________________________________________________________________
 # Architecture: Legacy vs NNA
 
 <img src="docs/images/NNA-arch-1.png" width="917" height="478" />
-<img src="docs/images/NNA-arch-2.png" width="917" height="478" />
+<img src="docs/images/NNA-arch-2.png" width="861" height="526" />
 
 __________________________________________________________________________________________________________________
 
