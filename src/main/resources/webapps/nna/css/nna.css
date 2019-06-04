@@ -79,7 +79,7 @@ tbody.collapse.in {
   padding: 8px;
 }
 .jumboback {
-  max-width: 500px;
+  max-width: 850px;
   margin: 0 auto;
   padding: 1px 0px 10px;
   border-radius: inherit;
@@ -92,7 +92,7 @@ tbody.collapse.in {
 }
 .jumbotron table {
   width:80% !important;
-  max-width:500px;
+  max-width:800px;
 }
 
 /* User Metrics */

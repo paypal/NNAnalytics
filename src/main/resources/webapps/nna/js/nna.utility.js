@@ -378,7 +378,12 @@ function getModalSpecificURL(urlBase){
     var username = getUrlParameter("username");
     var newUrl = urlBase;
     if(username.length > 0){
-        var filters = getParameter("filters", newUrl) + ",user:eq:"+username;
+        var filters = getParameter("filters", newUrl);
+        if(filters.length == 0) {
+          filters = "user:eq:" + username;
+        } else {
+          filters = filters + ",user:eq:" + username;
+        }
         newUrl = removeParam("filters", newUrl);
         newUrl = addParameterToURL("filters", filters, newUrl);
         return newUrl;

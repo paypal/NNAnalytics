@@ -153,6 +153,11 @@
                     <td>Last Delegation Token Issue Date on Cluster</td>
                     <td id="total12"></td>
                 </tr>
+                <tr>
+                    <th colspan="2">
+                        <a style="cursor: pointer; cursor: hand;" data-toggle="modal" data-target="#totalsTip"><b><h5>[Explain]</h5></b></a>
+                    </th>
+                </tr>
                 </tbody>
             </table>
         </a>
@@ -460,6 +465,53 @@
                 </tbody>
             </table>
         </a>
+    </div>
+</div>
+
+<div class="modal fade" id="totalsTip" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tips</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    This is simply the breakdown of your usage across the entire cluster.<br />
+                    The desire is to make use of capacity diskspace with as little NameNode memory consumption as possible.<br />
+                    By looking at breakdowns of your usage perhaps you can find ways to optimize and delete.<br />
+                    <br />
+                    <a target="_blank" id="totalFileTypes">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="totalReplFactors">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="totalAccessTime">Test</a>
+                    <br />
+                    <br />
+                    <a target="_blank" id="totalModTime">Test</a>
+                    <br />
+                    <br />
+                    <!-- SCHEDULE DELETE FOR FIRST 100 EMPTY FILES<br />
+                    <a target="_blank" id="delete100EmptyFiles">Test</a>
+                    <br />
+                    <br />
+                    SCHEDULE DELETE FOR ALL EMPTY FILES OLDER THAN 1 YEAR<br />
+                    <a target="_blank" id="delete1yearEmptyFiles">Test</a>
+                    <br />
+                    <br />
+                    SCHEDULE DELETE ALL EMPTY FILES<br />
+                    <a target="_blank" id="deleteAllEmptyFiles">Test</a> -->
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -1024,6 +1076,18 @@
         });
 
         var url = window.location.origin+"/";
+
+        document.getElementById("totalFileTypes").href = getModalSpecificURL('histogram?set=files&type=fileType&sum=count&sortDescending=true&histogramOutput=csv');
+        document.getElementById("totalFileTypes").innerHTML = "<b>FILE TYPES COUNT HISTOGRAM</b>";
+
+        document.getElementById("totalReplFactors").href = getModalSpecificURL('custom.html?set=files&type=fileReplica&sum=count');
+        document.getElementById("totalReplFactors").innerHTML = "<b>REPLICATION FACTOR COUNT HISTOGRAM</b>";
+
+        document.getElementById("totalAccessTime").href = getModalSpecificURL('custom.html?set=files&type=accessTime&sum=count');
+        document.getElementById("totalAccessTime").innerHTML = "<b>ACCESS TIME COUNT HISTOGRAM</b>";
+
+        document.getElementById("totalModTime").href = getModalSpecificURL('custom.html?set=files&type=accessTime&sum=count');
+        document.getElementById("totalModTime").innerHTML = "<b>MOD TIME COUNT HISTOGRAM</b>";
 
         document.getElementById("emptyFilesDirs").href = getModalSpecificURL('histogram?set=files&filters=fileSize:eq:0&type=parentDir&sum=count&sortDescending=true&parentDirDepth=3&histogramOutput=csv');
         document.getElementById("emptyFilesDirs").innerHTML = "<b>LIST DIRECTORIES WITH EMPTY FILES COUNT</b>";
