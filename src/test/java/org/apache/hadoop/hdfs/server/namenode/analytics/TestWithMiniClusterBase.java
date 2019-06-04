@@ -252,6 +252,17 @@ public abstract class TestWithMiniClusterBase {
     output = IOUtils.readLines(quotaUsedRes.getEntity().getContent());
     assertThat(res.getStatusLine().getStatusCode(), is(200));
     assertThat(output.size(), is(greaterThan(0)));
+
+    // Test file types.
+    HttpGet fileTypeHistogram =
+        new HttpGet(
+            "http://localhost:4567/histogram?set=files&sum=count&type=fileType&histogramOutput=csv");
+    HttpResponse fileTypeRes = client.execute(hostPort, fileTypeHistogram);
+    assertThat(fileTypeRes.getStatusLine().getStatusCode(), is(200));
+    List<String> fileTypeContent = IOUtils.readLines(fileTypeRes.getEntity().getContent());
+    long part_r_counts = fileTypeContent.stream().filter(s -> s.startsWith("PART_R")).count();
+    assertThat(fileTypeContent.size(), is(greaterThan(0)));
+    assertThat(part_r_counts, is(greaterThan(0L)));
   }
 
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {
@@ -265,7 +276,7 @@ public abstract class TestWithMiniClusterBase {
       dirPath = dirPath.suffix("/dir" + dirNumber3);
       fileSystem.mkdirs(dirPath);
       Path filePath = dirPath.suffix("/file" + i);
-      int fileType = RANDOM.nextInt(5);
+      int fileType = RANDOM.nextInt(6);
       switch (fileType) {
         case 0:
           filePath = filePath.suffix(".zip");
@@ -282,6 +293,8 @@ public abstract class TestWithMiniClusterBase {
         case 4:
           filePath = filePath.suffix(".json");
           break;
+        case 5:
+          filePath = dirPath.suffix("/part-r-" + i);
         default:
           break;
       }
