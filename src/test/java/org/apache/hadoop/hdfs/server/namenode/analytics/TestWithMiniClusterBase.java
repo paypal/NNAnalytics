@@ -261,8 +261,10 @@ public abstract class TestWithMiniClusterBase {
     assertThat(fileTypeRes.getStatusLine().getStatusCode(), is(200));
     List<String> fileTypeContent = IOUtils.readLines(fileTypeRes.getEntity().getContent());
     long part_r_counts = fileTypeContent.stream().filter(s -> s.startsWith("PART_R")).count();
+    long applog_counts = fileTypeContent.stream().filter(s -> s.startsWith("APP_LOG")).count();
     assertThat(fileTypeContent.size(), is(greaterThan(0)));
     assertThat(part_r_counts, is(greaterThan(0L)));
+    assertThat(applog_counts, is(greaterThan(0L)));
   }
 
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {
@@ -276,7 +278,7 @@ public abstract class TestWithMiniClusterBase {
       dirPath = dirPath.suffix("/dir" + dirNumber3);
       fileSystem.mkdirs(dirPath);
       Path filePath = dirPath.suffix("/file" + i);
-      int fileType = RANDOM.nextInt(6);
+      int fileType = RANDOM.nextInt(7);
       switch (fileType) {
         case 0:
           filePath = filePath.suffix(".zip");
@@ -295,14 +297,14 @@ public abstract class TestWithMiniClusterBase {
           break;
         case 5:
           filePath = dirPath.suffix("/part-r-" + i);
+          break;
+        case 6:
+          filePath = filePath.suffix("_45454");
         default:
           break;
       }
       int fileSize = RANDOM.nextInt(4);
       switch (fileSize) {
-        case 0:
-          DFSTestUtil.writeFile(fileSystem, filePath, "");
-          break;
         case 1:
           DFSTestUtil.writeFile(fileSystem, filePath, new String(TINY_FILE_BYTES));
           break;
@@ -312,6 +314,7 @@ public abstract class TestWithMiniClusterBase {
         case 3:
           DFSTestUtil.writeFile(fileSystem, filePath, new String(MEDIUM_FILE_BYTES));
           break;
+        case 0:
         default:
           DFSTestUtil.writeFile(fileSystem, filePath, "");
           break;
@@ -321,14 +324,13 @@ public abstract class TestWithMiniClusterBase {
       }
       int user = RANDOM.nextInt(3);
       switch (user) {
-        case 0:
-          break;
         case 1:
           fileSystem.setOwner(filePath, USERS[0], USERS[0]);
           break;
         case 2:
           fileSystem.setOwner(filePath, USERS[1], USERS[1]);
           break;
+        case 0:
         default:
           break;
       }
