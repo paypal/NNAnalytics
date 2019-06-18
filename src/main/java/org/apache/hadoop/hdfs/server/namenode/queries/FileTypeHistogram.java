@@ -30,6 +30,8 @@ public class FileTypeHistogram {
 
   private enum Types {
     UNKNOWN,
+    C000,
+    PART,
     PART_R,
     PART_M,
     PARQUET,
@@ -83,16 +85,28 @@ public class FileTypeHistogram {
     LZO,
     DELTA,
     SNAPSHOT,
-    SQL
+    SQL,
+    PENDING,
+    SUCCESS,
+    GIVEUP,
+    INPROGRESS,
+    ENTITY_LOG,
+    DOMAIN_LOG,
+    SUMMARY_LOG
   }
 
   private static final Map<String, String> startsWithMap =
       new HashMap<String, String>() {
         {
+          put("part-0", Types.PART.name());
+          put("part_0", Types.PART.name());
           put("part_r", Types.PART_R.name());
           put("part-r", Types.PART_R.name());
           put("part_m", Types.PART_M.name());
           put("part-m", Types.PART_M.name());
+          put("entitylog-", Types.ENTITY_LOG.name());
+          put("domainlog-", Types.DOMAIN_LOG.name());
+          put("summarylog", Types.SUMMARY_LOG.name());
         }
       };
 
@@ -161,6 +175,14 @@ public class FileTypeHistogram {
           put(".java", Types.JAVA.name());
           put(".class", Types.CLASS.name());
           put(".lock", Types.LOCK.name());
+          put(".pending", Types.PENDING.name());
+          put(".PENDING", Types.PENDING.name());
+          put(".success", Types.SUCCESS.name());
+          put(".SUCCESS", Types.SUCCESS.name());
+          put(".giveup", Types.GIVEUP.name());
+          put(".GIVEUP", Types.GIVEUP.name());
+          put(".inprogress", Types.INPROGRESS.name());
+          put(".INPROGRESS", Types.INPROGRESS.name());
         }
       };
 
@@ -182,6 +204,8 @@ public class FileTypeHistogram {
     if ((key = equalsMap.get(name)) != null) {
       return key;
     } else if (name.length() > 6 && (key = startsWithMap.get(name.substring(0, 6))) != null) {
+      return key;
+    } else if (name.length() > 10 && (key = startsWithMap.get(name.substring(0, 10))) != null) {
       return key;
     } else {
       int extIndex = name.lastIndexOf(".");
