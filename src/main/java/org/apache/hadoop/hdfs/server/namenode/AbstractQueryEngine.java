@@ -52,6 +52,7 @@ import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
+import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
@@ -301,6 +302,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     switch (sum) {
       case "count":
         return node -> 1L;
+      case "dirNumChildren":
+        return node -> versionLoader.getFilterFunctionToLongForINode("dirNumChildren").apply(node);
       case "fileSize":
         return node -> node.asFile().computeFileSize();
       case "diskspaceConsumed":
@@ -308,9 +311,9 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       case "blockSize":
         return node -> node.asFile().getPreferredBlockSize();
       case "numBlocks":
-        return node -> ((long) node.asFile().numBlocks());
+        return node -> (long) node.asFile().numBlocks();
       case "numReplicas":
-        return node -> ((long) node.asFile().numBlocks() * node.asFile().getFileReplication());
+        return node -> (long) node.asFile().numBlocks() * node.asFile().getFileReplication();
       case "memoryConsumed":
         return node -> {
           long inodeSize = 150L;
@@ -894,7 +897,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       ToLongFunction<INode> dataFunction) {
     Map<String, Double> collect =
         inodes.collect(
-            Collectors.groupingBy(namingFunction, Collectors.averagingLong(dataFunction)));
+            Collectors.groupingBy(namingFunction,
+                Collectors.averagingDouble(n -> (double) dataFunction.applyAsLong(n))));
     HashMap<String, Long> histogram = new HashMap<>(collect.size());
     for (Entry<String, Double> entry : collect.entrySet()) {
       histogram.put(entry.getKey(), entry.getValue().longValue());
