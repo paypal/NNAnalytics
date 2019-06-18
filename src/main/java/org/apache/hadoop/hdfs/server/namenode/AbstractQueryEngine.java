@@ -52,7 +52,6 @@ import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
-import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
@@ -897,7 +896,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       ToLongFunction<INode> dataFunction) {
     Map<String, Double> collect =
         inodes.collect(
-            Collectors.groupingBy(namingFunction,
+            Collectors.groupingBy(
+                namingFunction,
                 Collectors.averagingDouble(n -> (double) dataFunction.applyAsLong(n))));
     HashMap<String, Long> histogram = new HashMap<>(collect.size());
     for (Entry<String, Double> entry : collect.entrySet()) {
