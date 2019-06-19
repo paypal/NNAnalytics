@@ -92,7 +92,9 @@ public class FileTypeHistogram {
     INPROGRESS,
     ENTITY_LOG,
     DOMAIN_LOG,
-    SUMMARY_LOG
+    SUMMARY_LOG,
+    _MASTERINDEX,
+    _INDEX
   }
 
   private static final Map<String, String> startsWithMap =
@@ -117,6 +119,8 @@ public class FileTypeHistogram {
           put(".pig_schema", Types.PIG_SCHEMA.name());
           put("_SUCCESS", Types._SUCCESS.name());
           put("_DONE", Types._DONE.name());
+          put("_index", Types._INDEX.name());
+          put("_masterindex", Types._MASTERINDEX.name());
         }
       };
 

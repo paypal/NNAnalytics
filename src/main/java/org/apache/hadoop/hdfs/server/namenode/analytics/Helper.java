@@ -62,17 +62,19 @@ public class Helper {
       case "memoryConsumed":
         return "Bytes";
       case "dsQuota":
-        return "Quota";
+        return "DS Quota";
       case "nsQuota":
-        return "Quota";
+        return "NS Quota";
       case "dsQuotaUsed":
-        return "Quota Bytes Used";
+        return "DS Quota Used";
       case "nsQuotaUsed":
         return "Namespace Quota Used";
       case "dsQuotaRatioUsed":
-        return "Usage Percentage";
+        return "DS Quota Usage Percentage";
       case "nsQuotaRatioUsed":
-        return "Usage Percentage";
+        return "NS Quota Usage Percentage";
+      case "dirNumChildren":
+        return "# of Children INodes";
       default:
         throw new IllegalArgumentException(
             "Could not determine sum type: " + sum + ".\nPlease check /sums for available sums.");

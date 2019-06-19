@@ -17,5 +17,6 @@ You can always find the full list of available sums by going to `/sums` REST end
 11. `dsQuotaUsed` - Usable by directories. Sums filtered INodes by disk space bytes used in quota.
 12. `nsQuota` - Usable by directories. Sums filtered INodes by namespace items allowed in quota.
 13. `dsQuota` - Usable by directories. Sums filtered INodes by disk space bytes allowed in quota.
+14. `dirNumChildren` - Usable by directories. Sums filtered INodes by the number of children in the directory.
 
 All memoryConsumed calculations are estimations performed as documented [here](https://www.cloudera.com/documentation/enterprise/5-8-x/topics/admin_nn_memory_config.html).

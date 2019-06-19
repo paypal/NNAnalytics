@@ -200,6 +200,7 @@ public interface Constants {
 
   enum Sum {
     count,
+    dirNumChildren,
     fileSize,
     diskspaceConsumed,
     memoryConsumed,
@@ -441,6 +442,7 @@ public interface Constants {
   EnumSet<Sum> SUM_DIR =
       EnumSet.of(
           Sum.count,
+          Sum.dirNumChildren,
           Sum.memoryConsumed,
           Sum.nsQuota,
           Sum.dsQuota,
