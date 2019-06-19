@@ -630,9 +630,10 @@
             </div>
             <div class="modal-body">
                 <p>
-                    Be very careful with generating too many of these files!<br>
+                    Be very careful with generating too many tiny files!<br>
                     These are a great source of burden on the NameNode and DataNodes during balancing.<br />
                     If you have old datasets with tiny files it is recommended to HAR or GZIP the directories containing them.<br />
+                    You may wish to analyze your datasets and make sure they are not just compressed empty files with compression headers.<br />
                     Pig, Hive, and MapReduce have support for reading HARs (Hadoop Archives).<br />
                     You should also consider tuning your mappers or reducers, or adding a reduce phase to minimize the number of final files.<br />
                     <br />
@@ -663,6 +664,10 @@
                     <br />
                     USE HADOOP ARCHIVES TO BUNCH TINY FILES<br />
                     <b><a target="_blank">https://hadoop.apache.org/docs/current/hadoop-archives/HadoopArchives.html</a></b>
+                    <br />
+                    <br />
+                    APPEND TINY FILES TO EXISTING HADOOP ARCHIVES<br />
+                    <b><a target="_blank">https://github.com/trenner/ahar</a></b>
                 </p>
             </div>
             <div class="modal-footer">
@@ -717,6 +722,10 @@
                     <br />
                     USE HADOOP ARCHIVES TO BUNCH SMALL FILES<br />
                     <b><a target="_blank">https://hadoop.apache.org/docs/current/hadoop-archives/HadoopArchives.html</a></b>
+                    <br />
+                    <br />
+                    APPEND SMALL FILES TO EXISTING HADOOP ARCHIVES<br />
+                    <b><a target="_blank">https://github.com/trenner/ahar</a></b>
                 </p>
             </div>
             <div class="modal-footer">
