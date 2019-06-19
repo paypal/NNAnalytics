@@ -142,7 +142,7 @@ public abstract class TestNNAnalyticsBase {
     HttpGet verify = new HttpGet("http://localhost:4567/info");
     HttpResponse verifyRes = client.execute(hostPort, verify);
     List<String> output = IOUtils.readLines(verifyRes.getEntity().getContent());
-    assertThat(output, hasItem("Current active connections: 1"));
+    assertThat(output, not(hasItem("/dump?path=:default_unsecured_user")));
   }
 
   @Test
@@ -154,7 +154,7 @@ public abstract class TestNNAnalyticsBase {
     HttpGet verify = new HttpGet("http://localhost:4567/info");
     HttpResponse verifyRes = client.execute(hostPort, verify);
     List<String> output = IOUtils.readLines(verifyRes.getEntity().getContent());
-    assertThat(output, hasItem("Current active connections: 1"));
+    assertThat(output, not(hasItem("/dump?path=bad:default_unsecured_user")));
   }
 
   @Test
