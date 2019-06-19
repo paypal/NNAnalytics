@@ -209,6 +209,10 @@ public class NameNodeLoader {
    * @throws IOException error in dumping inode info
    */
   public void dumpINodeInDetail(String path, HttpServletResponse resp) throws IOException {
+    if (path == null || path.isEmpty() || !path.startsWith("/")) {
+      throw new IllegalArgumentException(
+          "Please specify non-empty and absolute `path` parameter for /dump.");
+    }
     versionLoader.dumpINodeInDetail(path, resp);
   }
 
