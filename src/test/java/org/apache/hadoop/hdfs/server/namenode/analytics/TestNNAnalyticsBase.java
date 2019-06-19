@@ -134,6 +134,30 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testBadDump1() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/dump?path=");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(500));
+    IOUtils.readLines(res.getEntity().getContent()).clear();
+    HttpGet verify = new HttpGet("http://localhost:4567/info");
+    HttpResponse verifyRes = client.execute(hostPort, verify);
+    List<String> output = IOUtils.readLines(verifyRes.getEntity().getContent());
+    assertThat(output, hasItem("Current active connections: 1"));
+  }
+
+  @Test
+  public void testBadDump2() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/dump?path=bad");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(500));
+    IOUtils.readLines(res.getEntity().getContent()).clear();
+    HttpGet verify = new HttpGet("http://localhost:4567/info");
+    HttpResponse verifyRes = client.execute(hostPort, verify);
+    List<String> output = IOUtils.readLines(verifyRes.getEntity().getContent());
+    assertThat(output, hasItem("Current active connections: 1"));
+  }
+
+  @Test
   public void testTop() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/top");
     HttpResponse res = client.execute(hostPort, get);
