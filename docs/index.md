@@ -62,6 +62,7 @@ REST Endpoints
   * [RemoveDirectory](REST_Endpoints/RemoveDirectory.md)
   * [SaveNamespace](REST_Endpoints/SaveNamespace.md)
   * [SetCachedQuery](REST_Endpoints/SetCachedQuery.md)
+  * [SQL](REST_Endpoints/SQL.md)
   * [SubmitOperation](REST_Endpoints/SubmitOperation.md)
   * [Suggestions](REST_Endpoints/Suggestions.md)
   * [System](REST_Endpoints/System.md)

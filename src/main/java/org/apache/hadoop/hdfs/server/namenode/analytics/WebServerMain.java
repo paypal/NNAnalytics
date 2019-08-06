@@ -26,6 +26,7 @@ import static spark.Spark.get;
 import static spark.Spark.post;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.sun.management.OperatingSystemMXBean;
@@ -79,6 +80,7 @@ import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
+import org.apache.hadoop.hdfs.server.namenode.analytics.sql.SqlParser;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
 import org.apache.hadoop.hdfs.server.namenode.operations.Delete;
 import org.apache.hadoop.hdfs.server.namenode.operations.SetReplication;
@@ -158,18 +160,14 @@ public class WebServerMain implements ApplicationMain {
    * is dictated by configuration files.
    *
    * @param args main argument although its not used
-   * @throws InterruptedException InterruptedException
-   * @throws IllegalAccessException IllegalAccessException
-   * @throws NoSuchFieldException NoSuchFieldException
    */
-  public static void main(String[] args)
-      throws InterruptedException, IllegalAccessException, NoSuchFieldException {
+  public static void main(String[] args) {
     try {
       ApplicationMain main = new WebServerMain();
       ApplicationConfiguration conf = new ApplicationConfiguration();
       main.init(conf);
     } catch (Throwable e) {
-      LOG.info("FATAL: {}", e);
+      LOG.error("FATAL", e);
     }
   }
 
@@ -913,7 +911,6 @@ public class WebServerMain implements ApplicationMain {
             Stream<INode> filteredINodes =
                 Helper.setFilters(nameNodeLoader, set, filters, filterOps);
 
-            Histogram htEnum = Histogram.valueOf(histType);
             Map<String, Function<INode, Long>> transformMap =
                 Transforms.getAttributeTransforms(
                     transformConditionsStr,
@@ -928,87 +925,19 @@ public class WebServerMain implements ApplicationMain {
 
             nameNodeLoader.namesystemWriteLock(useLock);
             try {
-              switch (htEnum) {
-                case user:
-                  histogram =
-                      nameNodeLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
-                  binLabels = "User Names";
-                  break;
-                case group:
-                  histogram =
-                      nameNodeLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
-                  binLabels = "Group Names";
-                  break;
-                case accessTime:
-                  histogram =
-                      nameNodeLoader
-                          .getQueryEngine()
-                          .accessTimeHistogram(filteredINodes, sum, find, timeRange);
-                  binLabels = "Last Accessed Time";
-                  break;
-                case modTime:
-                  histogram =
-                      nameNodeLoader
-                          .getQueryEngine()
-                          .modTimeHistogram(filteredINodes, sum, find, timeRange);
-                  binLabels = "Last Modified Time";
-                  break;
-                case fileSize:
-                  histogram =
-                      nameNodeLoader.getQueryEngine().fileSizeHistogram(filteredINodes, sum, find);
-                  binLabels = "File Sizes (No Replication Factor)";
-                  break;
-                case diskspaceConsumed:
-                  histogram =
-                      nameNodeLoader
-                          .getQueryEngine()
-                          .diskspaceConsumedHistogram(filteredINodes, sum, find, transformMap);
-                  binLabels = "Diskspace Consumed (File Size * Replication Factor)";
-                  break;
-                case fileReplica:
-                  histogram =
-                      nameNodeLoader
-                          .getQueryEngine()
-                          .fileReplicaHistogram(filteredINodes, sum, find, transformMap);
-                  binLabels = "File Replication Factor";
-                  break;
-                case storageType:
-                  histogram =
-                      nameNodeLoader
-                          .getQueryEngine()
-                          .storageTypeHistogram(filteredINodes, sum, find);
-                  binLabels = "Storage Type Policy";
-                  break;
-                case memoryConsumed:
-                  histogram =
-                      nameNodeLoader
-                          .getQueryEngine()
-                          .memoryConsumedHistogram(filteredINodes, sum, find);
-                  binLabels = "Memory Consumed";
-                  break;
-                case parentDir:
-                  histogram =
-                      nameNodeLoader
-                          .getQueryEngine()
-                          .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
-                  binLabels = "Directory Path";
-                  break;
-                case fileType:
-                  histogram =
-                      nameNodeLoader.getQueryEngine().fileTypeHistogram(filteredINodes, sum, find);
-                  binLabels = "File Type";
-                  break;
-                case dirQuota:
-                  histogram =
-                      nameNodeLoader.getQueryEngine().dirQuotaHistogram(filteredINodes, sum);
-                  binLabels = "Directory Path";
-                  break;
-                default:
-                  throw new IllegalArgumentException(
-                      "Could not determine histogram type: "
-                          + histType
-                          + ".\nPlease check /histograms for available histograms.");
-              }
+              HistogramInvoker histogramInvoker =
+                  new HistogramInvoker(
+                          nameNodeLoader,
+                          histType,
+                          sum,
+                          parentDirDepth,
+                          timeRange,
+                          find,
+                          filteredINodes,
+                          transformMap)
+                      .invoke();
+              histogram = histogramInvoker.getHistogram();
+              binLabels = histogramInvoker.getBinLabels();
             } finally {
               nameNodeLoader.namesystemWriteUnlock(useLock);
             }
@@ -1065,7 +994,7 @@ public class WebServerMain implements ApplicationMain {
                 MailOutput.write(
                     subject, histogram, highlightKeys, emailHost, emailsTo, emailsCc, emailFrom);
               } catch (Exception e) {
-                LOG.info("Failed to email output with exception: {}", e);
+                LOG.error("Failed to email output.", e);
               }
             }
 
@@ -1138,7 +1067,6 @@ public class WebServerMain implements ApplicationMain {
             Collection<INode> filteredINodes =
                 Helper.performFilters(nameNodeLoader, set, filters, filterOps);
 
-            Histogram htEnum = Histogram.valueOf(histType);
             List<Map<String, Long>> histograms = new ArrayList<>(sums.length + finds.length);
 
             final long startTime = System.currentTimeMillis();
@@ -1156,83 +1084,18 @@ public class WebServerMain implements ApplicationMain {
 
               nameNodeLoader.namesystemWriteLock(useLock);
               try {
-                switch (htEnum) {
-                  case user:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .byUserHistogram(filteredINodes.parallelStream(), sum, find);
-                    break;
-                  case group:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .byGroupHistogram(filteredINodes.parallelStream(), sum, find);
-                    break;
-                  case accessTime:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .accessTimeHistogram(
-                                filteredINodes.parallelStream(), sum, find, timeRange);
-                    break;
-                  case modTime:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .modTimeHistogram(
-                                filteredINodes.parallelStream(), sum, find, timeRange);
-                    break;
-                  case fileSize:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .fileSizeHistogram(filteredINodes.parallelStream(), sum, find);
-                    break;
-                  case diskspaceConsumed:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .diskspaceConsumedHistogram(
-                                filteredINodes.parallelStream(), sum, find, null);
-                    break;
-                  case fileReplica:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .fileReplicaHistogram(filteredINodes.parallelStream(), sum, find, null);
-                    break;
-                  case storageType:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .storageTypeHistogram(filteredINodes.parallelStream(), sum, find);
-                    break;
-                  case memoryConsumed:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .memoryConsumedHistogram(filteredINodes.parallelStream(), sum, find);
-                    break;
-                  case parentDir:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .parentDirHistogram(
-                                filteredINodes.parallelStream(), parentDirDepth, sum, find);
-                    break;
-                  case fileType:
-                    histogram =
-                        nameNodeLoader
-                            .getQueryEngine()
-                            .fileTypeHistogram(filteredINodes.parallelStream(), sum, find);
-                    break;
-                  default:
-                    throw new IllegalArgumentException(
-                        "Could not determine histogram type: "
-                            + histType
-                            + ".\nPlease check /histograms for available histograms.");
-                }
+                HistogramInvoker histogramInvoker =
+                    new HistogramInvoker(
+                            nameNodeLoader,
+                            histType,
+                            sum,
+                            parentDirDepth,
+                            timeRange,
+                            find,
+                            filteredINodes.parallelStream(),
+                            null)
+                        .invoke();
+                histogram = histogramInvoker.getHistogram();
               } finally {
                 nameNodeLoader.namesystemWriteUnlock(useLock);
               }
@@ -1390,15 +1253,15 @@ public class WebServerMain implements ApplicationMain {
                             if (finalSleep >= 100) {
                               Thread.sleep(finalSleep);
                             }
-                          } catch (InterruptedException ignored) {
-                            LOG.debug("Operation sleep interrupted due to: {}", ignored);
+                          } catch (InterruptedException debugEx) {
+                            LOG.debug("Operation sleep interrupted.", debugEx);
                           }
                           operationObj.performOp();
                         }
                         operationObj.close();
                       } catch (IllegalStateException e) {
                         operationObj.abort();
-                        LOG.info("Aborted operation due to: {}", e);
+                        LOG.error("Aborted operation.", e);
                       }
                       runningOperations.remove(operationObj.identity());
                     });
@@ -1907,6 +1770,76 @@ public class WebServerMain implements ApplicationMain {
           return res;
         });
 
+    /* SQL an experimental reader-level endpoint API for running queries on NNA using SQL-like syntax. */
+    post(
+        "/sql",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "text/plain");
+
+          if (!nameNodeLoader.isInit()) {
+            res.header("Content-Type", "application/json");
+            return "not_loaded";
+          }
+
+          String sqlStatement = req.params("sqlStatement");
+          if (Strings.isNullOrEmpty(sqlStatement)) {
+            sqlStatement = req.queryParams("sqlStatement");
+          }
+          SqlParser sqlParser = new SqlParser();
+          if (sqlStatement.contains("DESCRIBE")) {
+            res.header("Content-Type", "application/json");
+            return sqlParser.describeInJson(sqlStatement);
+          }
+
+          sqlParser.parse(sqlStatement);
+          boolean isHistogram = !Strings.isNullOrEmpty(sqlParser.getType());
+          boolean hasSumOrFind =
+              !Strings.isNullOrEmpty(sqlParser.getSum())
+                  || !Strings.isNullOrEmpty(sqlParser.getFind());
+
+          String set = sqlParser.getINodeSet();
+          String[] filters = Helper.parseFilters(sqlParser.getFilters());
+          String[] filterOps = Helper.parseFilterOps(sqlParser.getFilters());
+          String type = sqlParser.getType();
+          String sum = sqlParser.getSum();
+          String find = sqlParser.getFind();
+          Integer limit = sqlParser.getLimit();
+          Integer parentDirDepth = sqlParser.getParentDirDepth();
+          String timeRange = sqlParser.getTimeRange();
+
+          if (isHistogram) {
+            QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
+            Stream<INode> filteredINodes =
+                Helper.setFilters(nameNodeLoader, set, filters, filterOps);
+            HistogramInvoker histogramInvoker =
+                new HistogramInvoker(
+                        nameNodeLoader,
+                        type,
+                        sum,
+                        parentDirDepth,
+                        timeRange,
+                        find,
+                        filteredINodes,
+                        null)
+                    .invoke();
+            Map<String, Long> histogram = histogramInvoker.getHistogram();
+            res.header("Content-Type", "application/json");
+            return Histograms.toJson(histogram);
+          } else {
+            Collection<INode> filteredINodes =
+                Helper.performFilters(nameNodeLoader, set, filters, filterOps, find);
+            if (hasSumOrFind) {
+              res.header("Content-Type", "plain/text");
+              return nameNodeLoader.getQueryEngine().sum(filteredINodes, sum);
+            } else {
+              res.header("Content-Type", "plain/text");
+              nameNodeLoader.getQueryEngine().dumpINodePaths(filteredINodes, limit, res.raw());
+              return res;
+            }
+          }
+        });
+
     /* Any query tracking should be removed once the query is completed. */
     after(
         (req, res) -> {
@@ -1955,13 +1888,13 @@ public class WebServerMain implements ApplicationMain {
                 writer.flush();
               }
               IOUtils.closeStream(writer);
-            } catch (IOException ignored) {
-              LOG.debug("Failed to send failure stacktrace due to: {}", ignored);
+            } catch (IOException debugEx) {
+              LOG.debug("Failed to send failure stacktrace.", debugEx);
             } finally {
               runningQueries.remove(Helper.createQuery(req.raw(), secContext.getUserName()));
             }
           }
-          LOG.info("EXCEPTION encountered: {}", ex);
+          LOG.error("Exception encountered in system: ", ex);
           LOG.info(Arrays.toString(ex.getStackTrace()));
         });
 

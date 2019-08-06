@@ -30,6 +30,7 @@ import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalytics
 import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_SECURITY_CONTEXT;
 import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_USAGE_METRICS;
 
+import com.google.common.base.Strings;
 import com.sun.management.OperatingSystemMXBean;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -96,11 +97,13 @@ import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
+import org.apache.hadoop.hdfs.server.namenode.analytics.HistogramInvoker;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.MailOutput;
 import org.apache.hadoop.hdfs.server.namenode.analytics.QueryChecker;
 import org.apache.hadoop.hdfs.server.namenode.analytics.UsageMetrics;
 import org.apache.hadoop.hdfs.server.namenode.analytics.security.SecurityContext;
+import org.apache.hadoop.hdfs.server.namenode.analytics.sql.SqlParser;
 import org.apache.hadoop.hdfs.server.namenode.operations.BaseOperation;
 import org.apache.hadoop.hdfs.server.namenode.operations.Delete;
 import org.apache.hadoop.hdfs.server.namenode.operations.SetReplication;
@@ -112,6 +115,7 @@ import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.security.authorize.AuthorizationException;
 import org.apache.hadoop.util.Time;
 import org.apache.http.HttpStatus;
+import org.apache.http.entity.StringEntity;
 import org.pac4j.core.exception.BadCredentialsException;
 import org.pac4j.core.exception.HttpAction;
 
@@ -2281,6 +2285,88 @@ public class NamenodeAnalyticsMethods {
         queryLock.writeLock().unlock();
       }
       return Response.ok().build();
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
+  /**
+   * SQL is a POST only call that only READER users can access. It takes a form document as an
+   * argument that specifies an SQL query to perform on NNA.
+   */
+  @POST
+  @Path("/sql")
+  public Response sql(MultivaluedMap<String, String> formData) {
+    try {
+      final NameNodeLoader nameNodeLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+      before();
+
+      if (!nameNodeLoader.isInit()) {
+        return Response.ok()
+            .entity(new StringEntity("not_loaded"))
+            .type(MediaType.TEXT_PLAIN_TYPE)
+            .build();
+      }
+
+      String sqlStatement = request.getParameter("sqlStatement");
+      if (Strings.isNullOrEmpty(sqlStatement)) {
+        sqlStatement = formData.getFirst("sqlStatement");
+      }
+
+      SqlParser sqlParser = new SqlParser();
+
+      if (sqlStatement.contains("DESCRIBE")) {
+        String jsonDescription = sqlParser.describeInJson(sqlStatement);
+        return Response.ok(jsonDescription, MediaType.APPLICATION_JSON).build();
+      }
+
+      sqlParser.parse(sqlStatement);
+      boolean isHistogram = !Strings.isNullOrEmpty(sqlParser.getType());
+      boolean hasSumOrFind =
+          !Strings.isNullOrEmpty(sqlParser.getSum()) || !Strings.isNullOrEmpty(sqlParser.getFind());
+
+      String set = sqlParser.getINodeSet();
+      String[] filters = Helper.parseFilters(sqlParser.getFilters());
+      String[] filterOps = Helper.parseFilterOps(sqlParser.getFilters());
+      String type = sqlParser.getType();
+      String sum = sqlParser.getSum();
+      String find = sqlParser.getFind();
+      Integer limit = sqlParser.getLimit();
+      Integer parentDirDepth = sqlParser.getParentDirDepth();
+      String timeRange = sqlParser.getTimeRange();
+
+      if (isHistogram) {
+        QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
+        Stream<INode> filteredINodes = Helper.setFilters(nameNodeLoader, set, filters, filterOps);
+        HistogramInvoker histogramInvoker =
+            new HistogramInvoker(
+                    nameNodeLoader,
+                    type,
+                    sum,
+                    parentDirDepth,
+                    timeRange,
+                    find,
+                    filteredINodes,
+                    null)
+                .invoke();
+        Map<String, Long> histogram = histogramInvoker.getHistogram();
+        String histogramJson = Histograms.toJson(histogram);
+        return Response.ok(histogramJson, MediaType.APPLICATION_JSON).build();
+      } else {
+        Collection<INode> filteredINodes =
+            Helper.performFilters(nameNodeLoader, set, filters, filterOps, find);
+        if (hasSumOrFind) {
+          long sumValue = nameNodeLoader.getQueryEngine().sum(filteredINodes, sum);
+          return Response.ok(sumValue, MediaType.TEXT_PLAIN).build();
+        } else {
+          nameNodeLoader.getQueryEngine().dumpINodePaths(filteredINodes, limit, response);
+          return Response.ok().type(MediaType.TEXT_PLAIN).build();
+        }
+      }
     } catch (RuntimeException rtex) {
       return handleException(rtex);
     } catch (Exception ex) {
