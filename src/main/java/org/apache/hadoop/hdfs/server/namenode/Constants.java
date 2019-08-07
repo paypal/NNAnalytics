@@ -284,7 +284,8 @@ public interface Constants {
     setCachedQuery,
     getCachedQuery,
     removeCachedQuery,
-    cachedMaps
+    cachedMaps,
+    sql
   }
 
   EnumSet<Endpoint> UNSECURED_ENDPOINTS =
@@ -324,7 +325,8 @@ public interface Constants {
           Endpoint.divide,
           Endpoint.top,
           Endpoint.bottom,
-          Endpoint.dump);
+          Endpoint.dump,
+          Endpoint.sql);
 
   EnumSet<Endpoint> WRITER_ENDPOINTS =
       EnumSet.of(Endpoint.listOperations, Endpoint.submitOperation, Endpoint.abortOperation);

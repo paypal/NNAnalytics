@@ -31,6 +31,7 @@ import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
+import org.apache.hadoop.hdfs.server.namenode.Constants.INodeSet;
 
 public class SqlParser {
 
@@ -45,6 +46,11 @@ public class SqlParser {
 
   public SqlParser() {
     parser = new CCJSqlParserManager();
+  }
+
+  public String showTables() {
+    Gson gson = new Gson();
+    return gson.toJson(new String[] {INodeSet.files.name(), INodeSet.dirs.name()});
   }
 
   /**
