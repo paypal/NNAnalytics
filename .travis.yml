@@ -1,6 +1,6 @@
 language: java
-jdk:
-- oraclejdk8
+dist: trusty
+jdk: oraclejdk8
 before_install:
 - |
   if ! git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE '(.js)|(.txt)|(.md)|(.png)|(.pdf)|(.html)|^(LICENSE)|^(docs)'

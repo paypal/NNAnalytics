@@ -31,49 +31,26 @@ import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.Block;
-import net.sf.jsqlparser.statement.Commit;
-import net.sf.jsqlparser.statement.DescribeStatement;
-import net.sf.jsqlparser.statement.ExplainStatement;
-import net.sf.jsqlparser.statement.SetStatement;
-import net.sf.jsqlparser.statement.ShowColumnsStatement;
-import net.sf.jsqlparser.statement.ShowStatement;
-import net.sf.jsqlparser.statement.StatementVisitor;
-import net.sf.jsqlparser.statement.Statements;
-import net.sf.jsqlparser.statement.UseStatement;
-import net.sf.jsqlparser.statement.alter.Alter;
-import net.sf.jsqlparser.statement.comment.Comment;
-import net.sf.jsqlparser.statement.create.index.CreateIndex;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.view.AlterView;
-import net.sf.jsqlparser.statement.create.view.CreateView;
-import net.sf.jsqlparser.statement.delete.Delete;
-import net.sf.jsqlparser.statement.drop.Drop;
-import net.sf.jsqlparser.statement.execute.Execute;
-import net.sf.jsqlparser.statement.insert.Insert;
-import net.sf.jsqlparser.statement.merge.Merge;
-import net.sf.jsqlparser.statement.replace.Replace;
+import net.sf.jsqlparser.statement.StatementVisitorAdapter;
 import net.sf.jsqlparser.statement.select.FromItemVisitorAdapter;
 import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectVisitor;
-import net.sf.jsqlparser.statement.select.SetOperationList;
-import net.sf.jsqlparser.statement.select.WithItem;
-import net.sf.jsqlparser.statement.truncate.Truncate;
-import net.sf.jsqlparser.statement.update.Update;
-import net.sf.jsqlparser.statement.upsert.Upsert;
-import net.sf.jsqlparser.statement.values.ValuesStatement;
+import net.sf.jsqlparser.statement.select.SelectVisitorAdapter;
 
-public class INodeSqlStatementVisitor implements StatementVisitor {
+/**
+ * Main SQL token traversal implementation.
+ * Goal is to translate a SQL query into NNA query fields.
+ */
+public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
 
-  String set;
-  List<String> filters;
-  String sum;
-  String find;
-  String type;
-  Integer limit;
+  protected String set;
+  protected List<String> filters;
+  protected String sum;
+  protected String find;
+  protected String type;
+  protected Integer limit;
 
   INodeSqlStatementVisitor() {
     filters = new LinkedList<>();
@@ -84,7 +61,7 @@ public class INodeSqlStatementVisitor implements StatementVisitor {
     select
         .getSelectBody()
         .accept(
-            new SelectVisitor() {
+            new SelectVisitorAdapter() {
               @Override
               public void visit(PlainSelect plainSelect) {
                 plainSelect
@@ -232,140 +209,6 @@ public class INodeSqlStatementVisitor implements StatementVisitor {
                   limit = Integer.MAX_VALUE;
                 }
               }
-
-              @Override
-              public void visit(SetOperationList setOpList) {}
-
-              @Override
-              public void visit(WithItem withItem) {}
-
-              @Override
-              public void visit(ValuesStatement values) {}
             });
-  }
-
-  @Override
-  public void visit(Comment comment) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Commit commit) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Delete delete) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Update update) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Insert insert) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Replace replace) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Drop drop) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Truncate truncate) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(CreateIndex createIndex) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(CreateTable createTable) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(CreateView createView) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(AlterView alterView) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Alter alter) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Statements stmts) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Execute execute) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(SetStatement set) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(ShowColumnsStatement set) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Merge merge) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Upsert upsert) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(UseStatement use) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(Block block) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(ValuesStatement values) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(DescribeStatement describe) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(ExplainStatement explain) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void visit(ShowStatement show) {
-    throw new UnsupportedOperationException();
   }
 }
