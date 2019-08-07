@@ -1786,8 +1786,14 @@ public class WebServerMain implements ApplicationMain {
           if (Strings.isNullOrEmpty(sqlStatement)) {
             sqlStatement = req.queryParams("sqlStatement");
           }
+
           SqlParser sqlParser = new SqlParser();
-          if (sqlStatement.contains("DESCRIBE")) {
+
+          if (sqlStatement.toUpperCase().contains("SHOW TABLES")) {
+            res.header("Content-Type", "application/json");
+            return sqlParser.showTables();
+          }
+          if (sqlStatement.toUpperCase().contains("DESCRIBE")) {
             res.header("Content-Type", "application/json");
             return sqlParser.describeInJson(sqlStatement);
           }

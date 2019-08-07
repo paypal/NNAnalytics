@@ -2319,6 +2319,10 @@ public class NamenodeAnalyticsMethods {
 
       SqlParser sqlParser = new SqlParser();
 
+      if (sqlStatement.toUpperCase().contains("SHOW TABLES")) {
+        String jsonShowTables = sqlParser.showTables();
+        return Response.ok(jsonShowTables, MediaType.APPLICATION_JSON).build();
+      }
       if (sqlStatement.contains("DESCRIBE")) {
         String jsonDescription = sqlParser.describeInJson(sqlStatement);
         return Response.ok(jsonDescription, MediaType.APPLICATION_JSON).build();

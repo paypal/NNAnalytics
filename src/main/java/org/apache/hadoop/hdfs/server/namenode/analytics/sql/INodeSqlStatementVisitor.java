@@ -160,6 +160,7 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
                 }
                 GroupByElement groupBy = plainSelect.getGroupBy();
                 String aggregateFunction;
+                String aggregateField;
                 if (groupBy != null) {
                   type = plainSelect.getGroupBy().getGroupByExpressions().get(0).toString();
                   aggregateFunction =
@@ -169,6 +170,15 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
                           .getASTNode()
                           .jjtGetFirstToken()
                           .toString();
+                  aggregateField =
+                      plainSelect
+                          .getSelectItems()
+                          .get(1)
+                          .getASTNode()
+                          .jjtGetValue()
+                          .toString()
+                          .replace(aggregateFunction + "(", "")
+                          .replace(")", "");
                 } else {
                   aggregateFunction =
                       plainSelect
@@ -177,16 +187,17 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
                           .getASTNode()
                           .jjtGetFirstToken()
                           .toString();
+                  aggregateField =
+                      plainSelect
+                          .getSelectItems()
+                          .get(0)
+                          .getASTNode()
+                          .jjtGetValue()
+                          .toString()
+                          .replace(aggregateFunction + "(", "")
+                          .replace(")", "");
                 }
-                String aggregateField =
-                    plainSelect
-                        .getSelectItems()
-                        .get(0)
-                        .getASTNode()
-                        .jjtGetValue()
-                        .toString()
-                        .replace(aggregateFunction + "(", "")
-                        .replace(")", "");
+                
                 switch (aggregateFunction.toUpperCase()) {
                   case "COUNT":
                     sum = "count";

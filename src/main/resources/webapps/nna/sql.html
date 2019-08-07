@@ -19,23 +19,6 @@
 <html lang="en">
 <script src="./js/jquery.min.js"></script>
 <script src="./js/nna.utility.js"></script>
-<script type="text/javascript">
-  var proxy = getUrlParameter("proxy");
-  var urlPath = "./credentials";
-  if(proxy.length != 0) {
-      urlPath += "?proxy=" + proxy;
-  }
-  $.ajax({
-     type: 'GET',
-     async: false,
-     cache: false,
-     url: urlPath,
-     dataType: 'text',
-     statusCode: {
-        200:function() { window.location.replace("./index.html"); }
-     }
-  });
-</script>
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">

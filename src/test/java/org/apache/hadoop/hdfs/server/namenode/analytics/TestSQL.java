@@ -26,15 +26,15 @@ import static org.hamcrest.core.Is.is;
 
 import net.sf.jsqlparser.JSQLParserException;
 import org.apache.hadoop.hdfs.server.namenode.analytics.sql.SqlParser;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestSQL {
 
-  static SqlParser sqlParser;
+  private SqlParser sqlParser;
 
-  @BeforeClass
-  public static void before() {
+  @Before
+  public void before() {
     sqlParser = new SqlParser();
   }
 
@@ -43,6 +43,36 @@ public class TestSQL {
     sqlParser.parse("SELECT * FROM files");
     String inodeSet = sqlParser.getINodeSet();
     assertThat(inodeSet, is(equalTo("files")));
+  }
+  
+  @Test
+  public void testSumFileSizeByUser() throws JSQLParserException {
+    sqlParser.parse("select user,sum(fileSize) from files group by user");
+    String inodeSet = sqlParser.getINodeSet();
+    String filters = sqlParser.getFilters();
+    String sum = sqlParser.getSum();
+    String find = sqlParser.getFind();
+    String type = sqlParser.getType();
+    assertThat(inodeSet, is(equalTo("files")));
+    assertThat(filters, is(""));
+    assertThat(sum, is("fileSize"));
+    assertThat(type, is("user"));
+    assertThat(find, is(nullValue()));
+  }
+
+  @Test
+  public void testSumDiskspaceConsumedByAccessTime() throws JSQLParserException {
+    sqlParser.parse("select accessTime,sum(diskspaceConsumed) from files group by accessTime");
+    String inodeSet = sqlParser.getINodeSet();
+    String filters = sqlParser.getFilters();
+    String sum = sqlParser.getSum();
+    String find = sqlParser.getFind();
+    String type = sqlParser.getType();
+    assertThat(inodeSet, is(equalTo("files")));
+    assertThat(filters, is(""));
+    assertThat(sum, is("diskspaceConsumed"));
+    assertThat(type, is("accessTime"));
+    assertThat(find, is(nullValue()));
   }
 
   @Test
@@ -155,5 +185,11 @@ public class TestSQL {
   public void testDescribeDirs() {
     String describe_dirs = sqlParser.describeInJson("DESCRIBE dirs");
     System.out.print(describe_dirs);
+  }
+
+  @Test
+  public void testShowTables() {
+    String show_tables = sqlParser.showTables();
+    System.out.print(show_tables);
   }
 }
