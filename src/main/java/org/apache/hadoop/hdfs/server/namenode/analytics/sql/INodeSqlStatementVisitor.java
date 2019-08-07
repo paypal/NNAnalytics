@@ -40,8 +40,7 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectVisitorAdapter;
 
 /**
- * Main SQL token traversal implementation.
- * Goal is to translate a SQL query into NNA query fields.
+ * Main SQL token traversal implementation. Goal is to translate a SQL query into NNA query fields.
  */
 public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
 
