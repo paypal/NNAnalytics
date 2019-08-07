@@ -553,7 +553,8 @@ public class WebServerMain implements ApplicationMain {
         (req, res) -> {
           secContext.handleAuthentication(req, res);
           secContext.handleAuthorization(req, res);
-          if (!"POST".equals(req.raw().getMethod())) {
+          if (!"POST".equals(req.raw().getMethod())
+              || req.raw().getRequestURI().contains(Constants.Endpoint.sql.name())) {
             runningQueries.add(Helper.createQuery(req.raw(), secContext.getUserName()));
             usageMetrics.userMadeQuery(secContext, req);
           }
