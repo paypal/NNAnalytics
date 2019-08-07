@@ -197,7 +197,7 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
                           .replace(aggregateFunction + "(", "")
                           .replace(")", "");
                 }
-                
+
                 switch (aggregateFunction.toUpperCase()) {
                   case "COUNT":
                     sum = "count";

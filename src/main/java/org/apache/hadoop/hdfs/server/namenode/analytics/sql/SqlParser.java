@@ -50,7 +50,7 @@ public class SqlParser {
 
   public String showTables() {
     Gson gson = new Gson();
-    return gson.toJson(new String[]{INodeSet.files.name(), INodeSet.dirs.name()});
+    return gson.toJson(new String[] {INodeSet.files.name(), INodeSet.dirs.name()});
   }
 
   /**

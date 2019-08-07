@@ -44,7 +44,7 @@ public class TestSQL {
     String inodeSet = sqlParser.getINodeSet();
     assertThat(inodeSet, is(equalTo("files")));
   }
-  
+
   @Test
   public void testSumFileSizeByUser() throws JSQLParserException {
     sqlParser.parse("select user,sum(fileSize) from files group by user");
