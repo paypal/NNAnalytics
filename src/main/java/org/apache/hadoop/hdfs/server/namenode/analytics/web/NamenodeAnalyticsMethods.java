@@ -2342,6 +2342,10 @@ public class NamenodeAnalyticsMethods {
       Integer limit = sqlParser.getLimit();
       Integer parentDirDepth = sqlParser.getParentDirDepth();
       String timeRange = sqlParser.getTimeRange();
+      Boolean sortAscending = sqlParser.getSortAscending();
+      Boolean sortDescending = sqlParser.getSortDescending();
+      Integer top = (limit != null && sortDescending != null && sortDescending) ? limit : null;
+      Integer bottom = (limit != null && sortAscending != null && sortAscending) ? limit : null;
 
       if (isHistogram) {
         QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
@@ -2355,7 +2359,12 @@ public class NamenodeAnalyticsMethods {
                     timeRange,
                     find,
                     filteredINodes,
-                    null)
+                    null,
+                    null,
+                    top,
+                    bottom,
+                    sortAscending,
+                    sortDescending)
                 .invoke();
         Map<String, Long> histogram = histogramInvoker.getHistogram();
         String histogramJson = Histograms.toJson(histogram);

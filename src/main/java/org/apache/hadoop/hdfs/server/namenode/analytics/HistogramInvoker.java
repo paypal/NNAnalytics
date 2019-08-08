@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
+import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 
 /**
  * This class is meant to be used to invoke the appropriate histogram function based on input.
@@ -41,6 +42,11 @@ public class HistogramInvoker {
   private Stream<INode> filteredINodes;
   private Histogram htEnum;
   private Map<String, Function<INode, Long>> transformMap;
+  private String histogramConditionsStr;
+  private Integer top;
+  private Integer bottom;
+  private Boolean sortAscending;
+  private Boolean sortDescending;
   private Map<String, Long> histogram;
   private String binLabels;
 
@@ -55,6 +61,11 @@ public class HistogramInvoker {
    * @param find the min/max/avg aggregation field
    * @param filteredINodes the inode stream
    * @param transformMap (optional) a transform map
+   * @param histogramConditionsStr string dictating removal conditions from results
+   * @param top top results to keep by value
+   * @param bottom bottom results to keep by value
+   * @param sortAscending should sort ascending
+   * @param sortDescending should sort descending
    */
   public HistogramInvoker(
       NameNodeLoader nameNodeLoader,
@@ -64,7 +75,12 @@ public class HistogramInvoker {
       String timeRange,
       String find,
       Stream<INode> filteredINodes,
-      Map<String, Function<INode, Long>> transformMap) {
+      Map<String, Function<INode, Long>> transformMap,
+      String histogramConditionsStr,
+      Integer top,
+      Integer bottom,
+      Boolean sortAscending,
+      Boolean sortDescending) {
     this.nameNodeLoader = nameNodeLoader;
     this.histType = histType;
     this.sum = sum;
@@ -74,6 +90,11 @@ public class HistogramInvoker {
     this.filteredINodes = filteredINodes;
     this.htEnum = Histogram.valueOf(histType);
     this.transformMap = transformMap;
+    this.histogramConditionsStr = histogramConditionsStr;
+    this.top = top;
+    this.bottom = bottom;
+    this.sortAscending = sortAscending;
+    this.sortDescending = sortDescending;
   }
 
   public Map<String, Long> getHistogram() {
@@ -159,6 +180,42 @@ public class HistogramInvoker {
                 + histType
                 + ".\nPlease check /histograms for available histograms.");
     }
+    histogram = removeKeysOnConditional(histogramConditionsStr, histogram);
+    histogram = slice(top, bottom, histogram);
+    histogram = sortHistogramAscDesc(sortAscending, sortDescending, histogram);
     return this;
+  }
+
+  private Map<String, Long> sortHistogramAscDesc(
+      Boolean sortAscending, Boolean sortDescending, Map<String, Long> histogram) {
+    if (sortAscending != null && sortDescending != null) {
+      throw new IllegalArgumentException("Please choose one type of sort.");
+    } else if (sortAscending != null && sortAscending) {
+      histogram = Histograms.sortByValue(histogram, true);
+    } else if (sortDescending != null && sortDescending) {
+      histogram = Histograms.sortByValue(histogram, false);
+    }
+    return histogram;
+  }
+
+  private Map<String, Long> removeKeysOnConditional(
+      String histogramConditionsStr, Map<String, Long> histogram) {
+    if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
+      return nameNodeLoader
+          .getQueryEngine()
+          .removeKeysOnConditional(histogram, histogramConditionsStr);
+    }
+    return histogram;
+  }
+
+  private Map<String, Long> slice(Integer top, Integer bottom, Map<String, Long> histogram) {
+    if (top != null && bottom != null) {
+      throw new IllegalArgumentException("Please choose only one type of slice.");
+    } else if (top != null && top > 0) {
+      return Histograms.sliceToTop(histogram, top);
+    } else if (bottom != null && bottom > 0) {
+      return Histograms.sliceToBottom(histogram, bottom);
+    }
+    return histogram;
   }
 }
