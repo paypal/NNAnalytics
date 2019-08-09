@@ -181,7 +181,7 @@ public class HistogramInvoker {
                 + ".\nPlease check /histograms for available histograms.");
     }
     histogram = removeKeysOnConditional(histogramConditionsStr, histogram);
-    histogram = slice(top, bottom, histogram);
+    histogram = sliceTopBottom(top, bottom, histogram);
     histogram = sortHistogramAscDesc(sortAscending, sortDescending, histogram);
     return this;
   }
@@ -208,7 +208,8 @@ public class HistogramInvoker {
     return histogram;
   }
 
-  private Map<String, Long> slice(Integer top, Integer bottom, Map<String, Long> histogram) {
+  private Map<String, Long> sliceTopBottom(
+      Integer top, Integer bottom, Map<String, Long> histogram) {
     if (top != null && bottom != null) {
       throw new IllegalArgumentException("Please choose only one type of slice.");
     } else if (top != null && top > 0) {
