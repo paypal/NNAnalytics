@@ -222,13 +222,15 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
                   limit = Integer.MAX_VALUE;
                 }
                 List<OrderByElement> orderByElements = plainSelect.getOrderByElements();
-                OrderByElement orderByElement = orderByElements.get(0);
-                boolean ascDesc = orderByElement.isAscDescPresent();
-                if (ascDesc) {
-                  if (orderByElement.isAsc()) {
-                    sortAscending = true;
-                  } else {
-                    sortDescending = true;
+                if (orderByElements != null && !orderByElements.isEmpty()) {
+                  OrderByElement orderByElement = orderByElements.get(0);
+                  boolean ascDesc = orderByElement.isAscDescPresent();
+                  if (ascDesc) {
+                    if (orderByElement.isAsc()) {
+                      sortAscending = true;
+                    } else {
+                      sortDescending = true;
+                    }
                   }
                 }
               }
