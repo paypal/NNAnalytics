@@ -191,9 +191,9 @@ public class HistogramInvoker {
     if (sortAscending != null && sortDescending != null) {
       throw new IllegalArgumentException("Please choose one type of sort.");
     } else if (sortAscending != null && sortAscending) {
-      histogram = Histograms.sortByValue(histogram, true);
+      return Histograms.sortByValue(histogram, true);
     } else if (sortDescending != null && sortDescending) {
-      histogram = Histograms.sortByValue(histogram, false);
+      return Histograms.sortByValue(histogram, false);
     }
     return histogram;
   }
