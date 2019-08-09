@@ -35,6 +35,7 @@ import net.sf.jsqlparser.statement.StatementVisitorAdapter;
 import net.sf.jsqlparser.statement.select.FromItemVisitorAdapter;
 import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Limit;
+import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectVisitorAdapter;
@@ -50,6 +51,8 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
   protected String find;
   protected String type;
   protected Integer limit;
+  protected Boolean sortAscending;
+  protected Boolean sortDescending;
 
   INodeSqlStatementVisitor() {
     filters = new LinkedList<>();
@@ -217,6 +220,18 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
                   limit = Integer.parseInt(limitExor.getRowCount().toString());
                 } else {
                   limit = Integer.MAX_VALUE;
+                }
+                List<OrderByElement> orderByElements = plainSelect.getOrderByElements();
+                if (orderByElements != null && !orderByElements.isEmpty()) {
+                  OrderByElement orderByElement = orderByElements.get(0);
+                  boolean ascDesc = orderByElement.isAscDescPresent();
+                  if (ascDesc) {
+                    if (orderByElement.isAsc()) {
+                      sortAscending = true;
+                    } else {
+                      sortDescending = true;
+                    }
+                  }
                 }
               }
             });

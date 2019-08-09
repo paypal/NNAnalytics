@@ -41,6 +41,8 @@ public class SqlParser {
   private String sum;
   private String find;
   private Integer limit;
+  private Boolean sortAscending;
+  private Boolean sortDescending;
 
   private CCJSqlParserManager parser;
 
@@ -125,6 +127,8 @@ public class SqlParser {
     find = inodeVisitor.find;
     type = inodeVisitor.type;
     limit = inodeVisitor.limit;
+    sortAscending = inodeVisitor.sortAscending;
+    sortDescending = inodeVisitor.sortDescending;
   }
 
   public String getINodeSet() {
@@ -161,5 +165,13 @@ public class SqlParser {
 
   public String getTimeRange() {
     return "monthly";
+  }
+
+  public Boolean getSortAscending() {
+    return sortAscending;
+  }
+
+  public Boolean getSortDescending() {
+    return sortDescending;
   }
 }

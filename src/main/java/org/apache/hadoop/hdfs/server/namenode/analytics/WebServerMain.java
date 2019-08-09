@@ -935,38 +935,17 @@ public class WebServerMain implements ApplicationMain {
                           timeRange,
                           find,
                           filteredINodes,
-                          transformMap)
+                          transformMap,
+                          histogramConditionsStr,
+                          top,
+                          bottom,
+                          sortAscending,
+                          sortDescending)
                       .invoke();
               histogram = histogramInvoker.getHistogram();
               binLabels = histogramInvoker.getBinLabels();
             } finally {
               nameNodeLoader.namesystemWriteUnlock(useLock);
-            }
-
-            // Perform conditions filtering.
-            if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
-              histogram =
-                  nameNodeLoader
-                      .getQueryEngine()
-                      .removeKeysOnConditional(histogram, histogramConditionsStr);
-            }
-
-            // Slice top and bottom.
-            if (top != null && bottom != null) {
-              throw new IllegalArgumentException("Please choose only one type of slice.");
-            } else if (top != null && top > 0) {
-              histogram = Histograms.sliceToTop(histogram, top);
-            } else if (bottom != null && bottom > 0) {
-              histogram = Histograms.sliceToBottom(histogram, bottom);
-            }
-
-            // Sort results.
-            if (sortAscending != null && sortDescending != null) {
-              throw new IllegalArgumentException("Please choose one type of sort.");
-            } else if (sortAscending != null && sortAscending) {
-              histogram = Histograms.sortByValue(histogram, true);
-            } else if (sortDescending != null && sortDescending) {
-              histogram = Histograms.sortByValue(histogram, false);
             }
 
             long endTime = System.currentTimeMillis();
@@ -1094,6 +1073,11 @@ public class WebServerMain implements ApplicationMain {
                             timeRange,
                             find,
                             filteredINodes.parallelStream(),
+                            null,
+                            histogramConditionsStr,
+                            null,
+                            null,
+                            null,
                             null)
                         .invoke();
                 histogram = histogramInvoker.getHistogram();
@@ -1814,6 +1798,10 @@ public class WebServerMain implements ApplicationMain {
           Integer limit = sqlParser.getLimit();
           Integer parentDirDepth = sqlParser.getParentDirDepth();
           String timeRange = sqlParser.getTimeRange();
+          Boolean sortAscending = sqlParser.getSortAscending();
+          Boolean sortDescending = sqlParser.getSortDescending();
+          Integer top = (limit != null && sortDescending != null && sortDescending) ? limit : null;
+          Integer bottom = (limit != null && sortAscending != null && sortAscending) ? limit : null;
 
           if (isHistogram) {
             QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
@@ -1828,7 +1816,12 @@ public class WebServerMain implements ApplicationMain {
                         timeRange,
                         find,
                         filteredINodes,
-                        null)
+                        null,
+                        null,
+                        top,
+                        bottom,
+                        sortAscending,
+                        sortDescending)
                     .invoke();
             Map<String, Long> histogram = histogramInvoker.getHistogram();
             res.header("Content-Type", "application/json");
