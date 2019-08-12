@@ -31,6 +31,8 @@
   <title>NNAnalytics SQL</title>
   <!-- Custom styles for this template -->
   <link href="./css/nna.css" rel="stylesheet">
+  <link href="./css/datatables.min.css" rel="stylesheet">
+  <link href="./css/buttons.datatables.min.css" rel="stylesheet">
   <!-- Bootstrap core CSS -->
   <link href="./css/bootstrap.min.css" rel="stylesheet">
   <style type="text/css">
@@ -72,16 +74,32 @@
       </div>
     </form>
   </div>
+  <br />
+  <div id="dataTableDiv" style="display: none;">
+    <table id="dataTable" class="table table-bordered" style="width: 100%;">
+      <thead>
+      <tr>
+        <th>Key</th>
+        <th>Value</th>
+      </tr>
+      </thead>
+    </table>
+  </div>
 </div>
 <div id="server-results"><!-- For server results --></div>
 <script src="./js/bootstrap.min.js"></script>
+<script src="./js/cycle.js"></script>
+<script src="./js/datatables.min.js"></script>
+<script src="./js/dataTables.buttons.min.js"></script>
+<script src="./js/jszip.min.js"></script>
+<script src="./js/buttons.html5.min.js"></script>
 <script type="text/javascript">
-            $(document).ready(function() {
-                $('#navbar').load('navbar.html', function() {
-                    checkIfAdmin();
-                });
-            });
-        </script>
+    $(document).ready(function() {
+        $('#navbar').load('navbar.html', function() {
+            checkIfAdmin();
+        });
+    });
+</script>
 <script type="text/javascript">getClusterName();</script>
 <script>
     $("#sqlForm").submit(function(event){
@@ -94,20 +112,47 @@
           type: request_method,
           data : { sqlStatement: form_data },
           statusCode: {
-            200:function(response) { 
-              var w = window.open();
-              w.document.open();
+            200:function(response) {
               if (typeof response=="object") {
-                w.document.write('<html><body><pre>' + JSON.stringify(response, null, 2) + '</pre></body></html>'); 
+                $('#dataTableDiv').show();
+                $('#dataTable').DataTable().clear();
+                $('#dataTable').DataTable().destroy();
+                let table = $('#dataTable').DataTable( {
+                    data: flattenObject(response),
+                    "iDisplayLength": 100,
+                    "aLengthMenu": [[10, 50, 100, -1], [10, 50, 100, "All"]],
+                    "dom": 'Bfrtipl',
+                    "buttons": [
+                        'copyHtml5', 'csvHtml5', 'excelHtml5' 
+                    ],
+                    "columns": [
+                        { title: "Key" },
+                        { title: "Value" }
+                    ]
+                });
+                table.draw(); 
               } else {
+                var w = window.open();
+                w.document.open();
                 w.document.write('<html><body><pre>' + response  + '</pre></body></html>');
+                w.document.close();
               }
-              w.document.close();
             },
             401:function() { window.location.replace("./login.html"); }
           }
       });
     });
+
+    function flattenObject(obj) {
+      var array = [];
+      $.each(obj, function (key, value) {
+          var innerArray = [];
+          innerArray.push(key);
+          innerArray.push(value);
+          array.push(innerArray);
+      });
+      return array
+    }
   </script>
 </body>
 </html>
