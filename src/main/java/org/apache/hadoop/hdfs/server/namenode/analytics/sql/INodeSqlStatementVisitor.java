@@ -21,8 +21,11 @@ package org.apache.hadoop.hdfs.server.namenode.analytics.sql;
 
 import java.util.LinkedList;
 import java.util.List;
+import net.sf.jsqlparser.expression.DateValue;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
+import net.sf.jsqlparser.expression.TimestampValue;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
+import net.sf.jsqlparser.expression.operators.relational.Between;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
@@ -83,6 +86,40 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
                             @Override
                             public void visit(OrExpression expr) {
                               throw new UnsupportedOperationException();
+                            }
+
+                            @Override
+                            public void visit(Between expr) {
+                              String field =
+                                  expr.getLeftExpression().getASTNode().jjtGetValue().toString();
+                              String date1 =
+                                  expr.getBetweenExpressionStart()
+                                      .getASTNode()
+                                      .jjtGetValue()
+                                      .toString();
+                              String date2 =
+                                  expr.getBetweenExpressionEnd()
+                                      .getASTNode()
+                                      .jjtGetValue()
+                                      .toString();
+                              long time1;
+                              long time2;
+                              try {
+                                time1 = new DateValue(date1).getValue().getTime();
+                                time2 = new DateValue(date2).getValue().getTime();
+                              } catch (IllegalArgumentException ignored) {
+                                time1 = new TimestampValue(date1).getValue().getTime();
+                                time2 = new TimestampValue(date2).getValue().getTime();
+                              }
+                              if (time1 > time2) {
+                                filters.add(field + ":gte:" + time2);
+                                filters.add(field + ":lte:" + time1);
+                              } else if (time1 < time2) {
+                                filters.add(field + ":gte:" + time1);
+                                filters.add(field + ":lte:" + time2);
+                              } else {
+                                filters.add(field + ":eq:" + time1);
+                              }
                             }
 
                             @Override
