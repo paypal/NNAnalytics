@@ -33,6 +33,8 @@
   <link href="./css/nna.css" rel="stylesheet">
   <link href="./css/datatables.min.css" rel="stylesheet">
   <link href="./css/buttons.datatables.min.css" rel="stylesheet">
+  <!-- Sweetalert core CSS -->
+  <link href="./css/sweetalert.css" rel="stylesheet">
   <!-- Bootstrap core CSS -->
   <link href="./css/bootstrap.min.css" rel="stylesheet">
   <style type="text/css">
@@ -89,6 +91,7 @@
 <div id="server-results"><!-- For server results --></div>
 <script src="./js/bootstrap.min.js"></script>
 <script src="./js/cycle.js"></script>
+<script src="./js/sweetalert.min.js"></script>
 <script src="./js/datatables.min.js"></script>
 <script src="./js/dataTables.buttons.min.js"></script>
 <script src="./js/jszip.min.js"></script>
@@ -138,7 +141,17 @@
                 w.document.close();
               }
             },
-            401:function() { window.location.replace("./login.html"); }
+            401:function() { window.location.replace("./login.html"); },
+            400:function(response) {
+                $("#loaderDiv").hide();
+                console.log("bad request");
+                displayAlert(response);
+            },
+            500:function(response) {
+                $("#loaderDiv").hide();
+                console.log("error");
+                displayAlert(response);
+            }
           }
       });
     });
@@ -152,6 +165,16 @@
           array.push(innerArray);
       });
       return array
+    }
+
+    function displayAlert(response) {
+      swal({
+          title: response.responseText,
+          text: "",
+          type: "error",
+          showCancelButton: true,
+          closeOnConfirm: true,
+      });
     }
   </script>
 </body>
