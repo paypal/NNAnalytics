@@ -45,8 +45,6 @@ public class SqlParser {
   private Integer parentDirDepth;
   private String timeRange;
 
-  public SqlParser() {}
-
   public String showTables() {
     Gson gson = new Gson();
     return gson.toJson(new String[] {INodeSet.files.name(), INodeSet.dirs.name()});
