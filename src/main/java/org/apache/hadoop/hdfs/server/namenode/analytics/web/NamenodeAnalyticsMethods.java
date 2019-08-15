@@ -2340,7 +2340,7 @@ public class NamenodeAnalyticsMethods {
       String sum = sqlParser.getSum();
       String find = sqlParser.getFind();
       Integer limit = sqlParser.getLimit();
-      Integer parentDirDepth = sqlParser.getParentDirDepth();
+      int parentDirDepth = sqlParser.getParentDirDepth();
       String timeRange = sqlParser.getTimeRange();
       Boolean sortAscending = sqlParser.getSortAscending();
       Boolean sortDescending = sqlParser.getSortDescending();
