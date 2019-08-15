@@ -34,6 +34,7 @@ import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.SetStatement;
 import net.sf.jsqlparser.statement.StatementVisitorAdapter;
 import net.sf.jsqlparser.statement.select.FromItemVisitorAdapter;
 import net.sf.jsqlparser.statement.select.GroupByElement;
@@ -56,9 +57,32 @@ public class INodeSqlStatementVisitor extends StatementVisitorAdapter {
   protected Integer limit;
   protected Boolean sortAscending;
   protected Boolean sortDescending;
+  protected Integer parentDirDepth;
+  protected String timeRange;
 
   INodeSqlStatementVisitor() {
     filters = new LinkedList<>();
+  }
+
+  @Override
+  public void visit(SetStatement setStatement) {
+    String name = setStatement.getName();
+    switch (name) {
+      case "parentDirDepth":
+        parentDirDepth =
+            Integer.parseInt(setStatement.getExpression().getASTNode().jjtGetValue().toString());
+        return;
+      case "timeRange":
+        timeRange = setStatement.getExpression().getASTNode().jjtGetValue().toString();
+        return;
+      default:
+        throw new IllegalArgumentException(
+            "Tried to set unknown variable: "
+                + name
+                + ".\n"
+                + "Available options are parentDirDepth = <int> and "
+                + "timeRange = <daily|weekly|monthly|yearly>.");
+    }
   }
 
   @Override

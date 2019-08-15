@@ -122,6 +122,7 @@
                 $('#dataTable').DataTable().destroy();
                 let table = $('#dataTable').DataTable( {
                     data: flattenObject(response),
+                    "order": [],
                     "iDisplayLength": 100,
                     "aLengthMenu": [[10, 50, 100, -1], [10, 50, 100, "All"]],
                     "dom": 'Bfrtipl',

@@ -21,15 +21,14 @@ package org.apache.hadoop.hdfs.server.namenode.analytics.sql;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.parser.CCJSqlParserManager;
-import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.Statements;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.INodeSet;
 
@@ -43,12 +42,10 @@ public class SqlParser {
   private Integer limit;
   private Boolean sortAscending;
   private Boolean sortDescending;
+  private Integer parentDirDepth;
+  private String timeRange;
 
-  private CCJSqlParserManager parser;
-
-  public SqlParser() {
-    parser = new CCJSqlParserManager();
-  }
+  public SqlParser() {}
 
   public String showTables() {
     Gson gson = new Gson();
@@ -118,9 +115,9 @@ public class SqlParser {
    * @throws JSQLParserException - if sql is unreadable
    */
   public void parse(String statement) throws JSQLParserException {
-    Statement parse = parser.parse(new StringReader(statement));
+    Statements statements = CCJSqlParserUtil.parseStatements(statement);
     INodeSqlStatementVisitor inodeVisitor = new INodeSqlStatementVisitor();
-    parse.accept(inodeVisitor);
+    statements.accept(inodeVisitor);
     set = inodeVisitor.set.toLowerCase();
     filters = String.join(",", inodeVisitor.filters);
     sum = inodeVisitor.sum;
@@ -129,6 +126,8 @@ public class SqlParser {
     limit = inodeVisitor.limit;
     sortAscending = inodeVisitor.sortAscending;
     sortDescending = inodeVisitor.sortDescending;
+    parentDirDepth = inodeVisitor.parentDirDepth;
+    timeRange = inodeVisitor.timeRange;
   }
 
   public String getINodeSet() {
@@ -155,16 +154,12 @@ public class SqlParser {
     return limit;
   }
 
-  public boolean getUseRawTimestamps() {
-    return false;
-  }
-
   public Integer getParentDirDepth() {
-    return 3;
+    return (parentDirDepth == null) ? 3 : parentDirDepth;
   }
 
   public String getTimeRange() {
-    return "monthly";
+    return timeRange;
   }
 
   public Boolean getSortAscending() {
