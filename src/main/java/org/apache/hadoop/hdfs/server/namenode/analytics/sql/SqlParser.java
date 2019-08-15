@@ -152,7 +152,7 @@ public class SqlParser {
     return limit;
   }
 
-  public Integer getParentDirDepth() {
+  public int getParentDirDepth() {
     return (parentDirDepth == null) ? 3 : parentDirDepth;
   }
 
