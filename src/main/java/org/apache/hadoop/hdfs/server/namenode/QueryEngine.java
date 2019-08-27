@@ -52,6 +52,9 @@ public interface QueryEngine {
 
   Long sum(Collection<INode> inodes, String sum);
 
+  Function<INode, String> getGroupingFunctionToStringForINode(
+      String filter, Integer parentDirDepth, String timeRange);
+
   Function<INode, Long> getFilterFunctionToLongForINode(String filter);
 
   Function<INode, String> getFilterFunctionToStringForINode(String filter);

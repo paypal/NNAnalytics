@@ -51,6 +51,7 @@ import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
+import org.apache.hadoop.hdfs.server.namenode.queries.StorageTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.CollectionsView;
@@ -194,6 +195,57 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   /**
+   * Get a Function to convert INode to a String value for grouping.
+   *
+   * @param grouping the grouping function to look for
+   * @return the function representing the filter transform
+   */
+  @Override // QueryEngine
+  public Function<INode, String> getGroupingFunctionToStringForINode(
+      String grouping, Integer parentDirDepth, String timeRange) {
+    switch (grouping) {
+      case "name":
+        return INode::getLocalName;
+      case "path":
+        return INode::getFullPathName;
+      case "user":
+        return INode::getUserName;
+      case "group":
+        return INode::getGroupName;
+      case "modDate":
+        return n -> {
+          SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+          try {
+            Date date = new Date(n.getModificationTime());
+            return sdf.format(date);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        };
+      case "accessDate":
+        return n -> {
+          SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+          try {
+            Date date = new Date(n.getAccessTime());
+            return sdf.format(date);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        };
+      case "fileType":
+        return n -> FileTypeHistogram.determineType(n.getLocalName());
+      case "parentDir":
+        return Helper.getDirectoryAtDepthFunction(parentDirDepth);
+      case "storageType":
+        return getStorageTypeGroupingFunction();
+      case "fileReplica":
+        return n -> String.valueOf(n.asFile().getFileReplication());
+      default:
+        return null;
+    }
+  }
+
+  /**
    * Get a Function to convert INode to a String value.
    *
    * @param filter the filter to look for
@@ -230,6 +282,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             throw new RuntimeException(e);
           }
         };
+      case "fileType":
+        return n -> FileTypeHistogram.determineType(n.getLocalName());
       default:
         return null;
     }
@@ -801,6 +855,38 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   /**
+   * Produces a 2-level gropued Histogram for generic summation.
+   *
+   * @param inodes inodes
+   * @param namingFunction1 function to string for top level grouping
+   * @param namingFunction2 function to string for second level grouping
+   * @param dataFunction function to long
+   * @return histogram of sums
+   */
+  public Map<String, Map<String, Long>> genericTwoLevelHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction1,
+      Function<INode, String> namingFunction2,
+      Function<INode, Long> dataFunction) {
+    return inodes.collect(
+        Collectors.groupingBy(
+            namingFunction1,
+            Collectors.groupingBy(
+                namingFunction2,
+                Collectors.mapping(dataFunction, Collectors.summingLong(i -> i)))));
+  }
+
+  /** Simple overloaded method for testing 2-level histograms. */
+  public Map<String, Map<String, Long>> genericTwoLevelHistogram(
+      Stream<INode> inodes, String field1, String field2, String sum) {
+    return genericTwoLevelHistogram(
+        inodes,
+        getGroupingFunctionToStringForINode(field1, null, null),
+        getGroupingFunctionToStringForINode(field2, null, null),
+        getSumFunctionForINode(sum));
+  }
+
+  /**
    * Produces Histogram for generic summation.
    *
    * @param inodes inodes
@@ -986,7 +1072,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Map<String, Long> histogram =
         genericFindingHistogram(
             inodes,
-            node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
+            getCustomLongToStringGroupingFunction(
+                binFunc, SpaceSizeHistogram.determineBucketFunction),
             Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
             findOp);
     return Histograms.orderByKeyOrder(histogram, keys);
@@ -1011,33 +1098,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
 
   private Map<String, Long> memoryConsumedHistogramCpu(Stream<INode> inodes, String sum) {
     List<String> keys = MemorySizeHistogram.getKeys();
-    Function<INode, Long> memConsumedFunction =
-        node -> {
-          long inodeSize = 150L;
-          if (node.isFile()) {
-            inodeSize += node.asFile().numBlocks() * 150L;
-          }
-          return inodeSize;
-        };
     Map<String, Long> histogram =
         genericSummingHistogram(
-            inodes,
-            node ->
-                MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
-            getSumFunctionForINode(sum));
+            inodes, getMemoryConsumedGroupingFunction(), getSumFunctionForINode(sum));
     return Histograms.orderByKeyOrder(histogram, keys);
   }
 
   private Map<String, Long> memoryConsumedHistogramCpuWithFind(Stream<INode> inodes, String find) {
     List<String> keys = MemorySizeHistogram.getKeys();
-    Function<INode, Long> memConsumedFunction =
-        node -> {
-          long inodeSize = 150L;
-          if (node.isFile()) {
-            inodeSize += node.asFile().numBlocks() * 150L;
-          }
-          return inodeSize;
-        };
     String[] finds = find.split(":");
     String findOp = finds[0];
     String findField = finds[1];
@@ -1045,11 +1113,22 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Map<String, Long> histogram =
         genericFindingHistogram(
             inodes,
-            node ->
-                MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
+            getMemoryConsumedGroupingFunction(),
             Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
             findOp);
     return Histograms.orderByKeyOrder(histogram, keys);
+  }
+
+  private Function<INode, String> getMemoryConsumedGroupingFunction() {
+    Function<INode, Long> function =
+        node -> {
+          long inodeSize = 150L;
+          if (node.isFile()) {
+            inodeSize += node.asFile().numBlocks() * 150L;
+          }
+          return inodeSize;
+        };
+    return node -> MemorySizeHistogram.determineBucketFunction.apply(function.apply(node));
   }
 
   /**
@@ -1072,10 +1151,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     List<String> keys = SpaceSizeHistogram.getKeys();
     Map<String, Long> histogram =
         genericSummingHistogram(
-            inodes,
-            node ->
-                SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
-            getSumFunctionForINode(sum));
+            inodes, getSpaceSizeGroupingFunction(), getSumFunctionForINode(sum));
     return Histograms.orderByKeyOrder(histogram, keys);
   }
 
@@ -1087,11 +1163,15 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Map<String, Long> histogram =
         genericFindingHistogram(
             inodes,
-            node ->
-                SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
+            getSpaceSizeGroupingFunction(),
             Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
             findOp);
     return Histograms.orderByKeyOrder(histogram, keys);
+  }
+
+  private Function<INode, String> getSpaceSizeGroupingFunction() {
+    return node ->
+        SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize());
   }
 
   /**
@@ -1153,11 +1233,32 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   private Map<String, Long> storageTypeHistogramCpu(Stream<INode> inodes, String sum) {
-    return versionLoader.storageTypeHistogramCpu(inodes, sum, this);
+    return genericSummingHistogram(
+        inodes, getStorageTypeGroupingFunction(), getSumFunctionForINode(sum));
   }
 
   private Map<String, Long> storageTypeHistogramCpuWithFind(Stream<INode> inodes, String find) {
-    return versionLoader.storageTypeHistogramCpuWithFind(inodes, find, this);
+    String[] finds = find.split(":");
+    String findOp = finds[0];
+    String findField = finds[1];
+
+    return genericFindingHistogram(
+        inodes,
+        getStorageTypeGroupingFunction(),
+        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
+        findOp);
+  }
+
+  private Function<INode, String> getStorageTypeGroupingFunction() {
+    List<Long> storageIds = StorageTypeHistogram.bins;
+    List<String> storageKeys = StorageTypeHistogram.keys;
+    return node -> {
+      int index = storageIds.indexOf((long) node.getStoragePolicyID());
+      if (index >= 0) {
+        return storageKeys.get(index);
+      }
+      return "NO_MAPPING";
+    };
   }
 
   /**
@@ -1185,7 +1286,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Map<String, Long> histogram =
         genericSummingHistogram(
             inodes,
-            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            getCustomLongToStringGroupingFunction(timeDiffFunc, bucketingFunc),
             getSumFunctionForINode(sum));
     return Histograms.orderByKeyOrder(histogram, keys);
   }
@@ -1202,10 +1303,15 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Map<String, Long> histogram =
         genericFindingHistogram(
             inodes,
-            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            getCustomLongToStringGroupingFunction(timeDiffFunc, bucketingFunc),
             Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
             findOp);
     return Histograms.orderByKeyOrder(histogram, keys);
+  }
+
+  private Function<INode, String> getCustomLongToStringGroupingFunction(
+      Function<INode, Long> toLongFunction, Function<Long, String> longToStringFunction) {
+    return node -> longToStringFunction.apply(toLongFunction.apply(node));
   }
 
   /**
@@ -1235,7 +1341,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Map<String, Long> histogram =
         genericSummingHistogram(
             inodes,
-            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            getCustomLongToStringGroupingFunction(timeDiffFunc, bucketingFunc),
             getSumFunctionForINode(sum));
     return Histograms.orderByKeyOrder(histogram, keys);
   }
@@ -1253,7 +1359,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Map<String, Long> histogram =
         genericFindingHistogram(
             inodes,
-            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
+            getCustomLongToStringGroupingFunction(timeDiffFunc, bucketingFunc),
             Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
             findOp);
     return Histograms.orderByKeyOrder(histogram, keys);

@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.hdfs.server.namenode.AbstractQueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Filter;
@@ -60,6 +61,7 @@ import org.apache.hadoop.hdfs.server.namenode.Constants.Sum;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
+import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.queries.Transforms;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -1470,6 +1472,18 @@ public abstract class TestNNAnalyticsBase {
         }
       }
     }
+  }
+
+  @Test
+  public void testTwoLevelHistogram() throws Exception {
+    QueryEngine queryEngine = nna.getLoader().getQueryEngine();
+    AbstractQueryEngine aQueryEngine = (AbstractQueryEngine) queryEngine;
+    Map<String, Map<String, Long>> stringMapMap =
+        aQueryEngine.genericTwoLevelHistogram(
+            nna.getLoader().getINodeSet("files").parallelStream(), "user", "accessDate", "count");
+    Gson gson = new Gson();
+    String s = gson.toJson(stringMapMap);
+    System.out.println(s);
   }
 
   private static HashMap<INodeSet, HashMap<String, HashMap<String, ArrayList<EnumSet<Filter>>>>>
