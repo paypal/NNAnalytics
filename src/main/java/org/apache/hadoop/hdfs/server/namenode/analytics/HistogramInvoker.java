@@ -176,6 +176,7 @@ public class HistogramInvoker {
         break;
       default:
         throwIllegalHistogramException();
+        break;
     }
     histogram = removeKeysOnConditional(histogramConditionsStr, histogram);
     histogram = sliceTopBottom(top, bottom, histogram);
