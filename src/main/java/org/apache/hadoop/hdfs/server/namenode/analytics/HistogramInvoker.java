@@ -22,7 +22,6 @@ package org.apache.hadoop.hdfs.server.namenode.analytics;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
@@ -41,7 +40,6 @@ public class HistogramInvoker {
   private String timeRange;
   private String find;
   private Stream<INode> filteredINodes;
-  private Histogram histogramType;
   private Map<String, Function<INode, Long>> transformMap;
   private String histogramConditionsStr;
   private Integer top;
@@ -89,7 +87,6 @@ public class HistogramInvoker {
     this.timeRange = timeRange;
     this.find = find;
     this.filteredINodes = filteredINodes;
-    this.histogramType = Histogram.valueOf(histType);
     this.transformMap = transformMap;
     this.histogramConditionsStr = histogramConditionsStr;
     this.top = top;
@@ -118,7 +115,6 @@ public class HistogramInvoker {
     this.sum = sum;
     this.find = find;
     this.filteredINodes = filteredINodes;
-    this.histogramType = Histogram.valueOf(histType);
   }
 
   public Map<String, Long> getHistogram() {
@@ -135,65 +131,51 @@ public class HistogramInvoker {
    * @return the current object with histogram and labelling complete
    */
   public HistogramInvoker invoke() {
-    switch (histogramType) {
-      case user:
-        histogram = callSingelGroupingHistogram("user");
+    histogram = callSingelGroupingHistogram(histType);
+    switch (histType) {
+      case "user":
         binLabels = "User Names";
         break;
-      case group:
-        histogram = callSingelGroupingHistogram("group");
+      case "group":
         binLabels = "Group Names";
         break;
-      case accessTime:
-        histogram = callSingelGroupingHistogram("accessTime");
+      case "accessTime":
         histogram = Histograms.orderByKeyOrder(histogram, TimeHistogram.getKeys(timeRange));
         binLabels = "Last Accessed Time";
         break;
-      case modTime:
-        histogram = callSingelGroupingHistogram("modTime");
+      case "modTime":
         histogram = Histograms.orderByKeyOrder(histogram, TimeHistogram.getKeys(timeRange));
         binLabels = "Last Modified Time";
         break;
-      case fileSize:
-        histogram = callSingelGroupingHistogram("fileSize");
+      case "fileSize":
         binLabels = "File Sizes (No Replication Factor)";
         break;
-      case diskspaceConsumed:
-        histogram = callSingelGroupingHistogram("diskspaceConsumed");
+      case "diskspaceConsumed":
         binLabels = "Diskspace Consumed (File Size * Replication Factor)";
         break;
-      case fileReplica:
-        histogram = callSingelGroupingHistogram("fileReplica");
+      case "fileReplica":
         binLabels = "File Replication Factor";
         break;
-      case storageType:
-        histogram = callSingelGroupingHistogram("storageType");
+      case "storageType":
         binLabels = "Storage Type Policy";
         break;
-      case memoryConsumed:
-        histogram = callSingelGroupingHistogram("memoryConsumed");
+      case "memoryConsumed":
         binLabels = "Memory Consumed";
         break;
-      case parentDir:
-        histogram = callSingelGroupingHistogram("parentDir");
+      case "parentDir":
         histogram.remove("NO_MAPPING");
         binLabels = "Directory Path";
         break;
-      case fileType:
-        histogram = callSingelGroupingHistogram("fileType");
+      case "fileType":
         histogram = removeKeysOnConditional("gt:0", histogram);
         binLabels = "File Type";
         break;
-      case dirQuota:
-        histogram = callSingelGroupingHistogram("dirQuota");
+      case "dirQuota":
         histogram = removeKeysOnConditional("gt:0", histogram);
         binLabels = "Directory Path";
         break;
       default:
-        throw new IllegalArgumentException(
-            "Could not determine histogram type: "
-                + histType
-                + ".\nPlease check /histograms for available histograms.");
+        throwIllegalHistogramException();
     }
     histogram = removeKeysOnConditional(histogramConditionsStr, histogram);
     histogram = sliceTopBottom(top, bottom, histogram);
@@ -202,11 +184,23 @@ public class HistogramInvoker {
   }
 
   private Map<String, Long> callSingelGroupingHistogram(String grouping) {
+    Function<INode, String> groupingFunc =
+        queryEngine.getGroupingFunctionToStringForINode(grouping, parentDirDepth, timeRange);
+    if (grouping == null) {
+      throwIllegalHistogramException();
+    }
     return queryEngine.genericSumOrFindHistogram(
         filteredINodes,
-        queryEngine.getGroupingFunctionToStringForINode(grouping, parentDirDepth, timeRange),
+        groupingFunc,
         Helper.convertToLongFunction(queryEngine.getSumFunctionForINode(sum, transformMap)),
         find);
+  }
+
+  private void throwIllegalHistogramException() {
+    throw new IllegalArgumentException(
+        "Could not determine histogram type: "
+            + histType
+            + ".\nPlease check /histograms for available histograms.");
   }
 
   private Map<String, Long> sortHistogramAscDesc(
