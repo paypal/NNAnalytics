@@ -928,7 +928,7 @@ public class WebServerMain implements ApplicationMain {
             try {
               HistogramInvoker histogramInvoker =
                   new HistogramInvoker(
-                          nameNodeLoader,
+                          nameNodeLoader.getQueryEngine(),
                           histType,
                           sum,
                           parentDirDepth,
@@ -1066,7 +1066,7 @@ public class WebServerMain implements ApplicationMain {
               try {
                 HistogramInvoker histogramInvoker =
                     new HistogramInvoker(
-                            nameNodeLoader,
+                            nameNodeLoader.getQueryEngine(),
                             histType,
                             sum,
                             parentDirDepth,
@@ -1809,7 +1809,7 @@ public class WebServerMain implements ApplicationMain {
                 Helper.setFilters(nameNodeLoader, set, filters, filterOps);
             HistogramInvoker histogramInvoker =
                 new HistogramInvoker(
-                        nameNodeLoader,
+                        nameNodeLoader.getQueryEngine(),
                         type,
                         sum,
                         parentDirDepth,
