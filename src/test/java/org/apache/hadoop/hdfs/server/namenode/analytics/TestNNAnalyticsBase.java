@@ -48,8 +48,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.hdfs.server.namenode.AbstractQueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Filter;
@@ -695,10 +695,9 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
-  public void testAccessTimeHistogram2WithCountAndDs() throws IOException {
+  public void testAccessTimeHistogram2WithUserAndAcessTime() throws IOException {
     HttpGet get =
-        new HttpGet(
-            "http://localhost:4567/histogram2?set=files&type=accessTime&sum=count,diskspaceConsumed");
+        new HttpGet("http://localhost:4567/histogram2?set=files&type=user,accessTime&sum=count");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -706,10 +705,10 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
-  public void testModTimeHistogram2WithCountAndDsAsCSV() throws IOException {
+  public void testAccessTimeHistogram3WithCountAndDs() throws IOException {
     HttpGet get =
         new HttpGet(
-            "http://localhost:4567/histogram2?set=files&type=modTime&sum=count,diskspaceConsumed&histogramOutput=csv");
+            "http://localhost:4567/histogram3?set=files&type=accessTime&sum=count,diskspaceConsumed");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -717,10 +716,21 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
-  public void testUserHistogram2WithCountAndDsAsJson() throws IOException {
+  public void testModTimeHistogram3WithCountAndDsAsCSV() throws IOException {
     HttpGet get =
         new HttpGet(
-            "http://localhost:4567/histogram2?set=files&type=user&sum=count,diskspaceConsumed&histogramOutput=json");
+            "http://localhost:4567/histogram3?set=files&type=modTime&sum=count,diskspaceConsumed&histogramOutput=csv");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> strings = IOUtils.readLines(res.getEntity().getContent());
+    strings.clear();
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testUserHistogram3WithCountAndDsAsJson() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/histogram3?set=files&type=user&sum=count,diskspaceConsumed&histogramOutput=json");
     HttpResponse res = client.execute(hostPort, get);
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
@@ -1475,14 +1485,15 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
-  public void testTwoLevelHistogram() throws Exception {
+  public void testTwoLevelHistogram() {
     QueryEngine queryEngine = nna.getLoader().getQueryEngine();
-    AbstractQueryEngine aQueryEngine = (AbstractQueryEngine) queryEngine;
-    Map<String, Map<String, Long>> stringMapMap =
-        aQueryEngine.genericTwoLevelHistogram(
-            nna.getLoader().getINodeSet("files").parallelStream(), "user", "accessDate", "count");
+    Stream<INode> files = nna.getLoader().getINodeSet("files").parallelStream();
+    HistogramTwoLevelInvoker twoLevel =
+        new HistogramTwoLevelInvoker(
+            queryEngine, "user", "accessTime", "count", null, "monthly", files);
+    twoLevel.invoke();
     Gson gson = new Gson();
-    String s = gson.toJson(stringMapMap);
+    String s = gson.toJson(twoLevel.getHistogram());
     System.out.println(s);
   }
 

@@ -1005,9 +1005,85 @@ public class WebServerMain implements ApplicationMain {
     /* HISTOGRAM2 endpoint takes 1 set of "set", "filter", "type", and  "sum" parameters and returns a histogram
     where the X-axis represents the "type" type and the Y-axis represents the "sum" type.
     Output types available dictated by "&histogramOutput=". Default is CHART form.
-    This differs from Histogram endpoint in that it can output multiple sums and values in a single query. */
+    This differs from Histogram endpoint in that it can group by multiple fields in a single query. */
     get(
         "/histogram2",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+
+          if (!nameNodeLoader.isInit()) {
+            res.header("Content-Type", "application/json");
+            return Histograms.toChartJsJson(new HashMap<>(), "not_loaded", "", "");
+          }
+
+          lock.writeLock().lock();
+          try {
+            final String fullFilterStr = req.queryMap("filters").value();
+            final String[] filters = Helper.parseFilters(fullFilterStr);
+            final String[] filterOps = Helper.parseFilterOps(fullFilterStr);
+            final String set = req.queryMap("set").value();
+            final String sum = req.queryMap("sum").value();
+            final Boolean useLock = req.queryMap("useLock").booleanValue();
+            final Integer parentDirDepth = req.queryMap("parentDirDepth").integerValue();
+            final String outputTypeStr = req.queryMap("histogramOutput").value();
+            final String timeRangeStr = req.queryMap("timeRange").value();
+            final String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
+            final String outputType = (outputTypeStr != null) ? outputTypeStr : "json";
+            final String typeStr = req.queryMap("type").value();
+            final String[] types = (typeStr != null) ? typeStr.split(",") : new String[0];
+
+            for (String type : types) {
+              QueryChecker.isValidQuery(set, filters, type, sum, filterOps, null);
+            }
+
+            Map<String, Map<String, Long>> histogram;
+            final long startTime = System.currentTimeMillis();
+            nameNodeLoader.namesystemWriteLock(useLock);
+            try {
+              HistogramTwoLevelInvoker histogramInvoker =
+                  new HistogramTwoLevelInvoker(
+                          nameNodeLoader.getQueryEngine(),
+                          types[0],
+                          types[1],
+                          sum,
+                          parentDirDepth,
+                          timeRange,
+                          nameNodeLoader.getINodeSet(set).parallelStream())
+                      .invoke();
+              histogram = histogramInvoker.getHistogram();
+            } finally {
+              nameNodeLoader.namesystemWriteUnlock(useLock);
+            }
+
+            long endTime = System.currentTimeMillis();
+            LOG.info("Performing histogram2: {} took: {} ms.", typeStr, (endTime - startTime));
+
+            // Return final histogram to Web UI as output type.
+            HistogramOutput output = HistogramOutput.valueOf(outputType);
+            switch (output) {
+              case json:
+                res.header("Content-Type", "application/json");
+                return Histograms.toJson(histogram);
+              case csv:
+                res.header("Content-Type", "text/plain");
+                return Histograms.twoLeveltoCsv(histogram);
+              default:
+                throw new IllegalArgumentException(
+                    "Could not determine output type: "
+                        + outputType
+                        + ".\nPlease check /histogramOutputs for available histogram outputs.");
+            }
+          } finally {
+            lock.writeLock().unlock();
+          }
+        });
+
+    /* HISTOGRAM3 endpoint takes 1 set of "set", "filter", "type", and  "sum" parameters and returns a histogram
+    where the X-axis represents the "type" type and the Y-axis represents the "sum" type.
+    Output types available dictated by "&histogramOutput=". Default is CHART form.
+    This differs from Histogram endpoint in that it can output multiple sums and values in a single query. */
+    get(
+        "/histogram3",
         (req, res) -> {
           res.header("Access-Control-Allow-Origin", "*");
 
@@ -1120,7 +1196,7 @@ public class WebServerMain implements ApplicationMain {
             }
 
             long endTime = System.currentTimeMillis();
-            LOG.info("Performing histogram2: {} took: {} ms.", histType, (endTime - startTime));
+            LOG.info("Performing histogram3: {} took: {} ms.", histType, (endTime - startTime));
 
             // Return final histogram to Web UI as output type.
             HistogramOutput output = HistogramOutput.valueOf(outputType);

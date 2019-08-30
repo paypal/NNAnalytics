@@ -927,6 +927,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    * @param dataFunction function to long
    * @return histogram of sums
    */
+  @Override // QueryEngine
   public Map<String, Map<String, Long>> genericTwoLevelHistogram(
       Stream<INode> inodes,
       Function<INode, String> namingFunction1,
@@ -1029,25 +1030,6 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       }
     } else {
       return genericSummingHistogram(inodes, namingFunction, dataFunction::applyAsLong);
-    }
-  }
-
-  @Override // QueryEngine
-  public Map<String, Long> genericFindingHistogram(
-      Stream<INode> inodes,
-      Function<INode, String> namingFunction,
-      ToLongFunction<INode> dataFunction,
-      String findOp) {
-    switch (findOp) {
-      case "max":
-        return genericMaxxingHistogram(inodes, namingFunction, dataFunction);
-      case "min":
-        return genericMinningHistogram(inodes, namingFunction, dataFunction);
-      case "avg":
-        return genericAvgingHistogram(inodes, namingFunction, dataFunction);
-      default:
-        throw new IllegalArgumentException(
-            "findOp: " + findOp + ", is not a valid find. Check /finds for valid options.");
     }
   }
 

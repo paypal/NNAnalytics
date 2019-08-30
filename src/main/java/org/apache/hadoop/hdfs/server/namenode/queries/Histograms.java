@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
@@ -141,6 +142,35 @@ public class Histograms {
       for (Long val : entry.getValue()) {
         sb.append(',');
         sb.append(val);
+      }
+      sb.append('\n');
+    }
+
+    long e1 = System.currentTimeMillis();
+    String csv = sb.toString();
+    LOG.debug(
+        "Time to dump histogram3 to CSV String of {} chars took: {} ms.", csv.length(), (e1 - s1));
+    return csv;
+  }
+
+  /**
+   * This function converts histogram map to csv string
+   *
+   * @param twoLevelHistogram data points of histogram
+   * @return csv string of the input histogram.
+   */
+  public static String twoLeveltoCsv(Map<String, Map<String, Long>> twoLevelHistogram) {
+    long s1 = System.currentTimeMillis();
+
+    StringBuilder sb = new StringBuilder();
+    for (Entry<String, Map<String, Long>> topLevelEntry : twoLevelHistogram.entrySet()) {
+      Map<String, Long> secondLevelHistogram = topLevelEntry.getValue();
+      for (Entry<String, Long> secondLevelEntry : secondLevelHistogram.entrySet()) {
+        sb.append(topLevelEntry.getKey());
+        sb.append(',');
+        sb.append(secondLevelEntry.getKey());
+        sb.append(',');
+        sb.append(secondLevelEntry.getValue());
       }
       sb.append('\n');
     }

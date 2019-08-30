@@ -131,7 +131,7 @@ public class HistogramInvoker {
    * @return the current object with histogram and labelling complete
    */
   public HistogramInvoker invoke() {
-    histogram = callSingelGroupingHistogram(histType);
+    histogram = callSingleGroupingHistogram(histType);
     switch (histType) {
       case "user":
         binLabels = "User Names";
@@ -184,7 +184,7 @@ public class HistogramInvoker {
     return this;
   }
 
-  private Map<String, Long> callSingelGroupingHistogram(String grouping) {
+  private Map<String, Long> callSingleGroupingHistogram(String grouping) {
     Function<INode, String> groupingFunc =
         queryEngine.getGroupingFunctionToStringForINode(grouping, parentDirDepth, timeRange);
     if (grouping == null) {

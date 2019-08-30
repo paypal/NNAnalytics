@@ -89,11 +89,11 @@ public interface QueryEngine {
       Function<INode, String> namingFunction,
       Function<INode, Long> dataFunction);
 
-  Map<String, Long> genericFindingHistogram(
+  Map<String, Map<String, Long>> genericTwoLevelHistogram(
       Stream<INode> inodes,
-      Function<INode, String> namingFunction,
-      ToLongFunction<INode> dataFunction,
-      String findOp);
+      Function<INode, String> namingFunction1,
+      Function<INode, String> namingFunction2,
+      Function<INode, Long> dataFunction);
 
   Map<String, Long> diskspaceConsumedHistogram(
       Stream<INode> inodes,

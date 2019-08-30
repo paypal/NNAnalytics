@@ -258,6 +258,8 @@ public interface Constants {
     dump,
     filter,
     histogram,
+    histogram2,
+    histogram3,
     divide,
     saveNamespace,
     fetchNamespace,
@@ -322,6 +324,8 @@ public interface Constants {
       EnumSet.of(
           Endpoint.filter,
           Endpoint.histogram,
+          Endpoint.histogram2,
+          Endpoint.histogram3,
           Endpoint.divide,
           Endpoint.top,
           Endpoint.bottom,
