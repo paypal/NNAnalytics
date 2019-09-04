@@ -22,10 +22,10 @@ package org.apache.hadoop.hdfs.server.namenode.analytics;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import org.apache.hadoop.hdfs.server.namenode.Constants.Histogram;
 import org.apache.hadoop.hdfs.server.namenode.INode;
-import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
+import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
+import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 
 /**
  * This class is meant to be used to invoke the appropriate histogram function based on input.
@@ -33,14 +33,13 @@ import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
  */
 public class HistogramInvoker {
 
-  private NameNodeLoader nameNodeLoader;
+  private QueryEngine queryEngine;
   private String histType;
   private String sum;
   private Integer parentDirDepth;
   private String timeRange;
   private String find;
   private Stream<INode> filteredINodes;
-  private Histogram htEnum;
   private Map<String, Function<INode, Long>> transformMap;
   private String histogramConditionsStr;
   private Integer top;
@@ -53,7 +52,7 @@ public class HistogramInvoker {
   /**
    * Constructor.
    *
-   * @param nameNodeLoader the namenode loader
+   * @param queryEngine the query engine
    * @param histType the type of grouping being done
    * @param sum the sum aggregation field
    * @param parentDirDepth the parent dir depth
@@ -68,7 +67,7 @@ public class HistogramInvoker {
    * @param sortDescending should sort descending
    */
   public HistogramInvoker(
-      NameNodeLoader nameNodeLoader,
+      QueryEngine queryEngine,
       String histType,
       String sum,
       Integer parentDirDepth,
@@ -81,20 +80,41 @@ public class HistogramInvoker {
       Integer bottom,
       Boolean sortAscending,
       Boolean sortDescending) {
-    this.nameNodeLoader = nameNodeLoader;
+    this.queryEngine = queryEngine;
     this.histType = histType;
     this.sum = sum;
     this.parentDirDepth = parentDirDepth;
     this.timeRange = timeRange;
     this.find = find;
     this.filteredINodes = filteredINodes;
-    this.htEnum = Histogram.valueOf(histType);
     this.transformMap = transformMap;
     this.histogramConditionsStr = histogramConditionsStr;
     this.top = top;
     this.bottom = bottom;
     this.sortAscending = sortAscending;
     this.sortDescending = sortDescending;
+  }
+
+  /**
+   * More basic constructor for specific basic histograms.
+   *
+   * @param queryEngine the query engine
+   * @param histType the type of grouping being done
+   * @param sum the sum aggregation field
+   * @param find the min/max/avg aggregation field
+   * @param filteredINodes the inode stream
+   */
+  public HistogramInvoker(
+      QueryEngine queryEngine,
+      String histType,
+      String sum,
+      String find,
+      Stream<INode> filteredINodes) {
+    this.queryEngine = queryEngine;
+    this.histType = histType;
+    this.sum = sum;
+    this.find = find;
+    this.filteredINodes = filteredINodes;
   }
 
   public Map<String, Long> getHistogram() {
@@ -111,79 +131,77 @@ public class HistogramInvoker {
    * @return the current object with histogram and labelling complete
    */
   public HistogramInvoker invoke() {
-    switch (htEnum) {
-      case user:
-        histogram = nameNodeLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
+    histogram = callSingleGroupingHistogram(histType);
+    switch (histType) {
+      case "user":
         binLabels = "User Names";
         break;
-      case group:
-        histogram = nameNodeLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
+      case "group":
         binLabels = "Group Names";
         break;
-      case accessTime:
-        histogram =
-            nameNodeLoader
-                .getQueryEngine()
-                .accessTimeHistogram(filteredINodes, sum, find, timeRange);
+      case "accessTime":
+        histogram = Histograms.orderByKeyOrder(histogram, TimeHistogram.getKeys(timeRange));
         binLabels = "Last Accessed Time";
         break;
-      case modTime:
-        histogram =
-            nameNodeLoader.getQueryEngine().modTimeHistogram(filteredINodes, sum, find, timeRange);
+      case "modTime":
+        histogram = Histograms.orderByKeyOrder(histogram, TimeHistogram.getKeys(timeRange));
         binLabels = "Last Modified Time";
         break;
-      case fileSize:
-        histogram = nameNodeLoader.getQueryEngine().fileSizeHistogram(filteredINodes, sum, find);
+      case "fileSize":
         binLabels = "File Sizes (No Replication Factor)";
         break;
-      case diskspaceConsumed:
-        histogram =
-            nameNodeLoader
-                .getQueryEngine()
-                .diskspaceConsumedHistogram(filteredINodes, sum, find, transformMap);
+      case "diskspaceConsumed":
         binLabels = "Diskspace Consumed (File Size * Replication Factor)";
         break;
-      case fileReplica:
-        histogram =
-            nameNodeLoader
-                .getQueryEngine()
-                .fileReplicaHistogram(filteredINodes, sum, find, transformMap);
+      case "fileReplica":
         binLabels = "File Replication Factor";
         break;
-      case storageType:
-        histogram = nameNodeLoader.getQueryEngine().storageTypeHistogram(filteredINodes, sum, find);
+      case "storageType":
         binLabels = "Storage Type Policy";
         break;
-      case memoryConsumed:
-        histogram =
-            nameNodeLoader.getQueryEngine().memoryConsumedHistogram(filteredINodes, sum, find);
+      case "memoryConsumed":
         binLabels = "Memory Consumed";
         break;
-      case parentDir:
-        histogram =
-            nameNodeLoader
-                .getQueryEngine()
-                .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
+      case "parentDir":
+        histogram.remove("NO_MAPPING");
         binLabels = "Directory Path";
         break;
-      case fileType:
-        histogram = nameNodeLoader.getQueryEngine().fileTypeHistogram(filteredINodes, sum, find);
+      case "fileType":
+        histogram = removeKeysOnConditional("gt:0", histogram);
         binLabels = "File Type";
         break;
-      case dirQuota:
-        histogram = nameNodeLoader.getQueryEngine().dirQuotaHistogram(filteredINodes, sum);
+      case "dirQuota":
+        histogram = removeKeysOnConditional("gt:0", histogram);
         binLabels = "Directory Path";
         break;
       default:
-        throw new IllegalArgumentException(
-            "Could not determine histogram type: "
-                + histType
-                + ".\nPlease check /histograms for available histograms.");
+        throwIllegalHistogramException();
+        break;
     }
     histogram = removeKeysOnConditional(histogramConditionsStr, histogram);
     histogram = sliceTopBottom(top, bottom, histogram);
     histogram = sortHistogramAscDesc(sortAscending, sortDescending, histogram);
     return this;
+  }
+
+  private Map<String, Long> callSingleGroupingHistogram(String grouping) {
+    Function<INode, String> groupingFunc =
+        queryEngine.getGroupingFunctionToStringForINode(grouping, parentDirDepth, timeRange);
+    if (grouping == null) {
+      throwIllegalHistogramException();
+    }
+    return queryEngine.genericSumOrFindHistogram(
+        filteredINodes,
+        groupingFunc,
+        Helper.convertToLongFunction(queryEngine.getSumFunctionForINode(sum, transformMap)),
+        find);
+  }
+
+  private void throwIllegalHistogramException() {
+    throw new IllegalArgumentException(
+        "Could not determine histogram type: "
+            + histType
+            + ".\nPlease check /histograms for available histograms.");
   }
 
   private Map<String, Long> sortHistogramAscDesc(
@@ -201,9 +219,7 @@ public class HistogramInvoker {
   private Map<String, Long> removeKeysOnConditional(
       String histogramConditionsStr, Map<String, Long> histogram) {
     if (histogramConditionsStr != null && !histogramConditionsStr.isEmpty()) {
-      return nameNodeLoader
-          .getQueryEngine()
-          .removeKeysOnConditional(histogram, histogramConditionsStr);
+      return queryEngine.removeKeysOnConditional(histogram, histogramConditionsStr);
     }
     return histogram;
   }

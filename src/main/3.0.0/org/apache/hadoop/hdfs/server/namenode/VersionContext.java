@@ -23,18 +23,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
-import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
-import org.apache.hadoop.hdfs.server.namenode.queries.StorageTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
 import org.apache.hadoop.hdfs.util.Canceler;
 import org.apache.hadoop.io.IOUtils;
@@ -178,47 +174,6 @@ public class VersionContext implements VersionInterface {
       default:
         return null;
     }
-  }
-
-  @Override // VersionInterface
-  public Map<String, Long> storageTypeHistogramCpu(
-      Stream<INode> inodes, String sum, QueryEngine queryEngine) {
-    List<Long> storageIds = StorageTypeHistogram.bins;
-    List<String> storageKeys = StorageTypeHistogram.keys;
-
-    return queryEngine.genericSummingHistogram(
-        inodes,
-        node -> {
-          int index = storageIds.indexOf((long) node.getStoragePolicyID());
-          if (index >= 0) {
-            return storageKeys.get(index);
-          }
-          return "NO_MAPPING";
-        },
-        queryEngine.getSumFunctionForINode(sum));
-  }
-
-  @Override // VersionInterface
-  public Map<String, Long> storageTypeHistogramCpuWithFind(
-      Stream<INode> inodes, String find, QueryEngine queryEngine) {
-    List<Long> storageIds = StorageTypeHistogram.bins;
-    List<String> storageKeys = StorageTypeHistogram.keys;
-
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-
-    return queryEngine.genericFindingHistogram(
-        inodes,
-        node -> {
-          int index = storageIds.indexOf((long) node.getStoragePolicyID());
-          if (index >= 0) {
-            return storageKeys.get(index);
-          }
-          return "NO_MAPPING";
-        },
-        Helper.convertToLongFunction(queryEngine.getFilterFunctionToLongForINode(findField)),
-        findOp);
   }
 
   @Override // VersionInterface

@@ -152,7 +152,7 @@ public class SuggestionsEngine {
         queryEngine.genericSummarizingHistogram(
             files.parallelStream(),
             node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
-            queryEngine.getSumFunctionForINode("diskspaceConsumed"));
+            queryEngine.getSumFunctionForINode("diskspaceConsumed", null));
     final Map<String, Long> modTimeCount =
         Histograms.orderByKeyOrder(
             modTimeCountAndDisk
@@ -196,7 +196,7 @@ public class SuggestionsEngine {
         queryEngine.genericSummarizingHistogram(
             files24h.parallelStream(),
             INode::getUserName,
-            queryEngine.getSumFunctionForINode("diskspaceConsumed"));
+            queryEngine.getSumFunctionForINode("diskspaceConsumed", null));
     final Map<String, Long> numFiles24hUsers =
         countAndDisk24hUsers
             .entrySet()
@@ -219,7 +219,7 @@ public class SuggestionsEngine {
         queryEngine.genericSummarizingHistogram(
             oldFiles1yr,
             INode::getUserName,
-            queryEngine.getSumFunctionForINode("diskspaceConsumed"));
+            queryEngine.getSumFunctionForINode("diskspaceConsumed", null));
     final Map<String, Long> oldFiles1yrCountUsers =
         oldFiles1yrCountAndDisk
             .entrySet()
@@ -237,7 +237,7 @@ public class SuggestionsEngine {
         queryEngine.genericSummarizingHistogram(
             oldFiles2yr,
             INode::getUserName,
-            queryEngine.getSumFunctionForINode("diskspaceConsumed"));
+            queryEngine.getSumFunctionForINode("diskspaceConsumed", null));
     final Map<String, Long> oldFiles2yrCountUsers =
         oldFiles2yrCountAndDisk
             .entrySet()
@@ -266,7 +266,7 @@ public class SuggestionsEngine {
         queryEngine.genericSummarizingHistogram(
             files.parallelStream(),
             Helper.getDirectoryAtDepthFunction(3),
-            queryEngine.getSumFunctionForINode("diskspaceConsumed"));
+            queryEngine.getSumFunctionForINode("diskspaceConsumed", null));
     dirCountAndDisk.remove("NO_MAPPING");
     Map<String, Long> dirCount =
         dirCountAndDisk
@@ -474,7 +474,7 @@ public class SuggestionsEngine {
         queryEngine.genericSummarizingHistogram(
             files24h.parallelStream(),
             Helper.getDirectoryAtDepthFunction(3),
-            queryEngine.getSumFunctionForINode("diskspaceConsumed"));
+            queryEngine.getSumFunctionForINode("diskspaceConsumed", null));
     dirCountAndDisk24h.remove("NO_MAPPING");
     Map<String, Long> dirCount24h =
         dirCountAndDisk24h

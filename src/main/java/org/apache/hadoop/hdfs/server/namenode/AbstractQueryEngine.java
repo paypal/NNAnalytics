@@ -47,10 +47,11 @@ import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
+import org.apache.hadoop.hdfs.server.namenode.analytics.HistogramInvoker;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
-import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.queries.MemorySizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
+import org.apache.hadoop.hdfs.server.namenode.queries.StorageTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.CollectionsView;
@@ -194,6 +195,92 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   /**
+   * Get a Function to convert INode to a String value for grouping.
+   *
+   * @param grouping the grouping function to look for
+   * @return the function representing the filter transform
+   */
+  @Override // QueryEngine
+  public Function<INode, String> getGroupingFunctionToStringForINode(
+      String grouping, Integer parentDirDepth, String timeRange) {
+    switch (grouping) {
+      case "name":
+        return INode::getLocalName;
+      case "path":
+      case "dirQuota":
+        return INode::getFullPathName;
+      case "user":
+        return INode::getUserName;
+      case "group":
+        return INode::getGroupName;
+      case "accessTime":
+        return n -> {
+          Function<INode, Long> timeDiffFunc =
+              node -> System.currentTimeMillis() - node.getAccessTime();
+          Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
+          return getCustomLongToStringGroupingFunction(timeDiffFunc, bucketingFunc).apply(n);
+        };
+      case "modTime":
+        return n -> {
+          Function<INode, Long> timeDiffFunc =
+              node -> System.currentTimeMillis() - node.getModificationTime();
+          Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
+          return getCustomLongToStringGroupingFunction(timeDiffFunc, bucketingFunc).apply(n);
+        };
+      case "modDate":
+        return n -> {
+          SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+          try {
+            Date date = new Date(n.getModificationTime());
+            return sdf.format(date);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        };
+      case "accessDate":
+        return n -> {
+          SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+          try {
+            Date date = new Date(n.getAccessTime());
+            return sdf.format(date);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        };
+      case "fileSize":
+        return getCustomLongToStringGroupingFunction(
+            getFilterFunctionToLongForINode("fileSize"),
+            SpaceSizeHistogram.determineBucketFunction);
+      case "diskspaceConsumed":
+        return getCustomLongToStringGroupingFunction(
+            getFilterFunctionToLongForINode("diskspaceConsumed"),
+            SpaceSizeHistogram.determineBucketFunction);
+      case "memoryConsumed":
+        return getCustomLongToStringGroupingFunction(
+            getFilterFunctionToLongForINode("memoryConsumed"),
+            MemorySizeHistogram.determineBucketFunction);
+      case "fileType":
+        return n -> FileTypeHistogram.determineType(n.getLocalName());
+      case "parentDir":
+        return Helper.getDirectoryAtDepthFunction((parentDirDepth != null) ? parentDirDepth : 0);
+      case "storageType":
+        return n -> {
+          List<Long> storageIds = StorageTypeHistogram.bins;
+          List<String> storageKeys = StorageTypeHistogram.keys;
+          int index = storageIds.indexOf((long) n.getStoragePolicyID());
+          if (index >= 0) {
+            return storageKeys.get(index);
+          }
+          return "NO_MAPPING";
+        };
+      case "fileReplica":
+        return n -> String.valueOf(n.asFile().getFileReplication());
+      default:
+        return null;
+    }
+  }
+
+  /**
    * Get a Function to convert INode to a String value.
    *
    * @param filter the filter to look for
@@ -230,6 +317,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             throw new RuntimeException(e);
           }
         };
+      case "fileType":
+        return n -> FileTypeHistogram.determineType(n.getLocalName());
       default:
         return null;
     }
@@ -297,54 +386,77 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    * @return the function representing the sum transform
    */
   @Override // QueryEngine
-  public Function<INode, Long> getSumFunctionForINode(String sum) {
+  public Function<INode, Long> getSumFunctionForINode(
+      String sum, Map<String, Function<INode, Long>> transformMap) {
+    Function<INode, Long> toLongFunction;
     switch (sum) {
       case "count":
-        return node -> 1L;
+        toLongFunction = node -> 1L;
+        break;
       case "dirNumChildren":
-        return node -> versionLoader.getFilterFunctionToLongForINode("dirNumChildren").apply(node);
+        toLongFunction =
+            node -> versionLoader.getFilterFunctionToLongForINode("dirNumChildren").apply(node);
+        break;
       case "fileSize":
-        return node -> node.asFile().computeFileSize();
+        toLongFunction = node -> node.asFile().computeFileSize();
+        break;
       case "diskspaceConsumed":
-        return node -> node.asFile().computeFileSize() * node.asFile().getFileReplication();
+        toLongFunction =
+            node -> node.asFile().computeFileSize() * node.asFile().getFileReplication();
+        break;
       case "blockSize":
-        return node -> node.asFile().getPreferredBlockSize();
+        toLongFunction = node -> node.asFile().getPreferredBlockSize();
+        break;
       case "numBlocks":
-        return node -> (long) node.asFile().numBlocks();
+        toLongFunction = node -> (long) node.asFile().numBlocks();
+        break;
       case "numReplicas":
-        return node -> (long) node.asFile().numBlocks() * node.asFile().getFileReplication();
+        toLongFunction =
+            node -> (long) node.asFile().numBlocks() * node.asFile().getFileReplication();
+        break;
       case "memoryConsumed":
-        return node -> {
-          long inodeSize = 150L;
-          if (node.isFile()) {
-            inodeSize += node.asFile().numBlocks() * 150L;
-          }
-          return inodeSize;
-        };
+        toLongFunction =
+            node -> {
+              long inodeSize = 150L;
+              if (node.isFile()) {
+                inodeSize += node.asFile().numBlocks() * 150L;
+              }
+              return inodeSize;
+            };
+        break;
       case "nsQuotaRatioUsed":
-        return node ->
-            (long)
-                ((double) versionLoader.getNsQuotaUsed(node)
-                    / (double) versionLoader.getNsQuota(node)
-                    * 100);
+        toLongFunction =
+            node ->
+                (long)
+                    ((double) versionLoader.getNsQuotaUsed(node)
+                        / (double) versionLoader.getNsQuota(node)
+                        * 100);
+        break;
       case "dsQuotaRatioUsed":
-        return node ->
-            (long)
-                ((double) versionLoader.getDsQuotaUsed(node)
-                    / (double) versionLoader.getDsQuota(node)
-                    * 100);
+        toLongFunction =
+            node ->
+                (long)
+                    ((double) versionLoader.getDsQuotaUsed(node)
+                        / (double) versionLoader.getDsQuota(node)
+                        * 100);
+        break;
       case "nsQuotaUsed":
-        return versionLoader::getNsQuotaUsed;
+        toLongFunction = versionLoader::getNsQuotaUsed;
+        break;
       case "dsQuotaUsed":
-        return versionLoader::getDsQuotaUsed;
+        toLongFunction = versionLoader::getDsQuotaUsed;
+        break;
       case "nsQuota":
-        return versionLoader::getNsQuota;
+        toLongFunction = versionLoader::getNsQuota;
+        break;
       case "dsQuota":
-        return versionLoader::getDsQuota;
+        toLongFunction = versionLoader::getDsQuota;
+        break;
       default:
         throw new IllegalArgumentException(
             "Could not determine sum type: " + sum + ".\nPlease check /sums for available sums.");
     }
+    return getTransformFunction(toLongFunction, transformMap, sum);
   }
 
   /**
@@ -800,6 +912,45 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     return check;
   }
 
+  @Override // QueryEngine
+  public Function<INode, String> getCustomLongToStringGroupingFunction(
+      Function<INode, Long> toLongFunction, Function<Long, String> longToStringFunction) {
+    return node -> longToStringFunction.apply(toLongFunction.apply(node));
+  }
+
+  /**
+   * Produces a 2-level gropued Histogram for generic summation.
+   *
+   * @param inodes inodes
+   * @param namingFunction1 function to string for top level grouping
+   * @param namingFunction2 function to string for second level grouping
+   * @param dataFunction function to long
+   * @return histogram of sums
+   */
+  @Override // QueryEngine
+  public Map<String, Map<String, Long>> genericTwoLevelHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction1,
+      Function<INode, String> namingFunction2,
+      Function<INode, Long> dataFunction) {
+    return inodes.collect(
+        Collectors.groupingBy(
+            namingFunction1,
+            Collectors.groupingBy(
+                namingFunction2,
+                Collectors.mapping(dataFunction, Collectors.summingLong(i -> i)))));
+  }
+
+  /** Simple overloaded method for testing 2-level histograms. */
+  public Map<String, Map<String, Long>> genericTwoLevelHistogram(
+      Stream<INode> inodes, String field1, String field2, String sum) {
+    return genericTwoLevelHistogram(
+        inodes,
+        getGroupingFunctionToStringForINode(field1, null, null),
+        getGroupingFunctionToStringForINode(field2, null, null),
+        getSumFunctionForINode(sum, null));
+  }
+
   /**
    * Produces Histogram for generic summation.
    *
@@ -837,22 +988,48 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             namingFunction, Collectors.mapping(dataFunction, Collectors.summarizingLong(i -> i))));
   }
 
+  /**
+   * Produces either Histogram for generic summarization or finding of max/min/avg.
+   *
+   * @param inodes inodes
+   * @param namingFunction function to string
+   * @param dataFunction function to long
+   * @return histogram of sums
+   */
   @Override // QueryEngine
-  public Map<String, Long> genericFindingHistogram(
+  public Map<String, Long> genericSumOrFindHistogram(
       Stream<INode> inodes,
       Function<INode, String> namingFunction,
       ToLongFunction<INode> dataFunction,
-      String findOp) {
-    switch (findOp) {
-      case "max":
-        return genericMaxxingHistogram(inodes, namingFunction, dataFunction);
-      case "min":
-        return genericMinningHistogram(inodes, namingFunction, dataFunction);
-      case "avg":
-        return genericAvgingHistogram(inodes, namingFunction, dataFunction);
-      default:
-        throw new IllegalArgumentException(
-            "findOp: " + findOp + ", is not a valid find. Check /finds for valid options.");
+      String find) {
+    String findOp;
+    String findField;
+    if (find != null && find.length() != 0) {
+      String[] finds = find.split(":");
+      findOp = finds[0];
+      findField = finds[1];
+      switch (findOp) {
+        case "max":
+          return genericMaxxingHistogram(
+              inodes,
+              namingFunction,
+              Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)));
+        case "min":
+          return genericMinningHistogram(
+              inodes,
+              namingFunction,
+              Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)));
+        case "avg":
+          return genericAvgingHistogram(
+              inodes,
+              namingFunction,
+              Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)));
+        default:
+          throw new IllegalArgumentException(
+              "findOp: " + findOp + ", is not a valid find. Check /finds for valid options.");
+      }
+    } else {
+      return genericSummingHistogram(inodes, namingFunction, dataFunction::applyAsLong);
     }
   }
 
@@ -948,48 +1125,9 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       String sum,
       String find,
       Map<String, Function<INode, Long>> transformMap) {
-    if (find == null || find.length() == 0) {
-      return diskspaceConsumedHistogramCpu(inodes, sum, transformMap);
-    }
-    return diskspaceConsumedHistogramCpuWithFind(inodes, find, transformMap);
-  }
-
-  private Map<String, Long> diskspaceConsumedHistogramCpu(
-      Stream<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
-    List<String> keys = SpaceSizeHistogram.getKeys();
-    Function<INode, Long> binFunc =
-        getTransformFunction(
-            getFilterFunctionToLongForINode("diskspaceConsumed"),
-            transformMap,
-            "diskspaceConsumed");
-    Function<INode, Long> sumFunc =
-        getTransformFunction(getSumFunctionForINode(sum), transformMap, sum);
-    Map<String, Long> histogram =
-        genericSummingHistogram(
-            inodes,
-            node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
-            sumFunc);
-    return Histograms.orderByKeyOrder(histogram, keys);
-  }
-
-  private Map<String, Long> diskspaceConsumedHistogramCpuWithFind(
-      Stream<INode> inodes, String find, Map<String, Function<INode, Long>> transformMap) {
-    List<String> keys = SpaceSizeHistogram.getKeys();
-    Function<INode, Long> binFunc =
-        getTransformFunction(
-            getFilterFunctionToLongForINode("diskspaceConsumed"),
-            transformMap,
-            "diskspaceConsumed");
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-    Map<String, Long> histogram =
-        genericFindingHistogram(
-            inodes,
-            node -> SpaceSizeHistogram.determineBucketFunction.apply(binFunc.apply(node)),
-            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-            findOp);
-    return Histograms.orderByKeyOrder(histogram, keys);
+    return new HistogramInvoker(this, "diskspaceConsumed", sum, find, inodes)
+        .invoke()
+        .getHistogram();
   }
 
   /**
@@ -1002,54 +1140,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> memoryConsumedHistogram(Stream<INode> inodes, String sum, String find) {
-    if (find == null || find.length() == 0) {
-      return memoryConsumedHistogramCpu(inodes, sum);
-    } else {
-      return memoryConsumedHistogramCpuWithFind(inodes, find);
-    }
-  }
-
-  private Map<String, Long> memoryConsumedHistogramCpu(Stream<INode> inodes, String sum) {
-    List<String> keys = MemorySizeHistogram.getKeys();
-    Function<INode, Long> memConsumedFunction =
-        node -> {
-          long inodeSize = 150L;
-          if (node.isFile()) {
-            inodeSize += node.asFile().numBlocks() * 150L;
-          }
-          return inodeSize;
-        };
-    Map<String, Long> histogram =
-        genericSummingHistogram(
-            inodes,
-            node ->
-                MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
-            getSumFunctionForINode(sum));
-    return Histograms.orderByKeyOrder(histogram, keys);
-  }
-
-  private Map<String, Long> memoryConsumedHistogramCpuWithFind(Stream<INode> inodes, String find) {
-    List<String> keys = MemorySizeHistogram.getKeys();
-    Function<INode, Long> memConsumedFunction =
-        node -> {
-          long inodeSize = 150L;
-          if (node.isFile()) {
-            inodeSize += node.asFile().numBlocks() * 150L;
-          }
-          return inodeSize;
-        };
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-
-    Map<String, Long> histogram =
-        genericFindingHistogram(
-            inodes,
-            node ->
-                MemorySizeHistogram.determineBucketFunction.apply(memConsumedFunction.apply(node)),
-            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-            findOp);
-    return Histograms.orderByKeyOrder(histogram, keys);
+    return new HistogramInvoker(this, "memoryConsumed", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1062,36 +1153,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> fileSizeHistogram(Stream<INode> inodes, String sum, String find) {
-    if (find == null || find.length() == 0) {
-      return fileSizeHistogramCpu(inodes, sum);
-    }
-    return fileSizeHistogramCpuWithFind(inodes, find);
-  }
-
-  private Map<String, Long> fileSizeHistogramCpu(Stream<INode> inodes, String sum) {
-    List<String> keys = SpaceSizeHistogram.getKeys();
-    Map<String, Long> histogram =
-        genericSummingHistogram(
-            inodes,
-            node ->
-                SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
-            getSumFunctionForINode(sum));
-    return Histograms.orderByKeyOrder(histogram, keys);
-  }
-
-  private Map<String, Long> fileSizeHistogramCpuWithFind(Stream<INode> inodes, String find) {
-    List<String> keys = SpaceSizeHistogram.getKeys();
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-    Map<String, Long> histogram =
-        genericFindingHistogram(
-            inodes,
-            node ->
-                SpaceSizeHistogram.determineBucketFunction.apply(node.asFile().computeFileSize()),
-            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-            findOp);
-    return Histograms.orderByKeyOrder(histogram, keys);
+    return new HistogramInvoker(this, "fileSize", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1108,32 +1170,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       String sum,
       String find,
       Map<String, Function<INode, Long>> transformMap) {
-    if (find == null || find.length() == 0) {
-      return fileReplicaHistogramCpu(inodes, sum, transformMap);
-    }
-    return fileReplicaHistogramCpuWithFind(inodes, find);
-  }
-
-  private Map<String, Long> fileReplicaHistogramCpu(
-      Stream<INode> inodes, String sum, Map<String, Function<INode, Long>> transformMap) {
-    Function<INode, Long> binFunc =
-        getTransformFunction(
-            getFilterFunctionToLongForINode("fileReplica"), transformMap, "fileReplica");
-    Function<INode, Long> sumFunc =
-        getTransformFunction(getSumFunctionForINode(sum), transformMap, sum);
-    return genericSummingHistogram(inodes, inode -> binFunc.apply(inode).toString(), sumFunc);
-  }
-
-  private Map<String, Long> fileReplicaHistogramCpuWithFind(Stream<INode> inodes, String find) {
-    Function<INode, Long> binFunc = getFilterFunctionToLongForINode("fileReplica");
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-    return genericFindingHistogram(
-        inodes,
-        inode -> binFunc.apply(inode).toString(),
-        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-        findOp);
+    return new HistogramInvoker(this, "fileReplica", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1146,18 +1183,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> storageTypeHistogram(Stream<INode> inodes, String sum, String find) {
-    if (find == null || find.length() == 0) {
-      return storageTypeHistogramCpu(inodes, sum);
-    }
-    return storageTypeHistogramCpuWithFind(inodes, find);
-  }
-
-  private Map<String, Long> storageTypeHistogramCpu(Stream<INode> inodes, String sum) {
-    return versionLoader.storageTypeHistogramCpu(inodes, sum, this);
-  }
-
-  private Map<String, Long> storageTypeHistogramCpuWithFind(Stream<INode> inodes, String find) {
-    return versionLoader.storageTypeHistogramCpuWithFind(inodes, find, this);
+    return new HistogramInvoker(this, "storageGroup", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1171,41 +1197,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   @Override // QueryEngine
   public Map<String, Long> accessTimeHistogram(
       Stream<INode> inodes, String sum, String find, String timeRange) {
-    if (find == null || find.length() == 0) {
-      return accessTimeHistogramCpu(inodes, sum, timeRange);
-    }
-    return accessTimeHistogramCpuWithFind(inodes, find, timeRange);
-  }
-
-  private Map<String, Long> accessTimeHistogramCpu(
-      Stream<INode> inodes, String sum, String timeRange) {
-    Function<INode, Long> timeDiffFunc = node -> System.currentTimeMillis() - node.getAccessTime();
-    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
-    List<String> keys = TimeHistogram.getKeys(timeRange);
-    Map<String, Long> histogram =
-        genericSummingHistogram(
-            inodes,
-            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
-            getSumFunctionForINode(sum));
-    return Histograms.orderByKeyOrder(histogram, keys);
-  }
-
-  private Map<String, Long> accessTimeHistogramCpuWithFind(
-      Stream<INode> inodes, String find, String timeRange) {
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-
-    Function<INode, Long> timeDiffFunc = node -> System.currentTimeMillis() - node.getAccessTime();
-    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
-    List<String> keys = TimeHistogram.getKeys(timeRange);
-    Map<String, Long> histogram =
-        genericFindingHistogram(
-            inodes,
-            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
-            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-            findOp);
-    return Histograms.orderByKeyOrder(histogram, keys);
+    return new HistogramInvoker(this, "accessTime", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1220,43 +1212,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   @Override // QueryEngine
   public Map<String, Long> modTimeHistogram(
       Stream<INode> inodes, String sum, String find, String timeRange) {
-    if (find == null || find.length() == 0) {
-      return modTimeHistogramCpu(inodes, sum, timeRange);
-    }
-    return modTimeHistogramCpuWithFind(inodes, find, timeRange);
-  }
-
-  private Map<String, Long> modTimeHistogramCpu(
-      Stream<INode> inodes, String sum, String timeRange) {
-    Function<INode, Long> timeDiffFunc =
-        node -> System.currentTimeMillis() - node.getModificationTime();
-    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
-    List<String> keys = TimeHistogram.getKeys(timeRange);
-    Map<String, Long> histogram =
-        genericSummingHistogram(
-            inodes,
-            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
-            getSumFunctionForINode(sum));
-    return Histograms.orderByKeyOrder(histogram, keys);
-  }
-
-  private Map<String, Long> modTimeHistogramCpuWithFind(
-      Stream<INode> inodes, String find, String timeRange) {
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-
-    Function<INode, Long> timeDiffFunc =
-        node -> System.currentTimeMillis() - node.getModificationTime();
-    Function<Long, String> bucketingFunc = TimeHistogram.computeBucketFunction(timeRange);
-    List<String> keys = TimeHistogram.getKeys(timeRange);
-    Map<String, Long> histogram =
-        genericFindingHistogram(
-            inodes,
-            node -> bucketingFunc.apply(timeDiffFunc.apply(node)),
-            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-            findOp);
-    return Histograms.orderByKeyOrder(histogram, keys);
+    return new HistogramInvoker(this, "modTime", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1269,26 +1225,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> byUserHistogram(Stream<INode> inodes, String sum, String find) {
-    if (find == null || find.length() == 0) {
-      return byUserHistogramCpu(inodes, sum);
-    }
-    return byUserHistogramCpuWithFind(inodes, find);
-  }
-
-  private Map<String, Long> byUserHistogramCpu(Stream<INode> inodes, String sum) {
-    return genericSummingHistogram(inodes, INode::getUserName, getSumFunctionForINode(sum));
-  }
-
-  private Map<String, Long> byUserHistogramCpuWithFind(Stream<INode> inodes, String find) {
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-
-    return genericFindingHistogram(
-        inodes,
-        INode::getUserName,
-        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-        findOp);
+    return new HistogramInvoker(this, "user", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1301,26 +1238,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> byGroupHistogram(Stream<INode> inodes, String sum, String find) {
-    if (find == null || find.length() == 0) {
-      return byGroupHistogramCpu(inodes, sum);
-    }
-    return byGroupHistogramCpuWithFind(inodes, find);
-  }
-
-  private Map<String, Long> byGroupHistogramCpu(Stream<INode> inodes, String sum) {
-    return genericSummingHistogram(inodes, INode::getGroupName, getSumFunctionForINode(sum));
-  }
-
-  private Map<String, Long> byGroupHistogramCpuWithFind(Stream<INode> inodes, String find) {
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-
-    return genericFindingHistogram(
-        inodes,
-        INode::getGroupName,
-        Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-        findOp);
+    return new HistogramInvoker(this, "group", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1335,39 +1253,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   @Override // QueryEngine
   public Map<String, Long> parentDirHistogram(
       Stream<INode> inodes, Integer parentDirDepth, String sum, String find) {
-    if (find == null || find.length() == 0) {
-      return parentDirHistogramCpu(inodes, parentDirDepth, sum);
-    }
-    return parentDirHistogramCpuWithFind(inodes, parentDirDepth, find);
-  }
-
-  private Map<String, Long> parentDirHistogramCpu(
-      Stream<INode> inodes, Integer parentDirDepth, String sum) {
-    int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
-
-    Map<String, Long> result =
-        genericSummingHistogram(
-            inodes, Helper.getDirectoryAtDepthFunction(dirDepth), getSumFunctionForINode(sum));
-    result.remove("NO_MAPPING");
-    return result;
-  }
-
-  private Map<String, Long> parentDirHistogramCpuWithFind(
-      Stream<INode> inodes, Integer parentDirDepth, String find) {
-    int dirDepth = (parentDirDepth != null) ? parentDirDepth : 0;
-
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-
-    Map<String, Long> result =
-        genericFindingHistogram(
-            inodes,
-            Helper.getDirectoryAtDepthFunction(dirDepth),
-            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-            findOp);
-    result.remove("NO_MAPPING");
-    return result;
+    return new HistogramInvoker(this, "parentDir", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1380,42 +1266,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> fileTypeHistogram(Stream<INode> inodes, String sum, String find) {
-    if (find == null || find.length() == 0) {
-      return fileTypeHistogramCpu(inodes, sum);
-    }
-    return fileTypeHistogramCpuWithFind(inodes, find);
-  }
-
-  private Map<String, Long> fileTypeHistogramCpu(Stream<INode> inodes, String sum) {
-    List<String> fileTypes = FileTypeHistogram.keys;
-    Map<String, Integer> typeToIdMap = FileTypeHistogram.typeToIdMap;
-
-    Function<INode, String> namingFunction =
-        node ->
-            fileTypes.get(typeToIdMap.get(FileTypeHistogram.determineType(node.getLocalName())));
-    Map<String, Long> histogram =
-        genericSummingHistogram(inodes, namingFunction, getSumFunctionForINode(sum));
-    return removeKeysOnConditional(histogram, "gt:0");
-  }
-
-  private Map<String, Long> fileTypeHistogramCpuWithFind(Stream<INode> inodes, String find) {
-    String[] finds = find.split(":");
-    String findOp = finds[0];
-    String findField = finds[1];
-
-    List<String> fileTypes = FileTypeHistogram.keys;
-    Map<String, Integer> typeToIdMap = FileTypeHistogram.typeToIdMap;
-
-    Function<INode, String> namingFunction =
-        node ->
-            fileTypes.get(typeToIdMap.get(FileTypeHistogram.determineType(node.getLocalName())));
-    Map<String, Long> histogram =
-        genericFindingHistogram(
-            inodes,
-            namingFunction,
-            Helper.convertToLongFunction(getFilterFunctionToLongForINode(findField)),
-            findOp);
-    return removeKeysOnConditional(histogram, "gt:0");
+    return new HistogramInvoker(this, "fileType", sum, find, inodes).invoke().getHistogram();
   }
 
   /**
@@ -1428,20 +1279,14 @@ public abstract class AbstractQueryEngine implements QueryEngine {
    */
   @Override // QueryEngine
   public Map<String, Long> dirQuotaHistogram(Stream<INode> inodes, String sum) {
-    return dirQuotaHistogramCpu(inodes, sum);
-  }
-
-  private Map<String, Long> dirQuotaHistogramCpu(Stream<INode> inodes, String sum) {
-    Map<String, Long> histogram =
-        genericSummingHistogram(inodes, INode::getFullPathName, getSumFunctionForINode(sum));
-    return removeKeysOnConditional(histogram, "gte:0");
+    return new HistogramInvoker(this, "dirQuota", sum, null, inodes).invoke().getHistogram();
   }
 
   private Function<INode, Long> getTransformFunction(
       Function<INode, Long> stdFunc,
       Map<String, Function<INode, Long>> transformMap,
       String transformKey) {
-    if (transformMap.containsKey(transformKey)) {
+    if (transformMap != null && transformMap.containsKey(transformKey)) {
       LOG.info("Function transformed for: {}", transformKey);
       return transformMap.get(transformKey);
     }

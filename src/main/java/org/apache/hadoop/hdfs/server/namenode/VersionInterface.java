@@ -20,9 +20,7 @@
 package org.apache.hadoop.hdfs.server.namenode;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import javax.servlet.http.HttpServletResponse;
 
 public interface VersionInterface {
@@ -34,12 +32,6 @@ public interface VersionInterface {
   Function<INode, Long> getFilterFunctionToLongForINode(String filter);
 
   Function<INode, Boolean> getFilterFunctionToBooleanForINode(String filter);
-
-  Map<String, Long> storageTypeHistogramCpu(
-      Stream<INode> inodes, String sum, QueryEngine queryEngine);
-
-  Map<String, Long> storageTypeHistogramCpuWithFind(
-      Stream<INode> inodes, String find, QueryEngine queryEngine);
 
   void saveNamespace() throws IOException;
 

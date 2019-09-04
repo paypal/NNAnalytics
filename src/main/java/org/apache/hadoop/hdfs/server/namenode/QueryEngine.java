@@ -52,6 +52,12 @@ public interface QueryEngine {
 
   Long sum(Collection<INode> inodes, String sum);
 
+  Function<INode, String> getGroupingFunctionToStringForINode(
+      String filter, Integer parentDirDepth, String timeRange);
+
+  Function<INode, String> getCustomLongToStringGroupingFunction(
+      Function<INode, Long> toLongFunction, Function<Long, String> longToStringFunction);
+
   Function<INode, Long> getFilterFunctionToLongForINode(String filter);
 
   Function<INode, String> getFilterFunctionToStringForINode(String filter);
@@ -67,6 +73,12 @@ public interface QueryEngine {
   void dumpINodePaths(Collection<INode> inodes, Integer limit, HttpServletResponse resp)
       throws IOException;
 
+  Map<String, Long> genericSumOrFindHistogram(
+      Stream<INode> inodes,
+      Function<INode, String> namingFunction,
+      ToLongFunction<INode> dataFunction,
+      String find);
+
   Map<String, Long> genericSummingHistogram(
       Stream<INode> inodes,
       Function<INode, String> namingFunction,
@@ -77,11 +89,11 @@ public interface QueryEngine {
       Function<INode, String> namingFunction,
       Function<INode, Long> dataFunction);
 
-  Map<String, Long> genericFindingHistogram(
+  Map<String, Map<String, Long>> genericTwoLevelHistogram(
       Stream<INode> inodes,
-      Function<INode, String> namingFunction,
-      ToLongFunction<INode> dataFunction,
-      String findOp);
+      Function<INode, String> namingFunction1,
+      Function<INode, String> namingFunction2,
+      Function<INode, Long> dataFunction);
 
   Map<String, Long> diskspaceConsumedHistogram(
       Stream<INode> inodes,
@@ -118,7 +130,8 @@ public interface QueryEngine {
 
   Map<String, Long> dirQuotaHistogram(Stream<INode> inodes, String sum);
 
-  Function<INode, Long> getSumFunctionForINode(String sum);
+  Function<INode, Long> getSumFunctionForINode(
+      String sum, Map<String, Function<INode, Long>> transformMap);
 
   Map<String, Long> removeKeysOnConditional(
       Map<String, Long> histogram, String histogramConditionsStr);

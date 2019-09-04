@@ -98,6 +98,7 @@ import org.apache.hadoop.hdfs.server.namenode.TransferFsImageWrapper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HistogramInvoker;
+import org.apache.hadoop.hdfs.server.namenode.analytics.HistogramTwoLevelInvoker;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.MailOutput;
 import org.apache.hadoop.hdfs.server.namenode.analytics.QueryChecker;
@@ -1505,7 +1506,6 @@ public class NamenodeAnalyticsMethods {
         QueryChecker.isValidQuery(set, filters, type, sum, filterOps, find);
         Stream<INode> filteredINodes = Helper.setFilters(nnLoader, set, filters, filterOps);
 
-        Histogram htEnum = Histogram.valueOf(histType);
         Map<String, Function<INode, Long>> transformMap =
             Transforms.getAttributeTransforms(
                 transformConditionsStr, transformFieldsStr, transformOutputsStr, nnLoader);
@@ -1515,75 +1515,24 @@ public class NamenodeAnalyticsMethods {
 
         nnLoader.namesystemWriteLock(useLock);
         try {
-          switch (htEnum) {
-            case user:
-              histogram = nnLoader.getQueryEngine().byUserHistogram(filteredINodes, sum, find);
-              binLabels = "User Names";
-              break;
-            case group:
-              histogram = nnLoader.getQueryEngine().byGroupHistogram(filteredINodes, sum, find);
-              binLabels = "Group Names";
-              break;
-            case accessTime:
-              histogram =
-                  nnLoader
-                      .getQueryEngine()
-                      .accessTimeHistogram(filteredINodes, sum, find, timeRange);
-              binLabels = "Last Accessed Time";
-              break;
-            case modTime:
-              histogram =
-                  nnLoader.getQueryEngine().modTimeHistogram(filteredINodes, sum, find, timeRange);
-              binLabels = "Last Modified Time";
-              break;
-            case fileSize:
-              histogram = nnLoader.getQueryEngine().fileSizeHistogram(filteredINodes, sum, find);
-              binLabels = "File Sizes (No Replication Factor)";
-              break;
-            case diskspaceConsumed:
-              histogram =
-                  nnLoader
-                      .getQueryEngine()
-                      .diskspaceConsumedHistogram(filteredINodes, sum, find, transformMap);
-              binLabels = "Diskspace Consumed (File Size * Replication Factor)";
-              break;
-            case fileReplica:
-              histogram =
-                  nnLoader
-                      .getQueryEngine()
-                      .fileReplicaHistogram(filteredINodes, sum, find, transformMap);
-              binLabels = "File Replication Factor";
-              break;
-            case storageType:
-              histogram = nnLoader.getQueryEngine().storageTypeHistogram(filteredINodes, sum, find);
-              binLabels = "Storage Type Policy";
-              break;
-            case memoryConsumed:
-              histogram =
-                  nnLoader.getQueryEngine().memoryConsumedHistogram(filteredINodes, sum, find);
-              binLabels = "Memory Consumed";
-              break;
-            case parentDir:
-              histogram =
-                  nnLoader
-                      .getQueryEngine()
-                      .parentDirHistogram(filteredINodes, parentDirDepth, sum, find);
-              binLabels = "Directory Path";
-              break;
-            case fileType:
-              histogram = nnLoader.getQueryEngine().fileTypeHistogram(filteredINodes, sum, find);
-              binLabels = "File Type";
-              break;
-            case dirQuota:
-              histogram = nnLoader.getQueryEngine().dirQuotaHistogram(filteredINodes, sum);
-              binLabels = "Directory Path";
-              break;
-            default:
-              throw new IllegalArgumentException(
-                  "Could not determine histogram type: "
-                      + histType
-                      + ".\nPlease check /histograms for available histograms.");
-          }
+          HistogramInvoker histogramInvoker =
+              new HistogramInvoker(
+                      nnLoader.getQueryEngine(),
+                      histType,
+                      sum,
+                      parentDirDepth,
+                      timeRange,
+                      find,
+                      filteredINodes,
+                      transformMap,
+                      histogramConditionsStr,
+                      top,
+                      bottom,
+                      sortAscending,
+                      sortDescending)
+                  .invoke();
+          histogram = histogramInvoker.getHistogram();
+          binLabels = histogramInvoker.getBinLabels();
         } finally {
           nnLoader.namesystemWriteUnlock(useLock);
         }
@@ -1691,12 +1640,120 @@ public class NamenodeAnalyticsMethods {
    * HISTOGRAM2 endpoint takes 1 set of "set", "filter", "type", and "sum" parameters and returns a
    * histogram where the X-axis represents the "type" type and the Y-axis represents the "sum" type.
    * Output types available dictated by "&histogramOutput=". Default is CHART form. This differs
-   * from Histogram endpoint in that it can output multiple sums and values in a single query.
+   * from Histogram endpoint in that it can group by multiple fields in a single query.
    */
   @GET
   @Path("/histogram2")
   @Produces({MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON})
   public Response histogram2() {
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final ReentrantReadWriteLock queryLock =
+        (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    try {
+      before();
+
+      if (!nnLoader.isInit()) {
+        response.setHeader("Content-Type", "application/json");
+        String message = Histograms.toChartJsJson(new HashMap<>(), "not_loaded", "", "");
+        PrintWriter writer = response.getWriter();
+        writer.write(message);
+        writer.flush();
+        writer.close();
+        return Response.ok().build();
+      }
+
+      queryLock.writeLock().lock();
+      try {
+        final String fullFilterStr = request.getParameter("filters");
+        final String[] filters = Helper.parseFilters(fullFilterStr);
+        final String[] filterOps = Helper.parseFilterOps(fullFilterStr);
+        final String set = request.getParameter("set");
+        final String sum = request.getParameter("sum");
+        final Boolean useLock = Boolean.parseBoolean(request.getParameter("useLock"));
+        final String parentDirDepthStr = request.getParameter("parentDirDepth");
+        final Integer parentDirDepth =
+            (parentDirDepthStr == null) ? null : Integer.parseInt(parentDirDepthStr);
+        final String outputTypeStr = request.getParameter("histogramOutput");
+        final String timeRangeStr = request.getParameter("timeRange");
+        final String timeRange = (timeRangeStr != null) ? timeRangeStr : "weekly";
+        final String outputType = (outputTypeStr != null) ? outputTypeStr : "json";
+        final String typeStr = request.getParameter("type");
+        final String[] types = (typeStr != null) ? typeStr.split(",") : new String[0];
+
+        for (String type : types) {
+          QueryChecker.isValidQuery(set, filters, type, sum, filterOps, null);
+        }
+
+        Map<String, Map<String, Long>> histogram;
+        final long startTime = System.currentTimeMillis();
+        nnLoader.namesystemWriteLock(useLock);
+        try {
+          HistogramTwoLevelInvoker histogramInvoker =
+              new HistogramTwoLevelInvoker(
+                      nnLoader.getQueryEngine(),
+                      types[0],
+                      types[1],
+                      sum,
+                      parentDirDepth,
+                      timeRange,
+                      nnLoader.getINodeSet(set).parallelStream())
+                  .invoke();
+          histogram = histogramInvoker.getHistogram();
+        } finally {
+          nnLoader.namesystemWriteUnlock(useLock);
+        }
+        long endTime = System.currentTimeMillis();
+        LOG.info("Performing histogram2: " + typeStr + " took: " + (endTime - startTime) + " ms.");
+
+        // Return final histogram to Web UI as output type.
+        HistogramOutput output = HistogramOutput.valueOf(outputType);
+        String message;
+        PrintWriter writer;
+        switch (output) {
+          case json:
+            response.setHeader("Content-Type", "application/json");
+            writer = response.getWriter();
+            message = Histograms.toJson(histogram);
+            writer.write(message);
+            writer.flush();
+            writer.close();
+            return Response.ok().build();
+          case csv:
+            response.setHeader("Content-Type", "text/plain");
+            writer = response.getWriter();
+            message = Histograms.twoLeveltoCsv(histogram);
+            writer.write(message);
+            writer.flush();
+            writer.close();
+            return Response.ok().build();
+          default:
+            throw new IllegalArgumentException(
+                "Could not determine output type: "
+                    + outputType
+                    + ".\nPlease check /histogramOutputs for available histogram outputs.");
+        }
+      } finally {
+        queryLock.writeLock().unlock();
+      }
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
+  /**
+   * HISTOGRAM3 endpoint takes 1 set of "set", "filter", "type", and "sum" parameters and returns a
+   * histogram where the X-axis represents the "type" type and the Y-axis represents the "sum" type.
+   * Output types available dictated by "&histogramOutput=". Default is CHART form. This differs
+   * from Histogram endpoint in that it can output multiple sums and values in a single query.
+   */
+  @GET
+  @Path("/histogram3")
+  @Produces({MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON})
+  public Response histogram3() {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     final ReentrantReadWriteLock queryLock =
         (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
@@ -1748,11 +1805,7 @@ public class NamenodeAnalyticsMethods {
           QueryChecker.isValidQuery(set, filters, type, null, filterOps, find);
         }
         Collection<INode> filteredINodes = Helper.performFilters(nnLoader, set, filters, filterOps);
-
-        Histogram htEnum = Histogram.valueOf(histType);
         List<Map<String, Long>> histograms = new ArrayList<>(sums.length + finds.length);
-
-        Map<String, Function<INode, Long>> transformMap = Collections.emptyMap();
 
         final long startTime = System.currentTimeMillis();
         for (int i = 0, j = 0; i < sums.length || j < finds.length; ) {
@@ -1769,82 +1822,23 @@ public class NamenodeAnalyticsMethods {
 
           nnLoader.namesystemWriteLock(useLock);
           try {
-            switch (htEnum) {
-              case user:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .byUserHistogram(filteredINodes.parallelStream(), sum, find);
-                break;
-              case group:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .byGroupHistogram(filteredINodes.parallelStream(), sum, find);
-                break;
-              case accessTime:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .accessTimeHistogram(filteredINodes.parallelStream(), sum, find, timeRange);
-                break;
-              case modTime:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .modTimeHistogram(filteredINodes.parallelStream(), sum, find, timeRange);
-                break;
-              case fileSize:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .fileSizeHistogram(filteredINodes.parallelStream(), sum, find);
-                break;
-              case diskspaceConsumed:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .diskspaceConsumedHistogram(
-                            filteredINodes.parallelStream(), sum, find, transformMap);
-                break;
-              case fileReplica:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .fileReplicaHistogram(
-                            filteredINodes.parallelStream(), sum, find, transformMap);
-                break;
-              case storageType:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .storageTypeHistogram(filteredINodes.parallelStream(), sum, find);
-                break;
-              case memoryConsumed:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .memoryConsumedHistogram(filteredINodes.parallelStream(), sum, find);
-                break;
-              case parentDir:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .parentDirHistogram(
-                            filteredINodes.parallelStream(), parentDirDepth, sum, find);
-                break;
-              case fileType:
-                histogram =
-                    nnLoader
-                        .getQueryEngine()
-                        .fileTypeHistogram(filteredINodes.parallelStream(), sum, find);
-                break;
-              default:
-                throw new IllegalArgumentException(
-                    "Could not determine histogram type: "
-                        + histType
-                        + ".\nPlease check /histograms for available histograms.");
-            }
+            HistogramInvoker histogramInvoker =
+                new HistogramInvoker(
+                        nnLoader.getQueryEngine(),
+                        histType,
+                        sum,
+                        parentDirDepth,
+                        timeRange,
+                        find,
+                        filteredINodes.parallelStream(),
+                        null,
+                        histogramConditionsStr,
+                        null,
+                        null,
+                        null,
+                        null)
+                    .invoke();
+            histogram = histogramInvoker.getHistogram();
           } finally {
             nnLoader.namesystemWriteUnlock(useLock);
           }
@@ -1884,7 +1878,7 @@ public class NamenodeAnalyticsMethods {
         }
 
         long endTime = System.currentTimeMillis();
-        LOG.info("Performing histogram2: " + histType + " took: " + (endTime - startTime) + " ms.");
+        LOG.info("Performing histogram3: " + histType + " took: " + (endTime - startTime) + " ms.");
 
         // Return final histogram to Web UI as output type.
         HistogramOutput output = HistogramOutput.valueOf(outputType);
@@ -2352,7 +2346,7 @@ public class NamenodeAnalyticsMethods {
         Stream<INode> filteredINodes = Helper.setFilters(nameNodeLoader, set, filters, filterOps);
         HistogramInvoker histogramInvoker =
             new HistogramInvoker(
-                    nameNodeLoader,
+                    nameNodeLoader.getQueryEngine(),
                     type,
                     sum,
                     parentDirDepth,
