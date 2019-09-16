@@ -418,6 +418,12 @@ public class WebServerMain implements ApplicationMain {
             long fileSetSize = nameNodeLoader.getINodeSet(INodeSet.files.name()).size();
             long dirSetSize = nameNodeLoader.getINodeSet(INodeSet.dirs.name()).size();
             sb.append("Current TxID: ").append(nameNodeLoader.getCurrentTxId()).append("\n");
+            sb.append("Analysis TxID: ")
+                .append(nameNodeLoader.getSuggestionsEngine().getTransactionCount())
+                .append("\n");
+            sb.append("Analysis TxID delta: ")
+                .append(nameNodeLoader.getSuggestionsEngine().getTransactionCountDiff())
+                .append("\n");
             sb.append("INode GSet size: ").append(allSetSize).append("\n\n");
             sb.append("INodeFile set size: ").append(fileSetSize).append("\n");
             sb.append("INodeFile set percentage: ")

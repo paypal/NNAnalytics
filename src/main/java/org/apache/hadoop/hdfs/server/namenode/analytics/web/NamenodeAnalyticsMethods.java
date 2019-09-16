@@ -609,6 +609,12 @@ public class NamenodeAnalyticsMethods {
         long fileSetSize = nnLoader.getINodeSet(INodeSet.files.name()).size();
         long dirSetSize = nnLoader.getINodeSet(INodeSet.dirs.name()).size();
         sb.append("Current TxID: ").append(nnLoader.getCurrentTxId()).append("\n");
+        sb.append("Analysis TxID: ")
+            .append(nnLoader.getSuggestionsEngine().getTransactionCount())
+            .append("\n");
+        sb.append("Analysis TxID delta: ")
+            .append(nnLoader.getSuggestionsEngine().getTransactionCountDiff())
+            .append("\n");
         sb.append("INode GSet size: ").append(allSetSize).append("\n\n");
         sb.append("INodeFile set size: ").append(fileSetSize).append("\n");
         sb.append("INodeFile set percentage: ")

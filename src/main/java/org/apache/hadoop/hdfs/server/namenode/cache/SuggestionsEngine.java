@@ -87,6 +87,9 @@ public class SuggestionsEngine {
   private int suggestionsReloadSleepMs;
   private AnalysisState currentState;
 
+  private long currentAnalysisTxid;
+  private long analysisTxidDelta;
+
   /** Main constructor. */
   public SuggestionsEngine() {
     this.cacheManager = new CacheManager();
@@ -102,6 +105,14 @@ public class SuggestionsEngine {
 
   public AnalysisState getCurrentState() {
     return currentState;
+  }
+
+  public long getTransactionCountDiff() {
+    return analysisTxidDelta;
+  }
+
+  public long getTransactionCount() {
+    return currentAnalysisTxid;
   }
 
   public void setCurrentState(AnalysisState state) {
@@ -137,6 +148,11 @@ public class SuggestionsEngine {
       capacity = fs.getStatus().getCapacity();
     } catch (IOException e) {
       LOG.error("Failed to fetch capacity from active cluster.", e);
+    }
+    long currentTxId = nameNodeLoader.getCurrentTxId();
+    if (currentTxId >= 0) {
+      analysisTxidDelta = currentTxId - currentAnalysisTxid;
+      currentAnalysisTxid = currentTxId;
     }
     long capacityFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.capacity took: {} ms.", capacityFetchTime);
@@ -1293,6 +1309,8 @@ public class SuggestionsEngine {
     this.cachedMapQueries =
         Collections.synchronizedMap(cacheManager.getCachedMapToMap("cachedMapQueries"));
     this.suggestionsReloadSleepMs = conf.getSuggestionsReloadSleepMs();
+    this.currentAnalysisTxid = 0L;
+    this.analysisTxidDelta = 0L;
   }
 
   /**
