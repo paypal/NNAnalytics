@@ -38,6 +38,7 @@ import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
 import org.apache.hadoop.hdfs.qjournal.MiniQJMHACluster;
 import org.apache.hadoop.hdfs.server.namenode.SRandom;
 import org.apache.http.HttpHost;
@@ -66,6 +67,7 @@ public abstract class TestWithMiniClusterBase {
   protected static HttpHost hostPort;
   protected static HttpClient client;
   protected static ApplicationMain nna;
+  protected static ApplicationConfiguration nnaConf;
 
   @AfterClass
   public static void tearDown() throws IOException {
@@ -265,6 +267,25 @@ public abstract class TestWithMiniClusterBase {
     assertThat(fileTypeContent.size(), is(greaterThan(0)));
     assertThat(part_r_counts, is(greaterThan(0L)));
     assertThat(applog_counts, is(greaterThan(0L)));
+  }
+
+  @Test //(timeout = 120000L)
+  public void testRestartFetchNamespace() throws Exception {
+    // Shutdown NNA.
+    long currentTxid = nna.getLoader().getCurrentTxId();
+    nna.shutdown();
+
+    // Trigger file system updates.
+    addFiles(100, 0L);
+    DistributedFileSystem fileSystem = (DistributedFileSystem) FileSystem.get(CONF);
+    fileSystem.setSafeMode(SafeModeAction.SAFEMODE_ENTER);
+    fileSystem.saveNamespace();
+    fileSystem.setSafeMode(SafeModeAction.SAFEMODE_LEAVE);
+
+    nnaConf.set("nna.bootstrap.auto.fetch.namespace", "true");
+    nna.init(nnaConf, null, CONF);
+    long restartedTxid = nna.getLoader().getCurrentTxId();
+    assertThat(restartedTxid, is(greaterThan(currentTxid + 99)));
   }
 
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {

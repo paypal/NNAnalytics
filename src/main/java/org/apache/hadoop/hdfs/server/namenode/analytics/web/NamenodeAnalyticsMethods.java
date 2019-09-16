@@ -1155,7 +1155,7 @@ public class NamenodeAnalyticsMethods {
       queryLock.writeLock().lock();
       StringWriter writer = new StringWriter();
       try {
-        nnLoader.clear();
+        nnLoader.clear(true);
         nnLoader.load(null, null, conf);
         writer.write("Reload complete.");
       } catch (Throwable e) {

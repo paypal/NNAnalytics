@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.hadoop.conf.Configuration;
@@ -257,11 +258,15 @@ public class HadoopWebServerMain implements ApplicationMain {
     } catch (Exception e) {
       LOG.error("Error during hsql connection shutdown: ", e);
     }
-    nameNodeLoader.clear();
+    nameNodeLoader.clear(false);
     runningOperations.clear();
     runningQueries.clear();
     operationService.shutdown();
-    internalService.shutdown();
+    try {
+      internalService.awaitTermination(1L, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      LOG.debug("Internal service shutdown interrupted!", e);
+    }
     if (nnaHttpServer != null) {
       try {
         nnaHttpServer.stop();

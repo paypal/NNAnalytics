@@ -28,7 +28,6 @@ import java.net.URISyntaxException;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.conf.Configuration;
@@ -40,11 +39,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
-import org.apache.hadoop.hdfs.server.namenode.Constants.AnalysisState;
 import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HsqlDriver;
 import org.apache.hadoop.hdfs.server.namenode.analytics.WebServerMain;
+import org.apache.hadoop.hdfs.server.namenode.analytics.security.KeytabReloader;
 import org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsEngine;
+import org.apache.hadoop.hdfs.server.namenode.cache.SuggestionsReloader;
 import org.apache.hadoop.hdfs.server.namenode.startupprogress.Phase;
 import org.apache.hadoop.hdfs.server.namenode.startupprogress.StartupProgressView;
 import org.apache.hadoop.hdfs.server.namenode.startupprogress.Step;
@@ -74,6 +74,8 @@ public class NameNodeLoader {
   private FSNamesystem namesystem = null;
   private HsqlDriver hsqlDriver = null;
   private TokenExtractor tokenExtractor = null;
+  private KeytabReloader keytabReloader = null;
+  private SuggestionsReloader suggestionsReloader = null;
 
   /** Constructor. */
   public NameNodeLoader() {
@@ -303,6 +305,13 @@ public class NameNodeLoader {
     }
   }
 
+  private void unlockStorages() throws IOException {
+    NNStorage storage =
+        new NNStorage(
+            conf, FSNamesystem.getNamespaceDirs(conf), FSNamesystem.getNamespaceEditsDirs(conf));
+    storage.unlockAll();
+  }
+
   /**
    * Loads the INodes into NNA from parameter or from local FsImage.
    *
@@ -336,11 +345,19 @@ public class NameNodeLoader {
       }
     }
     handleConfigurationOverrides(conf, nnaConf);
-    final long start = System.currentTimeMillis();
 
+    final long start = System.currentTimeMillis();
     if (preloadedInodes == null) {
       UserGroupInformation.setConfiguration(conf);
       reloadKeytab();
+
+      // Auto fetch namespace on start-up if configured.
+      if (nnaConf.allowBootstrapAutomaticFetch()) {
+        final long fetchStart = System.currentTimeMillis();
+        new TransferFsImageWrapper(this).downloadMostRecentImage();
+        final long fetchEnd = System.currentTimeMillis();
+        LOG.info("FSImage auto-fetched in: {} ms.", (fetchEnd - fetchStart));
+      }
 
       LOG.info("Loading with configuration: {}", conf.toString());
       LOG.info(
@@ -455,7 +472,8 @@ public class NameNodeLoader {
     return conf;
   }
 
-  private void reloadKeytab() {
+  /** Reloads the Kerberos keytab if security enabled. */
+  public void reloadKeytab() {
     if (UserGroupInformation.isSecurityEnabled()) {
       try {
         SecurityUtil.login(
@@ -471,18 +489,29 @@ public class NameNodeLoader {
   }
 
   /** Wipes out all the in-memory INode tree. Stops EditLog tailing. Stops report processing. */
-  public void clear() {
+  public void clear(boolean softClear) {
+    if (!softClear) {
+      if (keytabReloader != null) {
+        keytabReloader.shutdown();
+      }
+      if (suggestionsReloader != null) {
+        suggestionsReloader.shutdown();
+      }
+    }
     suggestionsEngine.stop();
     if (namesystem != null) {
       try {
         namesystem.stopStandbyServices();
-        namesystem.getFSImage().getStorage().unlockAll();
-        namesystem.shutdown();
       } catch (IOException e) {
         LOG.info("Failed to shutdown namesystem: " + e);
-      } finally {
-        namesystem = null;
       }
+      try {
+        namesystem.getFSImage().getStorage().unlockAll();
+      } catch (IOException e) {
+        LOG.info("Failed to unlock storages of namesystem: " + e);
+      }
+      namesystem.shutdown();
+      namesystem = null;
     }
     queryEngine.clear();
     inited.set(false);
@@ -545,46 +574,10 @@ public class NameNodeLoader {
    * @param conf the application configuration
    */
   public void initReloadThreads(ExecutorService internalService, ApplicationConfiguration conf) {
-    Future<Void> reload =
-        internalService.submit(
-            () -> {
-              while (true) {
-                suggestionsEngine.setCurrentState(AnalysisState.sleep);
-                try {
-                  suggestionsEngine.reloadSuggestions(this);
-                } catch (Throwable e) {
-                  LOG.info("Suggestion reload failed!", e);
-                  for (StackTraceElement element : e.getStackTrace()) {
-                    LOG.info(element.toString());
-                  }
-                }
-                suggestionsEngine.setCurrentState(AnalysisState.sleep);
-                try {
-                  Thread.sleep(conf.getSuggestionsReloadSleepMs());
-                } catch (InterruptedException ex) {
-                  LOG.debug("Suggestion reload was interrupted.", ex);
-                }
-              }
-            });
-    Future<Void> keytab =
-        internalService.submit(
-            () -> {
-              while (true) {
-                // Reload Keytab every 10 minutes.
-                try {
-                  Thread.sleep(10 * 60 * 1000L);
-                } catch (InterruptedException ex) {
-                  LOG.debug("Keytab refresh was interrupted.", ex);
-                }
-                reloadKeytab();
-              }
-            });
-    if (reload.isDone()) {
-      LOG.error("Suggestion reload service exited; suggestions will not update.");
-    }
-    if (keytab.isDone()) {
-      LOG.error("Keytab reload service exited; keytab will expire.");
-    }
+    suggestionsReloader = new SuggestionsReloader(conf, suggestionsEngine, this);
+    internalService.submit(suggestionsReloader);
+    keytabReloader = new KeytabReloader(getConfiguration());
+    internalService.submit(keytabReloader);
   }
 
   /**

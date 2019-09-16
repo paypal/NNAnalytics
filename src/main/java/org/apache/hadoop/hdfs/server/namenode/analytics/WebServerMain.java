@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -1784,7 +1785,7 @@ public class WebServerMain implements ApplicationMain {
           res.header("Content-Type", "text/plain");
           lock.writeLock().lock();
           try {
-            nameNodeLoader.clear();
+            nameNodeLoader.clear(true);
             nameNodeLoader.load(null, null, conf);
             res.body("Reload complete.");
           } catch (Throwable e) {
@@ -1993,11 +1994,15 @@ public class WebServerMain implements ApplicationMain {
     } catch (Exception e) {
       LOG.error("Error during shutdown: ", e);
     }
-    nameNodeLoader.clear();
+    nameNodeLoader.clear(false);
     runningOperations.clear();
     runningQueries.clear();
     operationService.shutdown();
-    internalService.shutdown();
+    try {
+      internalService.awaitTermination(1L, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      LOG.debug("Internal service shutdown interrupted!", e);
+    }
     Spark.stop();
   }
 }

@@ -51,6 +51,7 @@ public class ApplicationConfiguration {
   private static final String NNA_BASE_DIR_DEFAULT = "/usr/local/nn-analytics";
   private static final String NNA_WEB_BASE_DIR_DEFAULT = NNA_BASE_DIR_DEFAULT + "/webapps/nna";
   private static final String NNA_SUPPORT_BOOTSTRAP_OVERRIDES = "true";
+  private static final String NNA_BOOTSTRAP_AUTO_FETCH_NAMESPACE = "false";
   private static final String NNA_QUERY_ENGINE_DEFAULT =
       JavaStreamQueryEngine.class.getCanonicalName();
 
@@ -283,5 +284,12 @@ public class ApplicationConfiguration {
 
   public String getQueryEngineImplementation() {
     return properties.getProperty("nna.query.engine.impl", NNA_QUERY_ENGINE_DEFAULT);
+  }
+
+  /** Returns true or false depending on if you configure NNA to auto-fetch on restart. */
+  public boolean allowBootstrapAutomaticFetch() {
+    return Boolean.parseBoolean(
+        properties.getProperty(
+            "nna.bootstrap.auto.fetch.namespace", NNA_BOOTSTRAP_AUTO_FETCH_NAMESPACE));
   }
 }
