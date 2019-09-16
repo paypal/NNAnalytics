@@ -74,7 +74,7 @@ public class TestMiniClusterHadoopNNAWithStreamEngine extends TestWithMiniCluste
     CONF.set("dfs.nameservice.id", NAMESERVICE);
 
     nna = new HadoopWebServerMain();
-    ApplicationConfiguration nnaConf = new ApplicationConfiguration();
+    nnaConf = new ApplicationConfiguration();
     nnaConf.set("nna.support.bootstrap.overrides", "true");
     nnaConf.set("ldap.enable", "false");
     nnaConf.set("authorization.enable", "false");
