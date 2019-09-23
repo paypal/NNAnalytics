@@ -32,7 +32,7 @@
         <meta name="author" content="">
         <link rel="icon" href="./favicon.ico">
 
-        <title>NNA Histogram2</title>
+        <title>NNA Histogram</title>
 
         <!-- Custom styles for this template -->
         <link href="./css/nna.css" rel="stylesheet">
@@ -51,10 +51,10 @@
             <div id="navbar"></div>
             <!-- Main component for a primary marketing message or call to action -->
             <div class="jumbotron">
-                <h1>Histogram2</h1>
+                <h1>Histogram</h1>
                 <div id="connection"></div>
                 <p>
-                    Table visualization of two-level Histogram query.<br />
+                    Table visualization of single grouping Histogram query.<br />
                 </p>
             </div>
             <div id="userMetrics">
@@ -62,7 +62,6 @@
                     <thead>
                     <tr>
                         <th>Top Level Grouping</th>
-                        <th>Second Level Grouping</th>
                         <th>Value</th>
                     </tr>
                     </thead>
@@ -84,13 +83,10 @@
             function flattenObject(obj) {
                 var array = [];
                 $.each(obj, function (key, value) {
-                    for(var index in value) {
-                        var innerArray = [];
-                        innerArray.push(key);
-                        innerArray.push(index);
-                        innerArray.push(value[index]);
-                        array.push(innerArray);
-                    }
+                    var innerArray = [];
+                    innerArray.push(key);
+                    innerArray.push(value);
+                    array.push(innerArray);
                 });
                 return array
             }
@@ -101,7 +97,7 @@
                 });
                 let table = $('#userDataTable').DataTable( {
                     "ajax": {
-                        "url": "./histogram2" + window.location.search,
+                        "url": "./histogram" + window.location.search,
                         "type": "GET",
                         "dataSrc": function(json) {
                             console.log(json);
@@ -117,7 +113,6 @@
                     ],
                     "columns": [
                         { title: "Top Level Grouping" },
-                        { title: "Second Level Grouping" },
                         { title: "Value" }
                     ]
                 });
