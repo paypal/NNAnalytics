@@ -233,7 +233,7 @@ public class NameNodeLoader {
     }
   }
 
-  public String getConfigValue(String key) throws IOException {
+  public String getConfigValue(String key) {
     return conf.get(key);
   }
 
@@ -303,13 +303,6 @@ public class NameNodeLoader {
     } else {
       throw new IOException("Namesystem does not exist.");
     }
-  }
-
-  private void unlockStorages() throws IOException {
-    NNStorage storage =
-        new NNStorage(
-            conf, FSNamesystem.getNamespaceDirs(conf), FSNamesystem.getNamespaceEditsDirs(conf));
-    storage.unlockAll();
   }
 
   /**
