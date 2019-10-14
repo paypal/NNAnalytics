@@ -21,13 +21,12 @@ package org.apache.hadoop.hdfs.server.namenode.cache;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
@@ -87,158 +86,91 @@ public class CachedQuotas {
       return;
     }
 
-    QueryEngine queryEngine = loader.getQueryEngine();
-    Stream<INode> quotaDirsStream =
-        queryEngine.combinedFilterToStream(
-            dirs, new String[] {"hasQuota"}, new String[] {"eq:true"});
-    final Map<String, List<String>> ownerAndDirs =
-        quotaDirsStream.collect(
-            Collectors.groupingBy(
-                INode::getUserName,
-                Collectors.mapping(INode::getFullPathName, Collectors.toList())));
-    final Map<String, ContentSummary> dirToContentSummary =
-        ownerAndDirs
-            .values()
-            .parallelStream()
-            .flatMap(List::stream)
-            .collect(Collectors.toMap(Function.identity(), loader::getContentSummary));
-    final Map<String, Long> dirDsQuotaAssigned =
-        dirToContentSummary
-            .entrySet()
-            .parallelStream()
+    final QueryEngine queryEngine = loader.getQueryEngine();
+    final Map<String, Map<String, Set<INode>>> ownerDirContentSummary =
+        queryEngine
+            .combinedFilterToStream(dirs, new String[] {"hasQuota"}, new String[] {"eq:true"})
             .collect(
-                Collectors.toMap(
-                    Entry::getKey,
-                    e -> {
-                      ContentSummary summary = e.getValue();
-                      if (summary.getSpaceQuota() <= -1L) {
-                        return -1L;
-                      } else {
-                        return summary.getSpaceQuota();
-                      }
-                    }));
-    final Map<String, Long> dirDsQuotaUsed =
-        dirToContentSummary
-            .entrySet()
-            .parallelStream()
-            .collect(
-                Collectors.toMap(
-                    Entry::getKey,
-                    e -> {
-                      ContentSummary summary = e.getValue();
-                      return summary.getSpaceConsumed();
-                    }));
-    final Map<String, Long> dirDsQuotaRatio =
-        dirToContentSummary
-            .entrySet()
-            .parallelStream()
-            .collect(
-                Collectors.toMap(
-                    Entry::getKey,
-                    e -> {
-                      ContentSummary summary = e.getValue();
-                      if (summary.getSpaceQuota() <= -1L) {
-                        return -1L;
-                      } else {
-                        return (long)
-                            (100 * ((double) summary.getSpaceConsumed()) / summary.getSpaceQuota());
-                      }
-                    }));
-    final Map<String, Long> dirNsQuotaAssigned =
-        dirToContentSummary
-            .entrySet()
-            .parallelStream()
-            .collect(
-                Collectors.toMap(
-                    Entry::getKey,
-                    e -> {
-                      ContentSummary summary = e.getValue();
-                      if (summary.getQuota() <= -1L) {
-                        return -1L;
-                      } else {
-                        return summary.getQuota();
-                      }
-                    }));
-    final Map<String, Long> dirNsQuotaUsed =
-        dirToContentSummary
-            .entrySet()
-            .parallelStream()
-            .collect(
-                Collectors.toMap(
-                    Entry::getKey,
-                    e -> {
-                      ContentSummary summary = e.getValue();
-                      return (summary.getFileCount() + summary.getDirectoryCount());
-                    }));
-    final Map<String, Long> dirNsQuotaRatio =
-        dirToContentSummary
-            .entrySet()
-            .parallelStream()
-            .collect(
-                Collectors.toMap(
-                    Entry::getKey,
-                    e -> {
-                      ContentSummary summary = e.getValue();
-                      if (summary.getQuota() <= -1L) {
-                        return -1L;
-                      } else {
-                        return (long)
-                            (100
-                                * (((double) (summary.getFileCount() + summary.getDirectoryCount()))
-                                    / summary.getQuota()));
-                      }
-                    }));
-    ownerAndDirs
-        .entrySet()
-        .parallelStream()
-        .forEach(
-            entry -> {
-              String user = entry.getKey();
-              final Map<String, Long> nsQuotaRatio =
-                  entry
-                      .getValue()
-                      .parallelStream()
-                      .collect(Collectors.toMap(Function.identity(), dirNsQuotaRatio::get));
-              final Map<String, Long> nsQuotaAssigned =
-                  entry
-                      .getValue()
-                      .parallelStream()
-                      .collect(Collectors.toMap(Function.identity(), dirNsQuotaAssigned::get));
-              final Map<String, Long> nsQuotaUsed =
-                  entry
-                      .getValue()
-                      .parallelStream()
-                      .collect(Collectors.toMap(Function.identity(), dirNsQuotaUsed::get));
-              final Map<String, Long> dsQuotaRatio =
-                  entry
-                      .getValue()
-                      .parallelStream()
-                      .collect(Collectors.toMap(Function.identity(), dirDsQuotaRatio::get));
-              final Map<String, Long> dsQuotaAssigned =
-                  entry
-                      .getValue()
-                      .parallelStream()
-                      .collect(Collectors.toMap(Function.identity(), dirDsQuotaAssigned::get));
-              final Map<String, Long> dsQuotaUsed =
-                  entry
-                      .getValue()
-                      .parallelStream()
-                      .collect(Collectors.toMap(Function.identity(), dirDsQuotaUsed::get));
-              final long nsThreshExceeded =
-                  nsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
-              final long dsThreshExceeded =
-                  dsQuotaRatio.values().parallelStream().filter(v -> v > 85L).count();
-              cachedUserNsQuotaAssigned.put(user, nsQuotaAssigned);
-              cachedUserNsQuotaUsed.put(user, nsQuotaUsed);
-              cachedUserNsQuotaRatios.put(user, nsQuotaRatio);
-              cachedUserDsQuotaAssigned.put(user, dsQuotaAssigned);
-              cachedUserDsQuotaUsed.put(user, dsQuotaUsed);
-              cachedUserDsQuotaRatios.put(user, dsQuotaRatio);
-              nsQuotaThreshCountsUsers.put(user, nsThreshExceeded);
-              dsQuotaThreshCountsUsers.put(user, dsThreshExceeded);
-              nsQuotaCountsUsers.put(user, (long) nsQuotaRatio.size());
-              dsQuotaCountsUsers.put(user, (long) dsQuotaRatio.size());
-            });
+                Collectors.groupingBy(
+                    INode::getUserName,
+                    Collectors.groupingBy(
+                        INode::getFullPathName,
+                        Collectors.mapping(Function.identity(), Collectors.toSet()))));
+    cachedUserNsQuotaAssigned.clear();
+    cachedUserNsQuotaUsed.clear();
+    cachedUserNsQuotaRatios.clear();
+    cachedUserDsQuotaAssigned.clear();
+    cachedUserDsQuotaUsed.clear();
+    cachedUserDsQuotaRatios.clear();
+    for (Entry<String, Map<String, Set<INode>>> entry : ownerDirContentSummary.entrySet()) {
+      long nsQuotaRatio85 = 0;
+      long dsQuotaRatio85 = 0;
+      long nsQuotaCount = 0;
+      long dsQuotaCount = 0;
+      Map<String, Long> nsQuotaAssigned = new HashMap<>();
+      Map<String, Long> nsQuotaUsed = new HashMap<>();
+      Map<String, Long> nsQuotaRatio = new HashMap<>();
+      Map<String, Long> dsQuotaAssigned = new HashMap<>();
+      Map<String, Long> dsQuotaUsed = new HashMap<>();
+      Map<String, Long> dsQuotaRatio = new HashMap<>();
+      String user = entry.getKey();
+      for (Entry<String, Set<INode>> innerEntry : entry.getValue().entrySet()) {
+        INode value = innerEntry.getValue().iterator().next();
+        Long nsQuotaRatioLong =
+            queryEngine.getSumFunctionForINode("nsQuotaRatioUsed", null).apply(value);
+        if (nsQuotaRatioLong >= 0) {
+          nsQuotaCount++;
+          if (nsQuotaRatioLong >= 85) {
+            nsQuotaRatio85++;
+          }
+        } else {
+          nsQuotaRatioLong = -1L;
+        }
+        Long nsQuotaAssignedLong = queryEngine.getSumFunctionForINode("nsQuota", null).apply(value);
+        if (nsQuotaAssignedLong <= -1L) {
+          nsQuotaAssignedLong = -1L;
+        }
+        Long nsQuotaUsedLong = queryEngine.getSumFunctionForINode("nsQuotaUsed", null).apply(value);
+        if (nsQuotaUsedLong <= -1L) {
+          nsQuotaUsedLong = -1L;
+        }
+        Long dsQuotaRatioLong =
+            queryEngine.getSumFunctionForINode("dsQuotaRatioUsed", null).apply(value);
+        if (dsQuotaRatioLong >= 0) {
+          dsQuotaCount++;
+          if (dsQuotaRatioLong >= 85) {
+            dsQuotaRatio85++;
+          }
+        } else {
+          dsQuotaRatioLong = -1L;
+        }
+        Long dsQuotaAssignedLong = queryEngine.getSumFunctionForINode("dsQuota", null).apply(value);
+        if (dsQuotaAssignedLong <= -1L) {
+          dsQuotaAssignedLong = -1L;
+        }
+        Long dsQuotaUsedLong = queryEngine.getSumFunctionForINode("dsQuotaUsed", null).apply(value);
+        if (dsQuotaUsedLong <= -1L) {
+          dsQuotaUsedLong = -1L;
+        }
+        String path = innerEntry.getKey();
+        nsQuotaAssigned.put(path, nsQuotaAssignedLong);
+        dsQuotaAssigned.put(path, dsQuotaAssignedLong);
+        nsQuotaUsed.put(path, nsQuotaUsedLong);
+        dsQuotaUsed.put(path, dsQuotaUsedLong);
+        nsQuotaRatio.put(path, nsQuotaRatioLong);
+        dsQuotaRatio.put(path, dsQuotaRatioLong);
+      }
+      cachedUserNsQuotaAssigned.put(user, nsQuotaAssigned);
+      cachedUserNsQuotaUsed.put(user, nsQuotaUsed);
+      cachedUserNsQuotaRatios.put(user, nsQuotaRatio);
+      cachedUserDsQuotaAssigned.put(user, dsQuotaAssigned);
+      cachedUserDsQuotaUsed.put(user, dsQuotaUsed);
+      cachedUserDsQuotaRatios.put(user, dsQuotaRatio);
+      nsQuotaThreshCountsUsers.put(user, nsQuotaRatio85);
+      dsQuotaThreshCountsUsers.put(user, dsQuotaRatio85);
+      nsQuotaCountsUsers.put(user, nsQuotaCount);
+      dsQuotaCountsUsers.put(user, dsQuotaCount);
+    }
   }
 
   public Map<String, Long> getDiskQuotaRatio(String user) {
