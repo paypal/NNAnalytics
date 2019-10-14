@@ -115,32 +115,44 @@ public class CachedQuotas {
       Map<String, Long> dsQuotaRatio = new HashMap<>();
       String user = entry.getKey();
       for (Entry<String, Set<INode>> innerEntry : entry.getValue().entrySet()) {
-        String path = innerEntry.getKey();
         INode value = innerEntry.getValue().iterator().next();
         Long nsQuotaRatioLong =
             queryEngine.getSumFunctionForINode("nsQuotaRatioUsed", null).apply(value);
         if (nsQuotaRatioLong >= 0) {
           nsQuotaCount++;
-          if (nsQuotaRatioLong >= 85) nsQuotaRatio85++;
+          if (nsQuotaRatioLong >= 85) {
+            nsQuotaRatio85++;
+          }
         } else {
           nsQuotaRatioLong = -1L;
         }
         Long nsQuotaAssignedLong = queryEngine.getSumFunctionForINode("nsQuota", null).apply(value);
-        if (nsQuotaAssignedLong <= -1L) nsQuotaAssignedLong = -1L;
+        if (nsQuotaAssignedLong <= -1L) {
+          nsQuotaAssignedLong = -1L;
+        }
         Long nsQuotaUsedLong = queryEngine.getSumFunctionForINode("nsQuotaUsed", null).apply(value);
-        if (nsQuotaUsedLong <= -1L) nsQuotaUsedLong = -1L;
+        if (nsQuotaUsedLong <= -1L) {
+          nsQuotaUsedLong = -1L;
+        }
         Long dsQuotaRatioLong =
             queryEngine.getSumFunctionForINode("dsQuotaRatioUsed", null).apply(value);
         if (dsQuotaRatioLong >= 0) {
           dsQuotaCount++;
-          if (dsQuotaRatioLong >= 85) dsQuotaRatio85++;
+          if (dsQuotaRatioLong >= 85) {
+            dsQuotaRatio85++;
+          }
         } else {
           dsQuotaRatioLong = -1L;
         }
         Long dsQuotaAssignedLong = queryEngine.getSumFunctionForINode("dsQuota", null).apply(value);
-        if (dsQuotaAssignedLong <= -1L) dsQuotaAssignedLong = -1L;
+        if (dsQuotaAssignedLong <= -1L) {
+          dsQuotaAssignedLong = -1L;
+        }
         Long dsQuotaUsedLong = queryEngine.getSumFunctionForINode("dsQuotaUsed", null).apply(value);
-        if (dsQuotaUsedLong <= -1L) dsQuotaUsedLong = -1L;
+        if (dsQuotaUsedLong <= -1L) {
+          dsQuotaUsedLong = -1L;
+        }
+        String path = innerEntry.getKey();
         nsQuotaAssigned.put(path, nsQuotaAssignedLong);
         dsQuotaAssigned.put(path, dsQuotaAssignedLong);
         nsQuotaUsed.put(path, nsQuotaUsedLong);
