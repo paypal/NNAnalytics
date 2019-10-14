@@ -1,0 +1,179 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<script src="./js/jquery.min.js"></script>
+<script src="./js/nna.utility.js"></script>
+<script type="text/javascript">checkIfAuthenticated();</script>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="./favicon.ico">
+
+
+    <title>NNA Quotas</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Sweetalert core CSS -->
+    <link href="./css/sweetalert.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./css/nna.css" rel="stylesheet">
+    <link href="./css/datatables.min.css" rel="stylesheet">
+    <link href="./css/buttons.datatables.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div id="navbar"></div>
+
+    <!-- Main component for a primary marketing message or call to action -->
+    <div class="jumbotron">
+        <h1>Welcome to NNAnalytics</h1>
+        <div id="connection"></div>
+        <p>
+            View file type breakdowns per user.<br />
+        </p>
+        <br />
+        <br />
+    </div>
+    <div id="fileTypeMetrics">
+        <table id="fileTypeDataTable" class="table table-bordered" style="width: 100%;">
+            <thead>
+            <tr>
+                <th>Username</th>
+                <th>File Type</th>
+                <th id="count">Count</th>
+                <th id="diskspace">Diskspace</th>
+            </tr>
+            </thead>
+        </table>
+    </div>
+
+</div> <!-- /container -->
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/bootstrap.min.js"></script>
+<script src="./js/sweetalert.min.js"></script>
+<script src="./js/Chart.bundle.min.js"></script>
+<script src="./js/cycle.js"></script>
+<script src="./js/datatables.min.js"></script>
+<script src="./js/dataTables.buttons.min.js"></script>
+<script src="./js/jszip.min.js"></script>
+<script src="./js/buttons.html5.min.js"></script>
+<script type="text/javascript">getClusterName();</script>
+
+<script>
+        $(document).ready(function() {
+            $('#navbar').load('navbar.html', function() {
+                checkIfAdmin();
+        });
+
+        function union(...iterables) {
+          const set = new Set();
+          for (let iterable of iterables) {
+            for (let item of iterable) {
+              set.add(item);
+            }
+          }
+          return set;
+        }
+
+        function flattenObject(obj) {
+            var array = [];
+            var counts = obj.fileTypeCount;
+            var diskspaces = obj.fileTypeDs;
+            
+            var users = union(Object.keys(counts), Object.keys(diskspaces));
+            var fileTypes = union(Object.keys(Object.values(counts)[0]), Object.keys(Object.values(diskspaces)[0]));
+            
+            for(var user of users) {
+                for(var fileType of fileTypes) {
+                    var innerArray = [];
+                    innerArray.push(user);
+                    innerArray.push(fileType);
+                    var count = counts[user][fileType];
+                    if(count != null) {
+                        innerArray.push(counts[user][fileType]);
+                    } else {
+                        innerArray.push(-1);
+                    }
+                    var diskspace = diskspaces[user][fileType];
+                    if(diskspace != null) {
+                        innerArray.push(diskspaces[user][fileType]);
+                    } else {
+                        innerArray.push(-1);
+                    }
+                    array.push(innerArray);
+                }
+            }
+            return array
+        }
+
+        let table = $('#fileTypeDataTable').DataTable( {
+            "ajax": {
+                "url": "./fileTypes?all",
+                "type": "GET",
+                "dataSrc": function(json) {
+                    console.log(json);
+                    return flattenObject(json);
+                }
+            },
+            "iDisplayLength": 100,
+            "aLengthMenu": [[10, 50, 100, -1], [10, 50, 100, "All"]],
+            "order": [[0, "desc"], [3, "desc"]],
+            "dom": 'Bfrtipl',
+            "buttons": [
+                'copyHtml5', 'csvHtml5', 'excelHtml5' 
+            ],
+            "columns": [
+                { title: "Username",
+                  "render": function(data, type, row, meta) {
+                        data = "<a target='_blank' href='./suggestion.html?username="+data+"'>" + data + "</a>";
+                        return data;
+                    }
+                },
+                { title: "File Type" },
+                { title: "Count" },
+                { title: "Diskspace" }
+            ],
+            "columnDefs": [
+                { width: "20%", targets: [1,2,3] }
+            ]
+        });
+        table.draw();
+    });
+</script>
+
+</body>
+</html>
+

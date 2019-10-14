@@ -1638,6 +1638,22 @@ public class WebServerMain implements ApplicationMain {
           }
         });
 
+    /* FILETYPES endpoint is an admin-level endpoint meant to dump the cached set of detected file-types by NNA. */
+    get(
+        "/fileTypes",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "application/json");
+          boolean allJson = req.queryMap().toMap().containsKey("all");
+          if (allJson) {
+            return nameNodeLoader.getSuggestionsEngine().getAllFileTypeAsJson();
+          } else {
+            String user = req.queryMap("user").value();
+            String sum = req.queryMap("sum").value();
+            return nameNodeLoader.getSuggestionsEngine().getFileTypeAsJson(user, sum);
+          }
+        });
+
     /* USERS endpoint is an admin-level endpoint meant to dump the cached set of detected users by NNA. */
     get(
         "/users",

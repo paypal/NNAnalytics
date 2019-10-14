@@ -941,16 +941,6 @@ public abstract class AbstractQueryEngine implements QueryEngine {
                 Collectors.mapping(dataFunction, Collectors.summingLong(i -> i)))));
   }
 
-  /** Simple overloaded method for testing 2-level histograms. */
-  public Map<String, Map<String, Long>> genericTwoLevelHistogram(
-      Stream<INode> inodes, String field1, String field2, String sum) {
-    return genericTwoLevelHistogram(
-        inodes,
-        getGroupingFunctionToStringForINode(field1, null, null),
-        getGroupingFunctionToStringForINode(field2, null, null),
-        getSumFunctionForINode(sum, null));
-  }
-
   /**
    * Produces Histogram for generic summation.
    *

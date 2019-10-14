@@ -43,6 +43,7 @@ REST Endpoints
   * [Endpoints](REST_Endpoints/Endpoints.md)
   * [FetchNamespace](REST_Endpoints/FetchNamespace.md)
   * [FileAge](REST_Endpoints/FileAge.md)
+  * [FileTypes](REST_Endpoints/FileTypes.md)
   * [Filter](REST_Endpoints/Filter.md)
   * [GetCachedQuery](REST_Endpoints/GetCachedQuery.md)
   * [Histogram](REST_Endpoints/Histogram.md)
