@@ -156,6 +156,19 @@
                     </ul>
                   </li>
                   <li class="dropdown-submenu">
+                    <a  tabindex="-1">Quotas</a>
+                    <ul class="dropdown-menu">
+                      <li><a target="_blank" href="./custom.html?set=files&filters=isUnderDsQuota:eq:false,isUnderNsQuota:eq:false&sum=count&type=parentDir&parentDirDepth=3&sortDescending=true&top=10">Directories (ParentDepth=3) with No Quotas by Count</a></li>
+                      <li><a target="_blank" href="./custom.html?set=files&filters=isUnderDsQuota:eq:false,isUnderNsQuota:eq:false&sum=diskspaceConsumed&type=parentDir&parentDirDepth=3&sortDescending=true&top=10">Directories (ParentDepth=3) with No Quotas by Diskspace</a></li>
+                      <li><a target="_blank" href="./custom.html?set=files&filters=isUnderNsQuota:eq:false&sum=count&type=parentDir&parentDirDepth=3&sortDescending=true&top=10">Directories (ParentDepth=3) with No NS Quota by Count</a></li>
+                      <li><a target="_blank" href="./custom.html?set=files&filters=isUnderDsQuota:eq:false&sum=diskspaceConsumed&type=parentDir&parentDirDepth=3&sortDescending=true&top=10">Directories (ParentDepth=3) with No DS Quota by Diskspace</a></li>
+                      <li><a target="_blank" href="./custom.html?set=dirs&filters=isUnderDsQuota:eq:false,isUnderNsQuota:eq:false&sum=count&type=parentDir&parentDirDepth=3&sortDescending=true&top=10">Fast Directories (ParentDepth=3) with No Quotas</a></li>
+                      <!--<li class="dropdown-header">Nav header</li>-->
+                      <!--<li><a href="#">Separated link</a></li>-->
+                      <!--<li><a href="#">One more separated link</a></li>-->
+                    </ul>
+                  </li>
+                  <li class="dropdown-submenu">
                     <a  tabindex="-1">Reports</a>
                     <ul class="dropdown-menu">
                       <li><a target="_blank" href="./report.html?set=files&type=fileSize">File Size</a></li>
