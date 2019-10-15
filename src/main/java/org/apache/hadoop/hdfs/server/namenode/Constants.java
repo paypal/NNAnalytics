@@ -489,6 +489,7 @@ public interface Constants {
     files24h,
     files1y2y,
     perUserCount,
+    perUserFileType,
     directories,
     cachedDirectories,
     systemFilter,

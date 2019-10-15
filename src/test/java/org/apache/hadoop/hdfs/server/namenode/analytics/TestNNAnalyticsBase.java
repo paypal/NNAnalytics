@@ -274,6 +274,13 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testAllFileTypes() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileTypes?all");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testDsQuotas() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/quotas?sum=dsQuotaRatioUsed");
     HttpResponse res = client.execute(hostPort, get);
@@ -283,6 +290,34 @@ public abstract class TestNNAnalyticsBase {
   @Test
   public void testNsQuotas() throws IOException {
     HttpGet get = new HttpGet("http://localhost:4567/quotas?sum=nsQuotaRatioUsed");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFileTypesCount() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileTypes?sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFileTypesDiskspace() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileTypes?sum=diskspaceConsumed");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFileTypesUserCount() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileTypes?sum=count&user=hdfs");
+    HttpResponse res = client.execute(hostPort, get);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testFileTypesUserDiskspace() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/fileTypes?sum=diskspaceConsumed&user=hdfs");
     HttpResponse res = client.execute(hostPort, get);
     assertThat(res.getStatusLine().getStatusCode(), is(200));
   }

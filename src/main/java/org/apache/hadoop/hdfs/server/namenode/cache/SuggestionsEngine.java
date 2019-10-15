@@ -74,6 +74,7 @@ public class SuggestionsEngine {
   private final CacheManager cacheManager;
   private final CachedDirectories cachedDirectories;
   private final CachedQuotas cachedQuotas;
+  private final CachedFileTypes cachedFileTypes;
 
   private Map<String, Long> cachedValues;
   private Map<String, Map<String, Long>> cachedMaps;
@@ -95,6 +96,7 @@ public class SuggestionsEngine {
     this.cacheManager = new CacheManager();
     this.cachedDirectories = new CachedDirectories();
     this.cachedQuotas = new CachedQuotas();
+    this.cachedFileTypes = new CachedFileTypes();
     this.loaded = new AtomicBoolean(false);
     this.currentState = AnalysisState.sleep;
   }
@@ -275,6 +277,12 @@ public class SuggestionsEngine {
         queryEngine.byUserHistogram(dirs.parallelStream(), "count", null);
     long perUserCountFetchTime = System.currentTimeMillis() - timer;
     LOG.info("Performing SuggestionsEngine.perUserCount took: {} ms.", perUserCountFetchTime);
+
+    timer = System.currentTimeMillis();
+    currentState = AnalysisState.perUserFileType;
+    cachedFileTypes.analyze(nameNodeLoader, files);
+    long perUserFileTypeTime = System.currentTimeMillis() - timer;
+    LOG.info("Performing SuggestionsEngine.perUserFileType took: {} ms.", perUserFileTypeTime);
 
     timer = System.currentTimeMillis();
     currentState = AnalysisState.directories;
@@ -1071,6 +1079,57 @@ public class SuggestionsEngine {
   }
 
   /**
+   * Get all file type information from cache as a JSON String.
+   *
+   * @return file type info returned as JSON string
+   */
+  public String getAllFileTypeAsJson() {
+    Map<String, Map<String, Map<String, Long>>> allFileTypes = new HashMap<>();
+    Map<String, Map<String, Long>> fileTypeCount = cachedFileTypes.getAllFileTypeCount();
+    Map<String, Map<String, Long>> fileTypeDs = cachedFileTypes.getAllFileTypeDiskspace();
+    allFileTypes.put("fileTypeCount", fileTypeCount);
+    allFileTypes.put("fileTypeDs", fileTypeDs);
+    return Histograms.toJson(allFileTypes);
+  }
+
+  /**
+   * Get file type information from cache as a JSON String.
+   *
+   * @param user optional; username to get file type info for
+   * @param sum required; which type of file type to get
+   * @return file type info returned as JSON string
+   */
+  public String getFileTypeAsJson(String user, String sum) {
+    if (sum == null || sum.length() == 0) {
+      throw new IllegalArgumentException(
+          "Please choose between count or diskspaceConsumed for File Types.");
+    }
+    if (user != null && user.length() > 0) {
+      switch (sum) {
+        case "count":
+          Map<String, Long> dsAssignedHistogram = cachedFileTypes.getFileTypeCount(user);
+          return Histograms.toJson(Histograms.sortByValue(dsAssignedHistogram, false));
+        case "diskspaceConsumed":
+          Map<String, Long> dsUsedHistogram = cachedFileTypes.getFileTypeDiskspace(user);
+          return Histograms.toJson(Histograms.sortByValue(dsUsedHistogram, false));
+        default:
+          throw new IllegalArgumentException(
+              "Please choose between count or diskspaceConsumed for File Types.");
+      }
+    } else {
+      switch (sum) {
+        case "count":
+          return Histograms.toJson(cachedFileTypes.getAllFileTypeCount());
+        case "diskspaceConsumed":
+          return Histograms.toJson(cachedFileTypes.getAllFileTypeDiskspace());
+        default:
+          throw new IllegalArgumentException(
+              "Please choose between count or diskspaceConsumed for File Types.");
+      }
+    }
+  }
+
+  /**
    * Get file age histogram from cache as a JSON String.
    *
    * @param sum required; either count or diskspaceConsumed
@@ -1298,6 +1357,7 @@ public class SuggestionsEngine {
     cacheManager.start(conf);
     this.cachedDirectories.start(cacheManager);
     this.cachedQuotas.start(cacheManager);
+    this.cachedFileTypes.start(cacheManager);
     this.cachedUsers = Collections.synchronizedSet(cacheManager.getCachedSet("cachedUsers"));
     this.cachedValues = Collections.synchronizedMap(cacheManager.getCachedMap("cachedValues"));
     this.cachedLogins = Collections.synchronizedMap(cacheManager.getCachedMap("cachedLogins"));

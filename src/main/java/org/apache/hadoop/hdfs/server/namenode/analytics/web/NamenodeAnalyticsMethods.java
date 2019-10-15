@@ -956,6 +956,34 @@ public class NamenodeAnalyticsMethods {
    * NNA.
    */
   @GET
+  @Path("/fileTypes")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response fileTypes() {
+    try {
+      final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+      before();
+      boolean allJson = request.getParameterMap().containsKey("all");
+      String resp;
+      if (allJson) {
+        resp = nnLoader.getSuggestionsEngine().getAllFileTypeAsJson();
+      } else {
+        String user = request.getParameter("user");
+        String sum = request.getParameter("sum");
+        resp = nnLoader.getSuggestionsEngine().getFileTypeAsJson(user, sum);
+      }
+      return Response.ok(resp, MediaType.APPLICATION_JSON).build();
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
+  /**
+   * QUOTAS endpoint is a reader-level endpoint meant to dump the cached set of detected quotas by
+   * NNA.
+   */
+  @GET
   @Path("/quotas")
   @Produces(MediaType.APPLICATION_JSON)
   public Response quotas() {
