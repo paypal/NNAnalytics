@@ -287,7 +287,8 @@ public interface Constants {
     getCachedQuery,
     removeCachedQuery,
     cachedMaps,
-    sql
+    sql,
+    fileTypes
   }
 
   EnumSet<Endpoint> UNSECURED_ENDPOINTS =
@@ -318,7 +319,8 @@ public interface Constants {
           Endpoint.info,
           Endpoint.config,
           Endpoint.getCachedQuery,
-          Endpoint.cachedMaps);
+          Endpoint.cachedMaps,
+          Endpoint.fileTypes);
 
   EnumSet<Endpoint> READER_ENDPOINTS =
       EnumSet.of(
