@@ -32,8 +32,7 @@
     <meta name="author" content="">
     <link rel="icon" href="./favicon.ico">
 
-
-    <title>NNA Quotas</title>
+    <title>NNA FileTypes</title>
 
     <!-- Bootstrap core CSS -->
     <link href="./css/bootstrap.min.css" rel="stylesheet">
@@ -112,11 +111,11 @@
             var array = [];
             var counts = obj.fileTypeCount;
             var diskspaces = obj.fileTypeDs;
-            
+
             var users = union(Object.keys(counts), Object.keys(diskspaces));
-            var fileTypes = union(Object.keys(Object.values(counts)[0]), Object.keys(Object.values(diskspaces)[0]));
-            
+
             for(var user of users) {
+                var fileTypes = union(Object.keys(counts[user]), Object.keys(diskspaces[user]));
                 for(var fileType of fileTypes) {
                     var innerArray = [];
                     innerArray.push(user);
@@ -125,13 +124,13 @@
                     if(count != null) {
                         innerArray.push(counts[user][fileType]);
                     } else {
-                        innerArray.push(-1);
+                        innerArray.push(0);
                     }
                     var diskspace = diskspaces[user][fileType];
                     if(diskspace != null) {
                         innerArray.push(diskspaces[user][fileType]);
                     } else {
-                        innerArray.push(-1);
+                        innerArray.push(0);
                     }
                     array.push(innerArray);
                 }
@@ -150,7 +149,7 @@
             },
             "iDisplayLength": 100,
             "aLengthMenu": [[10, 50, 100, -1], [10, 50, 100, "All"]],
-            "order": [[0, "desc"], [3, "desc"]],
+            "order": [[2, "desc"], [3, "desc"], [0, "desc"]],
             "dom": 'Bfrtipl',
             "buttons": [
                 'copyHtml5', 'csvHtml5', 'excelHtml5' 
