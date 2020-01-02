@@ -155,6 +155,7 @@ public class WebServerMain implements ApplicationMain {
       Collections.synchronizedMap(new HashMap<>());
 
   private final AtomicBoolean savingNamespace = new AtomicBoolean(false);
+  private final AtomicBoolean cancelRequest = new AtomicBoolean(false);
 
   /**
    * This is the main launching call for use in production. Should not accept any arguments. Service
@@ -401,6 +402,7 @@ public class WebServerMain implements ApplicationMain {
           boolean isProvidingSuggestions = nameNodeLoader.getSuggestionsEngine().isLoaded();
           sb.append("Current system time (ms): ").append(Time.now()).append("\n");
           sb.append("Ready to service queries: ").append(isInit).append("\n");
+          sb.append("Guarding against queries: ").append(cancelRequest.get()).append("\n");
           sb.append("Ready to service history: ").append(isHistorical).append("\n");
           sb.append("Ready to service suggestions: ").append(isProvidingSuggestions).append("\n\n");
           AnalysisState currentAnalysisState =
@@ -567,8 +569,23 @@ public class WebServerMain implements ApplicationMain {
           }
         });
 
+    /* QUERYGUARD endpoint is an admin-level endpoint meant to kill all running analysis queries. */
+    get(
+        "/queryGuard",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "text/plain");
+          boolean guarding = !cancelRequest.get();
+          cancelRequest.set(guarding);
+          if (guarding) {
+            return "Guarding against queries. All queries after current processing will be killed.";
+          } else {
+            return "All queries allowed.";
+          }
+        });
+
     /* METRICS endpoint is meant to return information on the users and the
-    amount of queries they are making */
+    amount of queries they are making. */
     get(
         "/metrics",
         (req, res) -> {
@@ -716,6 +733,9 @@ public class WebServerMain implements ApplicationMain {
 
           lock.writeLock().lock();
           try {
+            if (cancelRequest.get()) {
+              throw new IOException("Query cancelled.");
+            }
             String filterStr1 = req.queryMap("filters1").value();
             String filterStr2 = req.queryMap("filters2").value();
             String emailsToStr = req.queryMap("emailTo").value();
@@ -794,6 +814,9 @@ public class WebServerMain implements ApplicationMain {
 
           lock.writeLock().lock();
           try {
+            if (cancelRequest.get()) {
+              throw new IOException("Query cancelled.");
+            }
             String fullFilterStr = req.queryMap("filters").value();
             String emailsToStr = req.queryMap("emailTo").value();
             String emailsCcStr = req.queryMap("emailCC").value();
@@ -882,6 +905,9 @@ public class WebServerMain implements ApplicationMain {
 
           lock.writeLock().lock();
           try {
+            if (cancelRequest.get()) {
+              throw new IOException("Query cancelled.");
+            }
             final String fullFilterStr = req.queryMap("filters").value();
             final String histogramConditionsStr = req.queryMap("histogramConditions").value();
             final String emailsToStr = req.queryMap("emailTo").value();
@@ -1025,6 +1051,9 @@ public class WebServerMain implements ApplicationMain {
 
           lock.writeLock().lock();
           try {
+            if (cancelRequest.get()) {
+              throw new IOException("Query cancelled.");
+            }
             final String fullFilterStr = req.queryMap("filters").value();
             final String[] filters = Helper.parseFilters(fullFilterStr);
             final String[] filterOps = Helper.parseFilterOps(fullFilterStr);
@@ -1101,6 +1130,9 @@ public class WebServerMain implements ApplicationMain {
 
           lock.writeLock().lock();
           try {
+            if (cancelRequest.get()) {
+              throw new IOException("Query cancelled.");
+            }
             final String fullFilterStr = req.queryMap("filters").value();
             final String[] filters = Helper.parseFilters(fullFilterStr);
             final String[] filterOps = Helper.parseFilterOps(fullFilterStr);

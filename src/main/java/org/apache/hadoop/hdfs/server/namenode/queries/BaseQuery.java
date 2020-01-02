@@ -19,6 +19,8 @@
 
 package org.apache.hadoop.hdfs.server.namenode.queries;
 
+import java.util.Objects;
+
 public class BaseQuery {
 
   private final String trackingUrl;
@@ -52,9 +54,7 @@ public class BaseQuery {
 
     BaseQuery baseQuery = (BaseQuery) o;
 
-    return (trackingUrl != null
-            ? trackingUrl.equals(baseQuery.trackingUrl)
-            : baseQuery.trackingUrl == null)
-        && (userName != null ? userName.equals(baseQuery.userName) : baseQuery.userName == null);
+    return (Objects.equals(trackingUrl, baseQuery.trackingUrl))
+        && (Objects.equals(userName, baseQuery.userName));
   }
 }

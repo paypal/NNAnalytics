@@ -20,6 +20,7 @@
 package org.apache.hadoop.hdfs.server.namenode.analytics.web;
 
 import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_APP_CONF;
+import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_CANCEL_REQUEST;
 import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_HSQL_DRIVER;
 import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_NN_LOADER;
 import static org.apache.hadoop.hdfs.server.namenode.analytics.NameNodeAnalyticsHttpServer.NNA_OPERATION_SERVICE;
@@ -409,6 +410,31 @@ public class NamenodeAnalyticsMethods {
     }
   }
 
+  /** QUERYGUARD endpoint is an admin-level endpoint meant to kill all running analysis queries. */
+  @GET
+  @Path("/queryGuard")
+  @Produces({MediaType.TEXT_PLAIN})
+  public Response queryGuard() {
+    try {
+      before();
+      final AtomicBoolean cancelRequest = (AtomicBoolean) context.getAttribute(NNA_CANCEL_REQUEST);
+      boolean guarding = !cancelRequest.get();
+      cancelRequest.set(guarding);
+      if (guarding) {
+        return Response.ok(
+                "Guarding against queries. All queries after current processing will be killed.",
+                MediaType.TEXT_PLAIN)
+            .build();
+      } else {
+        return Response.ok("All queries allowed.", MediaType.TEXT_PLAIN).build();
+      }
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
   /**
    * METRICS endpoint is meant to return information on the users and the amount of queries they are
    * making.
@@ -585,6 +611,7 @@ public class NamenodeAnalyticsMethods {
     @SuppressWarnings("unchecked")
     final List<BaseQuery> runningQueries =
         (List<BaseQuery>) context.getAttribute(NNA_RUNNING_QUERIES);
+    final AtomicBoolean cancelRequest = (AtomicBoolean) context.getAttribute(NNA_CANCEL_REQUEST);
     try {
       before();
 
@@ -602,6 +629,7 @@ public class NamenodeAnalyticsMethods {
       boolean isProvidingSuggestions = nnLoader.getSuggestionsEngine().isLoaded();
       sb.append("Current system time (ms): ").append(Time.now()).append("\n");
       sb.append("Ready to service queries: ").append(isInit).append("\n");
+      sb.append("Guarding against queries: ").append(cancelRequest.get()).append("\n");
       sb.append("Ready to service history: ").append(isHistorical).append("\n");
       sb.append("Ready to service suggestions: ").append(isProvidingSuggestions).append("\n\n");
       if (isInit) {
@@ -1282,6 +1310,7 @@ public class NamenodeAnalyticsMethods {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     final ReentrantReadWriteLock queryLock =
         (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    final AtomicBoolean cancelRequest = (AtomicBoolean) context.getAttribute(NNA_CANCEL_REQUEST);
     try {
       before();
 
@@ -1295,6 +1324,9 @@ public class NamenodeAnalyticsMethods {
 
       queryLock.writeLock().lock();
       try {
+        if (cancelRequest.get()) {
+          throw new IOException("Query cancelled.");
+        }
         String filterStr1 = request.getParameter("filters1");
         String filterStr2 = request.getParameter("filters2");
         String emailsToStr = request.getParameter("emailTo");
@@ -1373,6 +1405,7 @@ public class NamenodeAnalyticsMethods {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     final ReentrantReadWriteLock queryLock =
         (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    final AtomicBoolean cancelRequest = (AtomicBoolean) context.getAttribute(NNA_CANCEL_REQUEST);
     try {
       before();
 
@@ -1386,6 +1419,9 @@ public class NamenodeAnalyticsMethods {
 
       queryLock.writeLock().lock();
       try {
+        if (cancelRequest.get()) {
+          throw new IOException("Query cancelled.");
+        }
         String fullFilterStr = request.getParameter("filters");
         String emailsToStr = request.getParameter("emailTo");
         String emailsCcStr = request.getParameter("emailCC");
@@ -1481,6 +1517,7 @@ public class NamenodeAnalyticsMethods {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     final ReentrantReadWriteLock queryLock =
         (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    final AtomicBoolean cancelRequest = (AtomicBoolean) context.getAttribute(NNA_CANCEL_REQUEST);
     try {
       before();
 
@@ -1496,6 +1533,9 @@ public class NamenodeAnalyticsMethods {
 
       queryLock.writeLock().lock();
       try {
+        if (cancelRequest.get()) {
+          throw new IOException("Query cancelled.");
+        }
         final String fullFilterStr = request.getParameter("filters");
         final String histogramConditionsStr = request.getParameter("histogramConditions");
         final String emailsToStr = request.getParameter("emailTo");
@@ -1683,6 +1723,7 @@ public class NamenodeAnalyticsMethods {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     final ReentrantReadWriteLock queryLock =
         (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    final AtomicBoolean cancelRequest = (AtomicBoolean) context.getAttribute(NNA_CANCEL_REQUEST);
     try {
       before();
 
@@ -1698,6 +1739,9 @@ public class NamenodeAnalyticsMethods {
 
       queryLock.writeLock().lock();
       try {
+        if (cancelRequest.get()) {
+          throw new IOException("Query cancelled.");
+        }
         final String fullFilterStr = request.getParameter("filters");
         final String[] filters = Helper.parseFilters(fullFilterStr);
         final String[] filterOps = Helper.parseFilterOps(fullFilterStr);
@@ -1791,6 +1835,7 @@ public class NamenodeAnalyticsMethods {
     final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
     final ReentrantReadWriteLock queryLock =
         (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    final AtomicBoolean cancelRequest = (AtomicBoolean) context.getAttribute(NNA_CANCEL_REQUEST);
     try {
       before();
 
@@ -1806,6 +1851,9 @@ public class NamenodeAnalyticsMethods {
 
       queryLock.writeLock().lock();
       try {
+        if (cancelRequest.get()) {
+          throw new IOException("Query cancelled.");
+        }
         final String fullFilterStr = request.getParameter("filters");
         final String[] filters = Helper.parseFilters(fullFilterStr);
         final String[] filterOps = Helper.parseFilterOps(fullFilterStr);

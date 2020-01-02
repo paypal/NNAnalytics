@@ -69,6 +69,7 @@ public class NameNodeAnalyticsHttpServer {
   public static final String NNA_OPERATION_SERVICE = "nna.operation.service";
   public static final String NNA_QUERY_LOCK = "nna.query.lock";
   public static final String NNA_SAVING_NAMESPACE = "nna.saving.namespace";
+  public static final String NNA_CANCEL_REQUEST = "nna.cancel.request";
   public static final String NNA_APP_CONF = "nna.app.conf";
   public static final String NNA_HADOOP_CONF = "nna.hadoop.conf";
 
@@ -83,6 +84,7 @@ public class NameNodeAnalyticsHttpServer {
   private final ExecutorService operationService;
   private final ReentrantReadWriteLock queryLock;
   private final AtomicBoolean savingNamespace;
+  private final AtomicBoolean cancelRequest;
 
   // Jetty Http server.
   private HttpServer2 httpServer;
@@ -112,6 +114,7 @@ public class NameNodeAnalyticsHttpServer {
    * @param operationService executor for operation service threads
    * @param queryLock lock around queries
    * @param savingNamespace lock around namespace operations
+   * @param cancelRequest lock around allowing next queries to process or not
    */
   public NameNodeAnalyticsHttpServer(
       Configuration conf,
@@ -126,7 +129,8 @@ public class NameNodeAnalyticsHttpServer {
       ExecutorService internalService,
       ExecutorService operationService,
       ReentrantReadWriteLock queryLock,
-      AtomicBoolean savingNamespace) {
+      AtomicBoolean savingNamespace,
+      AtomicBoolean cancelRequest) {
     this.conf = conf;
     this.nnaConf = nnaConf;
     this.bindAddress = bindAddress;
@@ -140,6 +144,7 @@ public class NameNodeAnalyticsHttpServer {
     this.operationService = operationService;
     this.queryLock = queryLock;
     this.savingNamespace = savingNamespace;
+    this.cancelRequest = cancelRequest;
   }
 
   /**
@@ -191,6 +196,7 @@ public class NameNodeAnalyticsHttpServer {
     httpServer.getWebAppContext().setAttribute(NNA_OPERATION_SERVICE, operationService);
     httpServer.getWebAppContext().setAttribute(NNA_QUERY_LOCK, queryLock);
     httpServer.getWebAppContext().setAttribute(NNA_SAVING_NAMESPACE, savingNamespace);
+    httpServer.getWebAppContext().setAttribute(NNA_CANCEL_REQUEST, cancelRequest);
     httpServer.getWebAppContext().setAttribute(NNA_APP_CONF, nnaConf);
     httpServer.getWebAppContext().setAttribute(NNA_HADOOP_CONF, conf);
 
