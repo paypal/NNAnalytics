@@ -81,6 +81,7 @@ public class HadoopWebServerMain implements ApplicationMain {
   private final List<BaseQuery> runningQueries = Collections.synchronizedList(new LinkedList<>());
   private final ReentrantReadWriteLock queryLock = new ReentrantReadWriteLock();
   private final AtomicBoolean savingNamespace = new AtomicBoolean(false);
+  private final AtomicBoolean cancelRequest = new AtomicBoolean(false);
 
   private final NameNodeLoader nameNodeLoader = new NameNodeLoader();
   private final HsqlDriver hsqlDriver = new HsqlDriver();
@@ -150,7 +151,8 @@ public class HadoopWebServerMain implements ApplicationMain {
             internalService,
             operationService,
             queryLock,
-            savingNamespace);
+            savingNamespace,
+            cancelRequest);
     nnaHttpServer.start();
 
     // Bootstrap classes.

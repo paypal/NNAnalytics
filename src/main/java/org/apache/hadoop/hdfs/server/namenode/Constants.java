@@ -288,7 +288,8 @@ public interface Constants {
     removeCachedQuery,
     cachedMaps,
     sql,
-    fileTypes
+    fileTypes,
+    queryGuard
   }
 
   EnumSet<Endpoint> UNSECURED_ENDPOINTS =
@@ -353,7 +354,8 @@ public interface Constants {
           Endpoint.removeDirectory,
           Endpoint.metrics,
           Endpoint.setCachedQuery,
-          Endpoint.removeCachedQuery);
+          Endpoint.removeCachedQuery,
+          Endpoint.queryGuard);
 
   EnumSet<Filter> FILTER_FILE =
       EnumSet.of(

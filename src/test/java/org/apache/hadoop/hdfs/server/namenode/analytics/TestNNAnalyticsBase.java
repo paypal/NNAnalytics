@@ -24,6 +24,7 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.StringContains.containsString;
@@ -47,6 +48,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
@@ -63,16 +68,19 @@ import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeLoader;
 import org.apache.hadoop.hdfs.server.namenode.QueryEngine;
 import org.apache.hadoop.hdfs.server.namenode.queries.Transforms;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -877,6 +885,50 @@ public abstract class TestNNAnalyticsBase {
     List<String> strings = IOUtils.readLines(res.getEntity().getContent());
     strings.clear();
     assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testBlockQueries() throws IOException, ExecutionException, InterruptedException {
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    ResponseHandler<String> responseHandler =
+        response -> {
+          HttpEntity entity = response.getEntity();
+          return entity == null ? null : EntityUtils.toString(entity);
+        };
+    HttpGet get = new HttpGet("http://localhost:4567/histogram?set=all&type=memoryConsumed");
+    List<Future<String>> futures = new ArrayList<>(100);
+    for (int i = 0; i < 100; i++) {
+      Future<String> result =
+          executorService.submit(
+              () -> new DefaultHttpClient().execute(hostPort, get, responseHandler));
+      futures.add(result);
+    }
+
+    HttpGet killQuery = new HttpGet("http://localhost:4567/queryGuard");
+    HttpResponse res = client.execute(hostPort, killQuery);
+
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    System.out.println(result);
+
+    int queryCancelled = 0;
+    for (Future<String> future : futures) {
+      String output = future.get();
+      if (output.contains("Query cancelled.")) {
+        queryCancelled++;
+      }
+    }
+    assertThat(queryCancelled, is(not(0))); // Some queries cancelled.
+    assertThat(queryCancelled, is(lessThan(100))); // Not all got cancelled.
+
+    HttpGet allowQueries = new HttpGet("http://localhost:4567/queryGuard");
+    HttpResponse allowRes = client.execute(hostPort, allowQueries);
+
+    assertThat(allowRes.getStatusLine().getStatusCode(), is(200));
+    List<String> allowStr = IOUtils.readLines(allowRes.getEntity().getContent());
+    System.out.println(allowStr);
+    assertThat(allowStr.size(), is(1));
+    assertThat(allowStr.get(0), is("All queries allowed."));
   }
 
   @Test
