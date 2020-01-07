@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import org.apache.hadoop.hdfs.server.namenode.ConcurrentHashMapINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,8 @@ public class ApplicationConfiguration {
   private static final String NNA_BOOTSTRAP_AUTO_FETCH_NAMESPACE = "false";
   private static final String NNA_QUERY_ENGINE_DEFAULT =
       JavaStreamQueryEngine.class.getCanonicalName();
+  private static final String NNA_INODE_COLLECTION_DEFAULT =
+      ConcurrentHashMapINodeCollection.class.getCanonicalName();
 
   /** Constructor. Fetches configuration from ClassLoader stream. */
   public ApplicationConfiguration() {
@@ -284,6 +287,10 @@ public class ApplicationConfiguration {
 
   public String getQueryEngineImplementation() {
     return properties.getProperty("nna.query.engine.impl", NNA_QUERY_ENGINE_DEFAULT);
+  }
+
+  public String getINodeCollectionImplementation() {
+    return properties.getProperty("nna.inode.collection.impl", NNA_INODE_COLLECTION_DEFAULT);
   }
 
   /** Returns true or false depending on if you configure NNA to auto-fetch on restart. */

@@ -374,7 +374,7 @@ public class NameNodeLoader {
     }
 
     // Let QueryEngine deal with inode set from here.
-    queryEngine.handleGSet(preloadedInodes, namesystem);
+    queryEngine.handleGSet(preloadedInodes, nnaConf, namesystem);
 
     if (preloadedInodes == null) {
       // Start tailing and updating security credentials threads.
