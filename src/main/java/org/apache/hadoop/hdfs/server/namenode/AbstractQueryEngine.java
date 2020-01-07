@@ -43,9 +43,9 @@ import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.hdfs.server.namenode.analytics.Helper;
 import org.apache.hadoop.hdfs.server.namenode.analytics.HistogramInvoker;
 import org.apache.hadoop.hdfs.server.namenode.queries.FileTypeHistogram;
@@ -54,9 +54,9 @@ import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.StorageTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
 import org.apache.hadoop.util.GSetSeperatorWrapper;
+import org.apache.hadoop.util.ReflectionUtils;
 
 public abstract class AbstractQueryEngine implements QueryEngine {
 
@@ -73,10 +73,13 @@ public abstract class AbstractQueryEngine implements QueryEngine {
 
   @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
   @Override // QueryEngine
-  public void handleGSet(GSet<INode, INodeWithAdditionalFields> preloaded, FSNamesystem namesystem)
+  public void handleGSet(
+      GSet<INode, INodeWithAdditionalFields> preloaded,
+      ApplicationConfiguration nnaConf,
+      FSNamesystem namesystem)
       throws Exception {
     if (preloaded != null) {
-      filterINodes(preloaded);
+      filterINodes(preloaded, nnaConf);
       return;
     }
 
@@ -89,7 +92,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
       GSet<INode, INodeWithAdditionalFields> gset =
           (GSet<INode, INodeWithAdditionalFields>) mapField.get(inodeMap);
 
-      filterINodes(gset);
+      filterINodes(gset, nnaConf);
 
       GSet<INode, INodeWithAdditionalFields> newGSet = new GSetSeperatorWrapper(files, dirs);
       mapField.set(inodeMap, newGSet);
@@ -99,17 +102,18 @@ public abstract class AbstractQueryEngine implements QueryEngine {
   }
 
   @SuppressWarnings("unchecked") /* We do unchecked casting to extract GSets */
-  private void filterINodes(GSet<INode, INodeWithAdditionalFields> gset) {
+  private void filterINodes(
+      GSet<INode, INodeWithAdditionalFields> gset, ApplicationConfiguration nnaConf)
+      throws Exception {
+    String inodeCollectionClass = nnaConf.getINodeCollectionImplementation();
+    LOG.info("Filtering inodes with implementation: {}", inodeCollectionClass);
+    Class<INodeFilterer> filtererClass = (Class<INodeFilterer>) Class.forName(inodeCollectionClass);
+    INodeFilterer filterer = ReflectionUtils.newInstance(filtererClass, null);
     final long start = System.currentTimeMillis();
-    files =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isFile)
-            .collect(Collectors.toConcurrentMap(node -> node, node -> node));
-    dirs =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isDirectory)
-            .collect(Collectors.toConcurrentMap(node -> node, node -> node));
-    all = CollectionsView.combine(files.keySet(), dirs.keySet());
+    filterer.filterINodes(gset);
+    files = filterer.getFiles();
+    dirs = filterer.getDirs();
+    all = filterer.getAll();
     final long end = System.currentTimeMillis();
     LOG.info("Performing AbstractQE filtering of files and dirs took: {} ms.", (end - start));
   }

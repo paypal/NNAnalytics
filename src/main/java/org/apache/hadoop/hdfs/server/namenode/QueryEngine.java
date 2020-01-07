@@ -28,6 +28,7 @@ import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.hadoop.hdfs.server.namenode.analytics.ApplicationConfiguration;
 import org.apache.hadoop.util.GSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,10 @@ public interface QueryEngine {
 
   void setVersionContext(VersionInterface versionLoader);
 
-  void handleGSet(GSet<INode, INodeWithAdditionalFields> gset, FSNamesystem namesystem)
+  void handleGSet(
+      GSet<INode, INodeWithAdditionalFields> gset,
+      ApplicationConfiguration nnaConf,
+      FSNamesystem namesystem)
       throws Exception;
 
   Collection<INode> getINodeSet(String set);
