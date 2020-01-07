@@ -25,9 +25,9 @@ import org.apache.hadoop.util.GSet;
 
 public abstract class INodeFilterer {
 
-  Map<INode, INodeWithAdditionalFields> files;
-  Map<INode, INodeWithAdditionalFields> dirs;
-  Collection<INode> all;
+  protected Map<INode, INodeWithAdditionalFields> files;
+  protected Map<INode, INodeWithAdditionalFields> dirs;
+  protected Collection<INode> all;
 
   public abstract void filterINodes(GSet<INode, INodeWithAdditionalFields> gset);
 
