@@ -26,8 +26,8 @@ apply plugin: 'checkstyle'
 
 buildscript {
     repositories {
-        maven { url = "http://jcenter.bintray.com" }
-        maven { url = "http://repo.maven.apache.org/maven2" }
+        maven { url = "https://jcenter.bintray.com" }
+        maven { url = "https://repo.maven.apache.org/maven2" }
     }
     dependencies {
         classpath 'com.netflix.nebula:gradle-ospackage-plugin:2.2.4'
@@ -132,8 +132,8 @@ compileJava {
 }
 
 repositories {
-    maven { url = "http://jcenter.bintray.com" }
-    maven { url = "http://repo.maven.apache.org/maven2" }
+    maven { url = "https://jcenter.bintray.com" }
+    maven { url = "https://repo.maven.apache.org/maven2" }
 }
 
 configurations {
