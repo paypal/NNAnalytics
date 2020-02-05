@@ -160,8 +160,7 @@ dependencies {
         force = true
     }
     outboundDep group: 'com.github.jsqlparser', name: 'jsqlparser', version: '2.1'
-    outboundDep group: 'net.sf.trove4j', name: 'core', version: '3.1.0'
-    outboundDep group: 'it.unimi.dsi', name: 'fastutil', version: '8.3.0'
+    outboundDep group: 'com.boundary', name: 'high-scale-lib', version: '1.0.6'
     outboundDep group: 'org.eclipse.collections', name: 'eclipse-collections-api', version: '10.1.0'
     outboundDep group: 'org.eclipse.collections', name: 'eclipse-collections', version: '10.1.0'
     outboundDep group: 'org.apache.hadoop', name: 'hadoop-common', version: "${hadoopVersion}"

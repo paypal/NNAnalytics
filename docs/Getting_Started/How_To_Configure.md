@@ -51,7 +51,7 @@ Definitions of configuration NNA-specific properties:
 * `nna.localonly.users=<comma-seperated list of username:password pairs>` - Local-only accounts; recommended for any applications that intend to use NNA API.
 * `nna.query.engine.impl=<string>` - The full canonical class name of the QueryEngine implementation to use. Current existing implementations are `org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine` (recommended and the default). If you wish to create your own you may change this property to load it.
 * `nna.inode.collection.impl=<string>` - The full canonical class name of the INodeFilterer implementation to use. Current existing implementations are `org.apache.hadoop.hdfs.server.namenode.ConcurrentHashMapINodeCollection` (recommended and the default). If you wish to create your own you may change this property to load it. 
-Other options are: `HashMapINodeCollection`, `EclipseINodeCollection`, and `TroveINodeCollection`. You may see performance gains using the other implementations.
+Other options are: `EclipseINodeCollection` and `NonBlockingHashMapINodeCollection`. You may see less overall memory usage by using one of these other implementations.
 
 ** If you have a `/usr/local/nn-analytics/config/security.properties` file please rename it to `/usr/local/nn-analytics/config/application.properties`. The `security.properties` file is now deprecated. Eventually the new `application.properties` file will also be moved to an XML file in the style of other Hadoop ecosystem configurations.
 

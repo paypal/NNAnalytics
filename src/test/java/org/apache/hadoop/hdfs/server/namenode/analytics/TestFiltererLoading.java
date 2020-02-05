@@ -23,11 +23,10 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.ConcurrentHashMapINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.EclipseINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
-import org.apache.hadoop.hdfs.server.namenode.HashMapINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
 import org.apache.hadoop.hdfs.server.namenode.JavaStreamQueryEngine;
-import org.apache.hadoop.hdfs.server.namenode.TroveINodeCollection;
+import org.apache.hadoop.hdfs.server.namenode.NonBlockingHashMapINodeCollection;
 import org.apache.hadoop.util.GSet;
 import org.junit.After;
 import org.junit.Before;
@@ -76,19 +75,14 @@ public class TestFiltererLoading {
 
   @Test
   public void testLoadHashMapFilterer() throws Exception {
-    conf.set("nna.inode.collection.impl", HashMapINodeCollection.class.getCanonicalName());
+    conf.set(
+        "nna.inode.collection.impl", NonBlockingHashMapINodeCollection.class.getCanonicalName());
     nna.init(conf, gset);
   }
 
   @Test
   public void testLoadEclipseFilterer() throws Exception {
     conf.set("nna.inode.collection.impl", EclipseINodeCollection.class.getCanonicalName());
-    nna.init(conf, gset);
-  }
-
-  @Test
-  public void testLoadTroveFilterer() throws Exception {
-    conf.set("nna.inode.collection.impl", TroveINodeCollection.class.getCanonicalName());
     nna.init(conf, gset);
   }
 }

@@ -19,26 +19,37 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import gnu.trove.map.hash.THashMap;
+import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
+import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
-public class TroveINodeCollection extends INodeFilterer {
+/**
+ * Filters the INode GSet into java.util.ConcurrentHashMap sets. This has great performance in
+ * memory space vs lookup speed.
+ */
+public class NonBlockingHashMapINodeCollection implements INodeFilterer {
 
   @Override
-  public void filterINodes(GSet<INode, INodeWithAdditionalFields> gset) {
-    files =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isFile)
-            .collect(Collectors.toMap(node -> node, node -> node, throwingMerger(), THashMap::new));
-    dirs =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isDirectory)
-            .collect(Collectors.toMap(node -> node, node -> node, throwingMerger(), THashMap::new));
-    all = CollectionsView.combine(files.keySet(), dirs.keySet());
+  public Map<INode, INodeWithAdditionalFields> filterFiles(
+      GSet<INode, INodeWithAdditionalFields> gset) {
+    return StreamSupport.stream(gset.spliterator(), true)
+        .filter(INode::isFile)
+        .collect(
+            Collectors.toConcurrentMap(
+                node -> node, node -> node, throwingMerger(), NonBlockingHashMap::new));
+  }
+
+  @Override
+  public Map<INode, INodeWithAdditionalFields> filterDirs(
+      GSet<INode, INodeWithAdditionalFields> gset) {
+    return StreamSupport.stream(gset.spliterator(), true)
+        .filter(INode::isDirectory)
+        .collect(
+            Collectors.toConcurrentMap(
+                node -> node, node -> node, throwingMerger(), NonBlockingHashMap::new));
   }
 
   private static <T> BinaryOperator<T> throwingMerger() {

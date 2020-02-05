@@ -54,6 +54,7 @@ import org.apache.hadoop.hdfs.server.namenode.queries.SpaceSizeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.StorageTypeHistogram;
 import org.apache.hadoop.hdfs.server.namenode.queries.TimeHistogram;
 import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
 import org.apache.hadoop.util.GSetSeperatorWrapper;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -110,10 +111,9 @@ public abstract class AbstractQueryEngine implements QueryEngine {
     Class<INodeFilterer> filtererClass = (Class<INodeFilterer>) Class.forName(inodeCollectionClass);
     INodeFilterer filterer = ReflectionUtils.newInstance(filtererClass, null);
     final long start = System.currentTimeMillis();
-    filterer.filterINodes(gset);
-    files = filterer.getFiles();
-    dirs = filterer.getDirs();
-    all = filterer.getAll();
+    files = filterer.filterFiles(gset);
+    dirs = filterer.filterDirs(gset);
+    all = CollectionsView.combine(files.keySet(), dirs.keySet());
     final long end = System.currentTimeMillis();
     LOG.info("Performing AbstractQE filtering of files and dirs took: {} ms.", (end - start));
   }

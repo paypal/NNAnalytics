@@ -19,19 +19,14 @@
 
 package org.apache.hadoop.hdfs.server.namenode.analytics;
 
-import gnu.trove.map.hash.THashMap;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import org.apache.hadoop.hdfs.server.namenode.ConcurrentHashMapINodeCollection;
+import org.apache.hadoop.hdfs.server.namenode.EclipseINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeWithAdditionalFields;
-import org.apache.hadoop.util.CollectionsView;
+import org.apache.hadoop.hdfs.server.namenode.NonBlockingHashMapINodeCollection;
 import org.apache.hadoop.util.GSet;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -80,86 +75,29 @@ public class BenchmarkGSetFiltering {
   }
 
   @Benchmark
-  public void benchmarkJavaFiltering() {
-    Map<INode, INodeWithAdditionalFields> files =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isFile)
-            .collect(Collectors.toMap(node -> node, node -> node, throwingMerger(), HashMap::new));
-    Map<INode, INodeWithAdditionalFields> dirs =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isDirectory)
-            .collect(Collectors.toMap(node -> node, node -> node, throwingMerger(), HashMap::new));
-    Collection<INode> all = CollectionsView.combine(files.keySet(), dirs.keySet());
-    MemoryProfiler.keepReference(files);
-    MemoryProfiler.keepReference(dirs);
-    MemoryProfiler.keepReference(all);
-  }
-
-  @Benchmark
   public void benchmarkConcurrentJavaFiltering() {
-    Map<INode, INodeWithAdditionalFields> files =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isFile)
-            .collect(
-                Collectors.toMap(
-                    node -> node, node -> node, throwingMerger(), ConcurrentHashMap::new));
-    Map<INode, INodeWithAdditionalFields> dirs =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isDirectory)
-            .collect(
-                Collectors.toMap(
-                    node -> node, node -> node, throwingMerger(), ConcurrentHashMap::new));
-    Collection<INode> all = CollectionsView.combine(files.keySet(), dirs.keySet());
+    ConcurrentHashMapINodeCollection concurrent = new ConcurrentHashMapINodeCollection();
+    Map<INode, INodeWithAdditionalFields> files = concurrent.filterFiles(gset);
+    Map<INode, INodeWithAdditionalFields> dirs = concurrent.filterDirs(gset);
     MemoryProfiler.keepReference(files);
     MemoryProfiler.keepReference(dirs);
-    MemoryProfiler.keepReference(all);
   }
 
   @Benchmark
-  public void benchmarkTroveFiltering() {
-    Map<INode, INodeWithAdditionalFields> files =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isFile)
-            .collect(Collectors.toMap(node -> node, node -> node, throwingMerger(), THashMap::new));
-    Map<INode, INodeWithAdditionalFields> dirs =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isDirectory)
-            .collect(Collectors.toMap(node -> node, node -> node, throwingMerger(), THashMap::new));
-    Collection<INode> all = CollectionsView.combine(files.keySet(), dirs.keySet());
+  public void benchmarkNonBlockingHashMapFiltering() {
+    NonBlockingHashMapINodeCollection concurrent = new NonBlockingHashMapINodeCollection();
+    Map<INode, INodeWithAdditionalFields> files = concurrent.filterFiles(gset);
+    Map<INode, INodeWithAdditionalFields> dirs = concurrent.filterDirs(gset);
     MemoryProfiler.keepReference(files);
     MemoryProfiler.keepReference(dirs);
-    MemoryProfiler.keepReference(all);
   }
 
   @Benchmark
-  public void benchmarkGoldmanSachsFiltering() {
-    Map<INode, INodeWithAdditionalFields> files =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isFile)
-            .collect(
-                Collectors.toMap(
-                    node -> node,
-                    node -> node,
-                    throwingMerger(),
-                    org.eclipse.collections.impl.map.mutable.ConcurrentHashMap::new));
-    Map<INode, INodeWithAdditionalFields> dirs =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isDirectory)
-            .collect(
-                Collectors.toMap(
-                    node -> node,
-                    node -> node,
-                    throwingMerger(),
-                    org.eclipse.collections.impl.map.mutable.ConcurrentHashMap::new));
-    Collection<INode> all = CollectionsView.combine(files.keySet(), dirs.keySet());
+  public void benchmarkEclipseConcurrentFiltering() {
+    EclipseINodeCollection concurrent = new EclipseINodeCollection();
+    Map<INode, INodeWithAdditionalFields> files = concurrent.filterFiles(gset);
+    Map<INode, INodeWithAdditionalFields> dirs = concurrent.filterDirs(gset);
     MemoryProfiler.keepReference(files);
     MemoryProfiler.keepReference(dirs);
-    MemoryProfiler.keepReference(all);
-  }
-
-  private static <T> BinaryOperator<T> throwingMerger() {
-    return (u, v) -> {
-      throw new IllegalStateException(String.format("Duplicate key %s", u));
-    };
   }
 }
