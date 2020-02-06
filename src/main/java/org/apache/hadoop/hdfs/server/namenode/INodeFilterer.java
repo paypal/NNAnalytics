@@ -19,27 +19,12 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import java.util.Collection;
 import java.util.Map;
 import org.apache.hadoop.util.GSet;
 
-public abstract class INodeFilterer {
+public interface INodeFilterer {
 
-  protected Map<INode, INodeWithAdditionalFields> files;
-  protected Map<INode, INodeWithAdditionalFields> dirs;
-  protected Collection<INode> all;
+  Map<INode, INodeWithAdditionalFields> filterFiles(GSet<INode, INodeWithAdditionalFields> gset);
 
-  public abstract void filterINodes(GSet<INode, INodeWithAdditionalFields> gset);
-
-  public Map<INode, INodeWithAdditionalFields> getFiles() {
-    return files;
-  }
-
-  public Map<INode, INodeWithAdditionalFields> getDirs() {
-    return dirs;
-  }
-
-  public Collection<INode> getAll() {
-    return all;
-  }
+  Map<INode, INodeWithAdditionalFields> filterDirs(GSet<INode, INodeWithAdditionalFields> gset);
 }

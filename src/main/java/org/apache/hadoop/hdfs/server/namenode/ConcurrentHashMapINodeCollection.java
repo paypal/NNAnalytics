@@ -19,35 +19,30 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BinaryOperator;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import org.apache.hadoop.util.CollectionsView;
 import org.apache.hadoop.util.GSet;
 
-public class ConcurrentHashMapINodeCollection extends INodeFilterer {
+/**
+ * Filters the INode GSet into java.util.ConcurrentHashMap sets. This has great performance in
+ * memory space vs lookup speed.
+ */
+public class ConcurrentHashMapINodeCollection implements INodeFilterer {
 
   @Override
-  public void filterINodes(GSet<INode, INodeWithAdditionalFields> gset) {
-    files =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isFile)
-            .collect(
-                Collectors.toMap(
-                    node -> node, node -> node, throwingMerger(), ConcurrentHashMap::new));
-    dirs =
-        StreamSupport.stream(gset.spliterator(), true)
-            .filter(INode::isDirectory)
-            .collect(
-                Collectors.toMap(
-                    node -> node, node -> node, throwingMerger(), ConcurrentHashMap::new));
-    all = CollectionsView.combine(files.keySet(), dirs.keySet());
+  public Map<INode, INodeWithAdditionalFields> filterFiles(
+      GSet<INode, INodeWithAdditionalFields> gset) {
+    return StreamSupport.stream(gset.spliterator(), true)
+        .filter(INode::isFile)
+        .collect(Collectors.toConcurrentMap(node -> node, node -> node));
   }
 
-  private static <T> BinaryOperator<T> throwingMerger() {
-    return (u, v) -> {
-      throw new IllegalStateException(String.format("Duplicate key %s", u));
-    };
+  @Override
+  public Map<INode, INodeWithAdditionalFields> filterDirs(
+      GSet<INode, INodeWithAdditionalFields> gset) {
+    return StreamSupport.stream(gset.spliterator(), true)
+        .filter(INode::isDirectory)
+        .collect(Collectors.toConcurrentMap(node -> node, node -> node));
   }
 }
