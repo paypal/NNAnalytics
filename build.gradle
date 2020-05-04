@@ -26,8 +26,8 @@ apply plugin: 'checkstyle'
 
 buildscript {
     repositories {
-        maven { url = "http://jcenter.bintray.com" }
-        maven { url = "http://repo.maven.apache.org/maven2" }
+        maven { url = "https://jcenter.bintray.com" }
+        maven { url = "https://repo.maven.apache.org/maven2" }
     }
     dependencies {
         classpath 'com.netflix.nebula:gradle-ospackage-plugin:2.2.4'
@@ -132,8 +132,8 @@ compileJava {
 }
 
 repositories {
-    maven { url = "http://jcenter.bintray.com" }
-    maven { url = "http://repo.maven.apache.org/maven2" }
+    maven { url = "https://jcenter.bintray.com" }
+    maven { url = "https://repo.maven.apache.org/maven2" }
 }
 
 configurations {
@@ -160,6 +160,9 @@ dependencies {
         force = true
     }
     outboundDep group: 'com.github.jsqlparser', name: 'jsqlparser', version: '2.1'
+    outboundDep group: 'com.boundary', name: 'high-scale-lib', version: '1.0.6'
+    outboundDep group: 'org.eclipse.collections', name: 'eclipse-collections-api', version: '10.1.0'
+    outboundDep group: 'org.eclipse.collections', name: 'eclipse-collections', version: '10.1.0'
     outboundDep group: 'org.apache.hadoop', name: 'hadoop-common', version: "${hadoopVersion}"
     outboundDep group: 'org.apache.hadoop', name: 'hadoop-hdfs', version: "${hadoopVersion}"
     testCompile group: 'org.apache.hadoop', name: 'hadoop-common', version: "${hadoopVersion}", classifier: 'tests'
@@ -167,6 +170,8 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
     testCompile group: 'org.hamcrest', name: 'hamcrest-library', version: '1.3'
     testCompile group: 'junit', name: 'junit', version: '4.11'
+    testCompile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.19'
+    testCompile group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.19'
 
     if (hadoopVersion.startsWith("3.")) {
         outboundDep group: 'org.apache.hadoop', name: 'hadoop-hdfs-client', version: "${hadoopVersion}"
