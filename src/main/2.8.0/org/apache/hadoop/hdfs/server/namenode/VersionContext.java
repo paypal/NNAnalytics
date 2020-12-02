@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
 import org.apache.hadoop.hdfs.server.namenode.queries.Histograms;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
@@ -191,5 +192,10 @@ public class VersionContext implements VersionInterface {
   @Override // VersionInterface
   public Long getDsQuotaUsed(INode node) {
     return node.computeQuotaUsage(BlockStoragePolicySuite.createDefaultSuite()).getStorageSpace();
+  }
+
+  @Override // VersionInterface
+  public void startStandbyServices(Configuration conf) throws IOException {
+    namesystem.startStandbyServices(conf);
   }
 }

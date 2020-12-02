@@ -366,7 +366,10 @@ public class NameNodeLoader {
       }
       long end1 = System.currentTimeMillis();
       LOG.info("FSImage loaded in: {} ms.", (end1 - start1));
-      LOG.info("Loaded in {} Inodes", namesystem.getFilesTotal());
+      LOG.info(
+          "Loaded in {} Inodes + {} blocks",
+          namesystem.getFilesTotal(),
+          namesystem.getBlocksTotal());
 
       tokenExtractor = new TokenExtractor(namesystem.dtSecretManager, namesystem);
     } else {
@@ -379,8 +382,8 @@ public class NameNodeLoader {
     if (preloadedInodes == null) {
       // Start tailing and updating security credentials threads.
       try {
-        namesystem.startStandbyServices(conf);
         versionLoader.setNamesystem(namesystem);
+        versionLoader.startStandbyServices(conf);
       } catch (Throwable e) {
         LOG.error("Failed to start EditLogTailer.", e);
       }
@@ -405,9 +408,6 @@ public class NameNodeLoader {
   private void handleConfigurationOverrides(Configuration conf, ApplicationConfiguration nnaConf)
       throws URISyntaxException {
     if (nnaConf.allowBootstrapConfigurationOverrides()) {
-      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
-      conf.setBoolean(DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
-
       LOG.info("Setting: {} to: {} ", DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, (-1));
       conf.setInt(DFSConfigKeys.DFS_HA_LOGROLL_PERIOD_KEY, -1);
 
