@@ -31,3 +31,11 @@ jobs:
         VERSION: ${{ matrix.version }}
       run: ./gradlew clean build buildRpm buildDeb $VERSION
     - uses: codecov/codecov-action@v1
+    - uses: actions/upload-artifact@v2
+      with:
+        path: build/distributions/*
+    - name: Archive and upload test reports
+      run: tar -cvf reports.tar build/reports/tests/*
+    - uses: actions/upload-artifact@v2
+      with:
+        path: reports.tar
