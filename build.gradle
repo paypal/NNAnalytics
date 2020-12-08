@@ -159,6 +159,9 @@ dependencies {
     outboundDep(group: 'com.google.guava', name: 'guava', version: '11.0.2') {
         force = true
     }
+    outboundDep(group: 'commons-io', name: 'commons-io', version: '2.4') {
+        force = true
+    }
     outboundDep group: 'com.github.jsqlparser', name: 'jsqlparser', version: '2.1'
     outboundDep group: 'com.boundary', name: 'high-scale-lib', version: '1.0.6'
     outboundDep group: 'org.eclipse.collections', name: 'eclipse-collections-api', version: '10.1.0'
