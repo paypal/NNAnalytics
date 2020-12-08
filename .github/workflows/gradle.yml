@@ -31,23 +31,3 @@ jobs:
         VERSION: ${{ matrix.version }}
       run: ./gradlew clean build buildRpm buildDeb -PhadoopVersion=$VERSION
     - uses: codecov/codecov-action@v1
-    - uses: actions/upload-artifact@v2
-      env:
-        VERSION: ${{ matrix.version }}
-      with:
-        name: nna_${env.VERSION}.rpm
-        path: build/distributions/*.rpm
-    - uses: actions/upload-artifact@v2
-      env:
-        VERSION: ${{ matrix.version }}
-      with:
-        name: nna_${env.VERSION}.deb
-        path: build/distributions/*.deb
-    - name: Archive and upload test reports
-      env:
-        VERSION: ${{ matrix.version }}
-      run: tar -cvf reports_${env.VERSION}.tar build/reports/tests/*
-    - uses: actions/upload-artifact@v2
-      with:
-        name: reports_${env.VERSION}.tar
-        path: reports.tar
