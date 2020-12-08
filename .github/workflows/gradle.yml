@@ -49,5 +49,5 @@ jobs:
       run: tar -cvf reports_${env.VERSION}.tar build/reports/tests/*
     - uses: actions/upload-artifact@v2
       with:
-        name: reports_$VERSION.tar
+        name: reports_${env.VERSION}.tar
         path: reports.tar
