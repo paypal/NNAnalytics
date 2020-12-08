@@ -33,9 +33,15 @@ jobs:
     - uses: codecov/codecov-action@v1
     - uses: actions/upload-artifact@v2
       with:
-        path: build/distributions/*
+        name: nna_$VERSION.rpm
+        path: build/distributions/*.rpm
+    - uses: actions/upload-artifact@v2
+      with:
+        name: nna_$VERSION.deb
+        path: build/distributions/*.deb
     - name: Archive and upload test reports
       run: tar -cvf reports.tar build/reports/tests/*
     - uses: actions/upload-artifact@v2
       with:
+        name: reports_$VERSION.tar
         path: reports.tar
