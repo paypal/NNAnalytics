@@ -179,7 +179,7 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public void saveNamespace() throws IOException {
-    namesystem.saveNamespace(0, 0);
+    namesystem.saveNamespace();
   }
 
   @Override // VersionInterface
@@ -209,6 +209,6 @@ public class VersionContext implements VersionInterface {
 
   @Override // VersionInterface
   public void startStandbyServices(Configuration conf) throws IOException {
-    namesystem.startStandbyServices(conf);
+    namesystem.startStandbyServices(conf, false);
   }
 }

@@ -38,10 +38,17 @@ buildscript {
 }
 
 apply plugin: 'idea'
+apply plugin: "eclipse"
 apply plugin: 'os-package'
 apply plugin: 'license'
 apply plugin: 'com.diffplug.gradle.spotless'
 apply plugin: 'net.nemerosa.versioning'
+
+eclipse {
+  classpath {
+    defaultOutputDir = file('build/eclipse')
+  }
+}
 
 ext {
     mainClass = (properties.get("mainClass") == null) ? "" : "${mainClass}"

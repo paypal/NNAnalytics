@@ -22,6 +22,7 @@ package org.apache.hadoop.hdfs.server.namenode;
 import java.io.IOException;
 import java.util.function.Function;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.hadoop.conf.Configuration;
 
 public interface VersionInterface {
 
@@ -44,4 +45,6 @@ public interface VersionInterface {
   Long getDsQuota(INode node);
 
   Long getDsQuotaUsed(INode node);
+
+  void startStandbyServices(Configuration conf) throws IOException;
 }
