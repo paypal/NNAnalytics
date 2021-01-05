@@ -32,7 +32,7 @@ ________________________________________________________________________________
 
 # Presentations
 
-  * [SlideShare](https://www.slideshare.net/Hadoop_Summit/namenode-analytics-scouting-the-hdfs-metadata-103202302)
+  * [SlideShare](https://www2.slideshare.net/PlamenJeliazkov/namenode-analytics-querying-hdfs-namespace-in-real-time)
   * [DataWorks Summit](https://www.youtube.com/watch?v=9xlB5C88tbk)
 
 __________________________________________________________________________________________________________________
