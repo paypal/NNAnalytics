@@ -48,9 +48,12 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class TestWithMiniClusterBase {
 
   protected static final SRandom RANDOM = new SRandom();
@@ -286,6 +289,18 @@ public abstract class TestWithMiniClusterBase {
     nna.init(nnaConf, null, CONF);
     long restartedTxid = nna.getLoader().getCurrentTxId();
     assertThat(restartedTxid, is(greaterThan(currentTxid + 99)));
+  }
+
+  @Test
+  public void testUpdateSeenThenContentSummary() throws Exception {
+    HttpGet get = new HttpGet("http://localhost:4567/contentSummary?path=/dir1");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> output = IOUtils.readLines(res.getEntity().getContent());
+    System.out.println(output);
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+    assertThat(output.size(), is(1));
+    assertThat(output.get(0), containsString("none"));
+    assertThat(output.get(0), containsString("inf"));
   }
 
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {
