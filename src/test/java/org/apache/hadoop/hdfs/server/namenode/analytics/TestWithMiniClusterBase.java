@@ -305,6 +305,29 @@ public abstract class TestWithMiniClusterBase {
     assertThat(output.get(0), containsString("inf"));
   }
 
+  @Test
+  public void testUpdateSeenThenContentSummaryFail() throws Exception {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/contentSummary?path=/fakeDir&useLock=true&useQueryLock=true");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> output = IOUtils.readLines(res.getEntity().getContent());
+    System.out.println(output);
+    assertThat(res.getStatusLine().getStatusCode(), is(404));
+    assertThat(output.size(), is(1));
+  }
+
+  @Test
+  public void testUpdateSeenThenContentSummaryFailNoPath() throws Exception {
+    HttpGet get =
+        new HttpGet("http://localhost:4567/contentSummary?path&useLock=true&useQueryLock=true");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> output = IOUtils.readLines(res.getEntity().getContent());
+    System.out.println(output);
+    assertThat(res.getStatusLine().getStatusCode(), is(500));
+    assertThat(output.size(), is(greaterThan(1)));
+  }
+
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {
     DistributedFileSystem fileSystem = (DistributedFileSystem) FileSystem.get(CONF);
     for (int i = 0; i < numOfFiles; i++) {
