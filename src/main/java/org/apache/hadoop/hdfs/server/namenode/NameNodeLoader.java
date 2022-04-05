@@ -545,18 +545,29 @@ public class NameNodeLoader {
   }
 
   /**
-   * Perform a content summary call against the underlying FSNamesystem.
+   * Perform a content summary call against the underlying FSNamesystem. Do not send Exception
+   * upwards - treat as empty.
    *
    * @param path the dir/file path to call content summary on
    * @return a summary of the subtree or file
    */
   public ContentSummary getContentSummary(String path) {
     try {
-      return namesystem.getContentSummary(path);
+      return getContentSummaryImpl(path);
     } catch (IOException e) {
       LOG.error("Error with getContentSummary.", e);
     }
     return new ContentSummary.Builder().fileCount(0L).directoryCount(0L).build();
+  }
+
+  /**
+   * Perform a content summary call against the underlying FSNamesystem.
+   *
+   * @param path the dir/file path to call content summary on
+   * @return a summary of the subtree or file
+   */
+  public ContentSummary getContentSummaryImpl(String path) throws IOException {
+    return namesystem.getContentSummary(path);
   }
 
   /**

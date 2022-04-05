@@ -63,6 +63,7 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.AnalysisState;
@@ -1255,6 +1256,39 @@ public class WebServerMain implements ApplicationMain {
           } finally {
             lock.writeLock().unlock();
           }
+        });
+
+    /* ContentSummary endpoint takes 1 set of "path" parameters and returns the full form output as an
+    `hdfs dfs -count` operation would. This is to provide folks with a simple alternative to doing count operations
+     on NNA. */
+    get(
+        "/contentSummary",
+        (req, res) -> {
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Content-Type", "text/plain");
+          if (!nameNodeLoader.isInit()) {
+            return "";
+          }
+
+          String path = req.queryMap("path").value();
+          final Boolean useFsLock = req.queryMap("useLock").booleanValue();
+          final Boolean useQueryLock = req.queryMap("useQueryLock").booleanValue();
+
+          ContentSummary contentSummary;
+
+          if (useQueryLock != null && useQueryLock) {
+            lock.writeLock().lock();
+          }
+          nameNodeLoader.namesystemWriteLock(useFsLock);
+          try {
+            contentSummary = nameNodeLoader.getContentSummaryImpl(path);
+          } finally {
+            nameNodeLoader.namesystemWriteUnlock(useFsLock);
+            if (useQueryLock != null && useQueryLock) {
+              lock.writeLock().unlock();
+            }
+          }
+          return contentSummary.toString();
         });
 
     /* Filter endpoint takes 1 set of "set", "filter", "sum" / "limit" parameters and returns either

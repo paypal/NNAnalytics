@@ -81,6 +81,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.server.namenode.Constants;
 import org.apache.hadoop.hdfs.server.namenode.Constants.Endpoint;
@@ -1992,6 +1993,62 @@ public class NamenodeAnalyticsMethods {
       } finally {
         queryLock.writeLock().unlock();
       }
+    } catch (RuntimeException rtex) {
+      return handleException(rtex);
+    } catch (Exception ex) {
+      return handleException(ex);
+    } finally {
+      after();
+    }
+  }
+
+  /**
+   * HISTOGRAM3 endpoint takes 1 set of "set", "filter", "type", and "sum" parameters and returns a
+   * histogram where the X-axis represents the "type" type and the Y-axis represents the "sum" type.
+   * Output types available dictated by "&histogramOutput=". Default is CHART form. This differs
+   * from Histogram endpoint in that it can output multiple sums and values in a single query.
+   */
+  @GET
+  @Path("/contentSummary")
+  @Produces({MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON})
+  public Response contentSummary() {
+    final NameNodeLoader nnLoader = (NameNodeLoader) context.getAttribute(NNA_NN_LOADER);
+    final ReentrantReadWriteLock queryLock =
+        (ReentrantReadWriteLock) context.getAttribute(NNA_QUERY_LOCK);
+    final AtomicBoolean cancelRequest = (AtomicBoolean) context.getAttribute(NNA_CANCEL_REQUEST);
+    try {
+      before();
+
+      if (!nnLoader.isInit()) {
+        PrintWriter writer = response.getWriter();
+        writer.write("");
+        writer.flush();
+        writer.close();
+        return Response.ok().build();
+      }
+
+      String path = request.getParameter("path");
+      final Boolean useFsLock = Boolean.parseBoolean(request.getParameter("useLock"));
+      final Boolean useQueryLock = Boolean.parseBoolean(request.getParameter("useQueryLock"));
+
+      ContentSummary contentSummary;
+
+      if (useQueryLock != null && useQueryLock) {
+        queryLock.writeLock().lock();
+      }
+      if (cancelRequest.get()) {
+        throw new IOException("Query cancelled.");
+      }
+      nnLoader.namesystemWriteLock(useFsLock);
+      try {
+        contentSummary = nnLoader.getContentSummaryImpl(path);
+      } finally {
+        nnLoader.namesystemWriteUnlock(useFsLock);
+        if (useQueryLock != null && useQueryLock) {
+          queryLock.writeLock().unlock();
+        }
+      }
+      return Response.ok(contentSummary.toString(), MediaType.TEXT_PLAIN).build();
     } catch (RuntimeException rtex) {
       return handleException(rtex);
     } catch (Exception ex) {

@@ -36,6 +36,7 @@ REST Endpoints
   * [AddDirectory](REST_Endpoints/AddDirectory.md)
   * [Bottom](REST_Endpoints/Bottom.md)
   * [Config](REST_Endpoints/Config.md)
+  * [ContentSummary](REST_Endpoints/ContentSummary.md)
   * [Credentials](REST_Endpoints/Credentials.md)
   * [Directories](REST_Endpoints/Directories.md)
   * [Divide](REST_Endpoints/Divide.md)
