@@ -293,7 +293,9 @@ public abstract class TestWithMiniClusterBase {
 
   @Test
   public void testUpdateSeenThenContentSummary() throws Exception {
-    HttpGet get = new HttpGet("http://localhost:4567/contentSummary?path=/dir1&useLock=true&useQueryLock=true");
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/contentSummary?path=/dir1&useLock=true&useQueryLock=true");
     HttpResponse res = client.execute(hostPort, get);
     List<String> output = IOUtils.readLines(res.getEntity().getContent());
     System.out.println(output);

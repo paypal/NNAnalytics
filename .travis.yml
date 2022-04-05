@@ -17,6 +17,7 @@ matrix:
   - env: VERSION='-PhadoopVersion=2.7.0'
   - env: VERSION='-PhadoopVersion=2.8.0'
   - env: VERSION='-PhadoopVersion=2.9.0'
+  - env: VERSION='-PhadoopVersion=2.10.0'
   - env: VERSION='-PhadoopVersion=3.0.0'
   - env: VERSION='-PhadoopVersion=3.1.0'
 script:
