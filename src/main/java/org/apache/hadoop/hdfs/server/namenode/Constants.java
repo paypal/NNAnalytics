@@ -240,6 +240,7 @@ public interface Constants {
     login,
     logout,
     endpoints,
+    contentSummary,
     credentials,
     loadingStatus,
     config,
@@ -325,6 +326,7 @@ public interface Constants {
 
   EnumSet<Endpoint> READER_ENDPOINTS =
       EnumSet.of(
+          Endpoint.contentSummary,
           Endpoint.filter,
           Endpoint.histogram,
           Endpoint.histogram2,
