@@ -21,6 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode.analytics;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.hadoop.hdfs.server.namenode.AirConcurrentMapINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.ConcurrentHashMapINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.EclipseINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
@@ -47,7 +48,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.SECONDS)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Fork(1)
 @Warmup(iterations = 5, time = 1)
 @Measurement(iterations = 5, time = 1)
@@ -71,7 +72,7 @@ public class BenchmarkGSetFiltering {
   @Setup(Level.Trial)
   public void doSetup() {
     GSetGenerator gSetGenerator = new GSetGenerator();
-    gset = gSetGenerator.getGSet((short) 3, 15, 500);
+    gset = gSetGenerator.getGSet((short) 3, 20, 500);
   }
 
   @Benchmark
@@ -79,8 +80,6 @@ public class BenchmarkGSetFiltering {
     ConcurrentHashMapINodeCollection concurrent = new ConcurrentHashMapINodeCollection();
     Map<INode, INodeWithAdditionalFields> files = concurrent.filterFiles(gset);
     Map<INode, INodeWithAdditionalFields> dirs = concurrent.filterDirs(gset);
-    MemoryProfiler.keepReference(files);
-    MemoryProfiler.keepReference(dirs);
   }
 
   @Benchmark
@@ -88,8 +87,6 @@ public class BenchmarkGSetFiltering {
     NonBlockingHashMapINodeCollection concurrent = new NonBlockingHashMapINodeCollection();
     Map<INode, INodeWithAdditionalFields> files = concurrent.filterFiles(gset);
     Map<INode, INodeWithAdditionalFields> dirs = concurrent.filterDirs(gset);
-    MemoryProfiler.keepReference(files);
-    MemoryProfiler.keepReference(dirs);
   }
 
   @Benchmark
@@ -97,7 +94,12 @@ public class BenchmarkGSetFiltering {
     EclipseINodeCollection concurrent = new EclipseINodeCollection();
     Map<INode, INodeWithAdditionalFields> files = concurrent.filterFiles(gset);
     Map<INode, INodeWithAdditionalFields> dirs = concurrent.filterDirs(gset);
-    MemoryProfiler.keepReference(files);
-    MemoryProfiler.keepReference(dirs);
+  }
+
+  @Benchmark
+  public void benchmarkAirConcurrentMapFiltering() {
+    AirConcurrentMapINodeCollection concurrent = new AirConcurrentMapINodeCollection();
+    Map<INode, INodeWithAdditionalFields> files = concurrent.filterFiles(gset);
+    Map<INode, INodeWithAdditionalFields> dirs = concurrent.filterDirs(gset);
   }
 }
