@@ -20,6 +20,7 @@
 package org.apache.hadoop.hdfs.server.namenode.analytics;
 
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.server.namenode.AirConcurrentMapINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.ConcurrentHashMapINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.EclipseINodeCollection;
 import org.apache.hadoop.hdfs.server.namenode.GSetGenerator;
@@ -83,6 +84,12 @@ public class TestFiltererLoading {
   @Test
   public void testLoadEclipseFilterer() throws Exception {
     conf.set("nna.inode.collection.impl", EclipseINodeCollection.class.getCanonicalName());
+    nna.init(conf, gset);
+  }
+
+  @Test
+  public void testLoadAirConcurrentMapFilterer() throws Exception {
+    conf.set("nna.inode.collection.impl", AirConcurrentMapINodeCollection.class.getCanonicalName());
     nna.init(conf, gset);
   }
 }
