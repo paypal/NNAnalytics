@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.hadoop.hdfs.server.namenode.INode;
@@ -87,22 +86,20 @@ public class CachedQuotas {
     }
 
     final QueryEngine queryEngine = loader.getQueryEngine();
-    final Map<String, Map<String, Set<INode>>> ownerDirContentSummary =
+    final Map<String, Map<String, INode>> ownerDirContentSummary =
         queryEngine
             .combinedFilterToStream(dirs, new String[] {"hasQuota"}, new String[] {"eq:true"})
             .collect(
                 Collectors.groupingBy(
                     INode::getUserName,
-                    Collectors.groupingBy(
-                        INode::getFullPathName,
-                        Collectors.mapping(Function.identity(), Collectors.toSet()))));
+                    Collectors.toMap(INode::getFullPathName, Function.identity())));
     cachedUserNsQuotaAssigned.clear();
     cachedUserNsQuotaUsed.clear();
     cachedUserNsQuotaRatios.clear();
     cachedUserDsQuotaAssigned.clear();
     cachedUserDsQuotaUsed.clear();
     cachedUserDsQuotaRatios.clear();
-    for (Entry<String, Map<String, Set<INode>>> entry : ownerDirContentSummary.entrySet()) {
+    for (Entry<String, Map<String, INode>> entry : ownerDirContentSummary.entrySet()) {
       long nsQuotaRatio85 = 0;
       long dsQuotaRatio85 = 0;
       long nsQuotaCount = 0;
@@ -114,10 +111,10 @@ public class CachedQuotas {
       Map<String, Long> dsQuotaUsed = new HashMap<>();
       Map<String, Long> dsQuotaRatio = new HashMap<>();
       String user = entry.getKey();
-      for (Entry<String, Set<INode>> innerEntry : entry.getValue().entrySet()) {
-        INode value = innerEntry.getValue().iterator().next();
+      for (Entry<String, INode> innerEntry : entry.getValue().entrySet()) {
+        INode inode = innerEntry.getValue();
         Long nsQuotaRatioLong =
-            queryEngine.getSumFunctionForINode("nsQuotaRatioUsed", null).apply(value);
+            queryEngine.getSumFunctionForINode("nsQuotaRatioUsed", null).apply(inode);
         if (nsQuotaRatioLong >= 0) {
           nsQuotaCount++;
           if (nsQuotaRatioLong >= 85) {
@@ -126,16 +123,16 @@ public class CachedQuotas {
         } else {
           nsQuotaRatioLong = -1L;
         }
-        Long nsQuotaAssignedLong = queryEngine.getSumFunctionForINode("nsQuota", null).apply(value);
+        Long nsQuotaAssignedLong = queryEngine.getSumFunctionForINode("nsQuota", null).apply(inode);
         if (nsQuotaAssignedLong <= -1L) {
           nsQuotaAssignedLong = -1L;
         }
-        Long nsQuotaUsedLong = queryEngine.getSumFunctionForINode("nsQuotaUsed", null).apply(value);
+        Long nsQuotaUsedLong = queryEngine.getSumFunctionForINode("nsQuotaUsed", null).apply(inode);
         if (nsQuotaUsedLong <= -1L) {
           nsQuotaUsedLong = -1L;
         }
         Long dsQuotaRatioLong =
-            queryEngine.getSumFunctionForINode("dsQuotaRatioUsed", null).apply(value);
+            queryEngine.getSumFunctionForINode("dsQuotaRatioUsed", null).apply(inode);
         if (dsQuotaRatioLong >= 0) {
           dsQuotaCount++;
           if (dsQuotaRatioLong >= 85) {
@@ -144,11 +141,11 @@ public class CachedQuotas {
         } else {
           dsQuotaRatioLong = -1L;
         }
-        Long dsQuotaAssignedLong = queryEngine.getSumFunctionForINode("dsQuota", null).apply(value);
+        Long dsQuotaAssignedLong = queryEngine.getSumFunctionForINode("dsQuota", null).apply(inode);
         if (dsQuotaAssignedLong <= -1L) {
           dsQuotaAssignedLong = -1L;
         }
-        Long dsQuotaUsedLong = queryEngine.getSumFunctionForINode("dsQuotaUsed", null).apply(value);
+        Long dsQuotaUsedLong = queryEngine.getSumFunctionForINode("dsQuotaUsed", null).apply(inode);
         if (dsQuotaUsedLong <= -1L) {
           dsQuotaUsedLong = -1L;
         }
