@@ -383,7 +383,7 @@ public class NameNodeLoader {
       // Start tailing and updating security credentials threads.
       try {
         versionLoader.setNamesystem(namesystem);
-        versionLoader.startStandbyServices(conf, false);
+        versionLoader.startStandbyServices(conf);
       } catch (Throwable e) {
         LOG.error("Failed to start EditLogTailer.", e);
       }

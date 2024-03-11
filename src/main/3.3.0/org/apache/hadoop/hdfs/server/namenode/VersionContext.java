@@ -208,7 +208,7 @@ public class VersionContext implements VersionInterface {
   }
 
   @Override // VersionInterface
-  public void startStandbyServices(Configuration conf, Boolean flag) throws IOException {
-    namesystem.startStandbyServices(conf, flag);
+  public void startStandbyServices(Configuration conf) throws IOException {
+    namesystem.startStandbyServices(conf, false);
   }
 }
