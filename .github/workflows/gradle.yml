@@ -5,6 +5,9 @@ name: Java CI with Gradle
 
 on: [push, pull_request, workflow_dispatch]
 
+permissions:
+  id-token: write
+
 jobs:
   build:
 
@@ -27,7 +30,10 @@ jobs:
       env:
         VERSION: ${{ matrix.version }}
       run: ./gradlew clean build buildRpm buildDeb -PhadoopVersion=$VERSION
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v5
+      with:
+        use_oidc: true
+        files: build/reports/jacoco/report.xml
     - uses: actions/upload-artifact@v4
       with:
         name: nna_${{ matrix.version }}.rpm
