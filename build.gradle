@@ -26,12 +26,12 @@ apply plugin: 'checkstyle'
 
 buildscript {
     repositories {
-        maven { url = "https://jcenter.bintray.com" }
+        maven { url "https://plugins.gradle.org/m2/" }
         maven { url = "https://repo.maven.apache.org/maven2" }
     }
     dependencies {
-        classpath 'com.netflix.nebula:gradle-ospackage-plugin:2.2.4'
-        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.10.0'
+        classpath "com.netflix.nebula:gradle-ospackage-plugin:2.2.4"
+        classpath "nl.javadude.gradle.plugins:license-gradle-plugin:0.10.0"
         classpath "com.diffplug.spotless:spotless-plugin-gradle:3.13.0"
         classpath "net.nemerosa:versioning:2.7.1"
     }
