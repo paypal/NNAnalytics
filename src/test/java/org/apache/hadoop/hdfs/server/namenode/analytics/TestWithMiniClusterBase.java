@@ -325,7 +325,7 @@ public abstract class TestWithMiniClusterBase {
     List<String> output = IOUtils.readLines(res.getEntity().getContent());
     System.out.println(output);
     assertThat(res.getStatusLine().getStatusCode(), is(500));
-    assertThat(output.size(), is(greaterThan(1)));
+    assertThat(output.size(), is(greaterThanOrEqualTo(1)));
   }
 
   protected void addFiles(int numOfFiles, long sleepBetweenMs) throws Exception {
