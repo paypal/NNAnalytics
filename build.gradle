@@ -54,6 +54,17 @@ ext {
     mainClass = (properties.get("mainClass") == null) ? "" : "${mainClass}"
     hadoopVersion = (properties.get("hadoopVersion") == null) ? "2.7.0" : "${hadoopVersion}"
     println("Building with hadoopVersion: ${hadoopVersion}")
+    guavaForHadoop = { String v ->
+        if (v.startsWith("3.3")) return "27.0-jre"
+        if (v.startsWith("3.1")) return "27.0-jre"
+        // Hadoop 2.x
+        if (v.startsWith("2.10")) return "11.0.2"
+        if (v.startsWith("2.8"))  return "11.0.2"
+        if (v.startsWith("2.7"))  return "11.0.2"
+        return "11.0.2"
+    }
+    guavaVersion = guavaForHadoop(hadoopVersion)
+    println("Building with guavaVersion: ${guavaVersion}")
 }
 
 versioning {
@@ -165,7 +176,7 @@ dependencies {
     outboundDep group: 'javax.mail', name: 'mail', version: '1.4.7'
     outboundDep group: 'org.hsqldb', name: 'hsqldb', version: '2.4.0'
     outboundDep group: 'org.mapdb', name: 'mapdb', version: '3.0.5'
-    outboundDep(group: 'com.google.guava', name: 'guava', version: '11.0.2') {
+    outboundDep(group: 'com.google.guava', name: 'guava', version: "${guavaVersion}") {
         force = true
     }
     outboundDep(group: 'commons-io', name: 'commons-io', version: '2.4') {
