@@ -56,11 +56,6 @@ ext {
     println("Building with hadoopVersion: ${hadoopVersion}")
     guavaForHadoop = { String v ->
         if (v.startsWith("3.3")) return "27.0-jre"
-        if (v.startsWith("3.1")) return "27.0-jre"
-        // Hadoop 2.x
-        if (v.startsWith("2.10")) return "11.0.2"
-        if (v.startsWith("2.8"))  return "11.0.2"
-        if (v.startsWith("2.7"))  return "11.0.2"
         return "11.0.2"
     }
     guavaVersion = guavaForHadoop(hadoopVersion)
