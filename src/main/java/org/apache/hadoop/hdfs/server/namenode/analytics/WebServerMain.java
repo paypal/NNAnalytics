@@ -1274,6 +1274,12 @@ public class WebServerMain implements ApplicationMain {
           final Boolean useFsLock = req.queryMap("useLock").booleanValue();
           final Boolean useQueryLock = req.queryMap("useQueryLock").booleanValue();
 
+          if (path == null || path.isEmpty() || !path.startsWith("/")) {
+            res.status(500);
+            res.type("text/plain");
+            return "Absolute path required.";
+          }
+
           ContentSummary contentSummary;
 
           if (useQueryLock != null && useQueryLock) {
