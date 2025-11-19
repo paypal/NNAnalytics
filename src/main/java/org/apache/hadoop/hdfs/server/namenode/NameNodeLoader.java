@@ -417,7 +417,10 @@ public class NameNodeLoader {
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_CONTENT_SUMMARY_LIMIT_KEY, 0);
       conf.setInt(DFSConfigKeys.DFS_CONTENT_SUMMARY_LIMIT_KEY, 0);
 
-      LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_NAMENODE_LAZY_PERSIST_FILE_SCRUB_INTERVAL_SEC, -1);
+      LOG.info(
+          "Setting: {} to: {}",
+          DFSConfigKeys.DFS_NAMENODE_LAZY_PERSIST_FILE_SCRUB_INTERVAL_SEC,
+          -1);
       conf.setInt(DFSConfigKeys.DFS_NAMENODE_LAZY_PERSIST_FILE_SCRUB_INTERVAL_SEC, -1);
 
       LOG.info("Setting: {} to: {}", DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, false);
