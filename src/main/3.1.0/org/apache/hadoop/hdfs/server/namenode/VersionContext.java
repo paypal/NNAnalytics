@@ -108,7 +108,7 @@ public class VersionContext implements VersionInterface {
   public Function<INode, Long> getFilterFunctionToLongForINode(String filter) {
     switch (filter) {
       case "diskspaceConsumed":
-        return node -> node.asFile().storagespaceConsumed(null);
+        return node -> node.asFile().storagespaceConsumed(null).getStorageSpace();
       case "dirNumChildren":
         return x -> ((long) x.asDirectory().getChildrenList(Snapshot.CURRENT_STATE_ID).size());
       case "dirSubTreeSize":
