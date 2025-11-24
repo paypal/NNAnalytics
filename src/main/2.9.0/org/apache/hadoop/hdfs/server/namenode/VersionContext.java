@@ -109,10 +109,10 @@ public class VersionContext implements VersionInterface {
     switch (filter) {
       case "diskspaceConsumed":
         return node -> {
-          byte storagePolicyID = node.getStoragePolicyID();
+          byte storagePolicyId = node.getStoragePolicyID();
           return node.asFile()
               .storagespaceConsumed(
-                  BlockStoragePolicySuite.createDefaultSuite().getPolicy(storagePolicyID))
+                  BlockStoragePolicySuite.createDefaultSuite().getPolicy(storagePolicyId))
               .getStorageSpace();
         };
       case "dirNumChildren":
