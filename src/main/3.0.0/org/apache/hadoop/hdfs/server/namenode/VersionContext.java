@@ -81,7 +81,7 @@ public class VersionContext implements VersionInterface {
         byte ecPolicyId = file.getErasureCodingPolicyID();
         if (ecPolicyId != 0) {
           nodeDetails.put(
-            "ecPolicy", ErasureCodingPolicyManager.getInstance().getByID(ecPolicyId).getName());
+              "ecPolicy", ErasureCodingPolicyManager.getInstance().getByID(ecPolicyId).getName());
         }
         nodeDetails.put("numBlocks", file.getBlocks().length);
         nodeDetails.put(
