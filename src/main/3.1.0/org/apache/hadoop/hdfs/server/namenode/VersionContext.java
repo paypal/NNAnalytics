@@ -185,6 +185,18 @@ public class VersionContext implements VersionInterface {
     switch (filter) {
       case "hasQuota":
         return node -> node.asDirectory().isWithQuota();
+      case "hasEcPolicy":
+        return node -> {
+          if (node.isFile()) {
+            return node.asFile().getErasureCodingPolicyID() != 0;
+          } else {
+            XAttrFeature xaf = node.getXAttrFeature();
+            if (xaf == null) {
+              return false;
+            }
+            return xaf.getXAttr("system.hdfs.erasurecoding.policy") != null;
+          }
+        };
       default:
         return null;
     }

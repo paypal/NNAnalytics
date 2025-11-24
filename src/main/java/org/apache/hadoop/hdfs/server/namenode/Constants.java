@@ -85,7 +85,8 @@ public interface Constants {
     hasAcl,
     hasQuota,
     isUnderNsQuota,
-    isUnderDsQuota
+    isUnderDsQuota,
+    hasEcPolicy
   }
 
   EnumSet<Filter> FILTER_LONG =
@@ -118,6 +119,7 @@ public interface Constants {
           Filter.isWithSnapshot,
           Filter.hasAcl,
           Filter.hasQuota,
+          Filter.hasEcPolicy,
           Filter.isUnderNsQuota,
           Filter.isUnderDsQuota);
 
@@ -385,7 +387,8 @@ public interface Constants {
           Filter.hasAcl,
           Filter.hasQuota,
           Filter.isUnderNsQuota,
-          Filter.isUnderDsQuota);
+          Filter.isUnderDsQuota,
+          Filter.hasEcPolicy);
 
   EnumSet<Filter> FILTER_DIR =
       EnumSet.of(
@@ -410,7 +413,8 @@ public interface Constants {
           Filter.hasQuota,
           Filter.storageType,
           Filter.isUnderNsQuota,
-          Filter.isUnderDsQuota);
+          Filter.isUnderDsQuota,
+          Filter.hasEcPolicy);
 
   EnumSet<Filter> FILTER_ALL = getIntersection(FILTER_FILE, FILTER_DIR);
 

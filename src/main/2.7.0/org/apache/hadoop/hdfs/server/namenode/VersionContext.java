@@ -146,6 +146,8 @@ public class VersionContext implements VersionInterface {
     switch (filter) {
       case "hasQuota":
         return node -> node.asDirectory().isWithQuota();
+      case "hasEcPolicy":
+        return node -> false;
       default:
         return null;
     }
