@@ -275,10 +275,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
           }
           return "NO_MAPPING";
         };
-      case "fileReplica":
-        return n -> String.valueOf(n.asFile().getFileReplication());
       default:
-        return null;
+        return versionLoader.getGroupingFunctionToStringForINode(grouping);
     }
   }
 

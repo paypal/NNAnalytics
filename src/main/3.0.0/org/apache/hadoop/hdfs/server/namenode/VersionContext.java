@@ -179,6 +179,20 @@ public class VersionContext implements VersionInterface {
     }
   }
 
+  @Override
+  public Function<INode, String> getGroupingFunctionToStringForINode(String grouping) {
+    switch (grouping) {
+      case "fileReplica":
+        return node -> {
+          byte ecPolicyID = node.asFile().getErasureCodingPolicyID();
+          if (ecPolicyID == 0) return String.valueOf(node.asFile().getFileReplication());
+          return ErasureCodingPolicyManager.getInstance().getByID(ecPolicyID).getCodecName();
+        };
+      default:
+        return null;
+    }
+  }
+
   @Override // VersionInterface
   public void saveNamespace() throws IOException {
     namesystem.saveNamespace(0, 0);

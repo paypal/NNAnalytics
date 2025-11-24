@@ -151,6 +151,16 @@ public class VersionContext implements VersionInterface {
     }
   }
 
+  @Override
+  public Function<INode, String> getGroupingFunctionToStringForINode(String grouping) {
+    switch (grouping) {
+      case "fileReplica":
+        return node -> String.valueOf(node.asFile().getFileReplication());
+      default:
+        return null;
+    }
+  }
+
   @Override // VersionInterface
   public void saveNamespace() throws IOException {
     namesystem.saveNamespace();
