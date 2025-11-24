@@ -402,7 +402,7 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         break;
       case "diskspaceConsumed":
         toLongFunction =
-            node -> node.asFile().computeFileSize() * node.asFile().getFileReplication();
+            node -> versionLoader.getFilterFunctionToLongForINode("diskspaceConsumed").apply(node);
         break;
       case "blockSize":
         toLongFunction = node -> node.asFile().getPreferredBlockSize();
@@ -534,7 +534,10 @@ public abstract class AbstractQueryEngine implements QueryEngine {
             collection
                 .parallelStream()
                 .mapToLong(
-                    node -> node.asFile().computeFileSize() * node.asFile().getFileReplication())
+                    node ->
+                        versionLoader
+                            .getFilterFunctionToLongForINode("diskspaceConsumed")
+                            .apply(node))
                 .sum();
       case "blockSize":
         return collection ->
