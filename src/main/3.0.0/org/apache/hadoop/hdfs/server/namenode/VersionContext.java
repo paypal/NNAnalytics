@@ -78,6 +78,11 @@ public class VersionContext implements VersionInterface {
         nodeDetails.put("isWithSnapshot", file.isWithSnapshot());
         nodeDetails.put("fileSize", file.computeFileSize());
         nodeDetails.put("replicationFactor", file.getFileReplication());
+        byte ecPolicyId = file.getErasureCodingPolicyID();
+        if(ecPolicyId != 0) {
+          nodeDetails.put("ecPolicy",
+            ErasureCodingPolicyManager.getInstance().getByID(ecPolicyId).getName());
+        }
         nodeDetails.put("numBlocks", file.getBlocks().length);
         nodeDetails.put(
             "blocks",
