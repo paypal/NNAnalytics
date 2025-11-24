@@ -188,7 +188,7 @@ public class VersionContext implements VersionInterface {
           if (ecPolicyId == 0) {
             return String.valueOf(node.asFile().getFileReplication());
           }
-          return ErasureCodingPolicyManager.getInstance().getByID(ecPolicyId).getCodecName();
+          return ErasureCodingPolicyManager.getInstance().getByID(ecPolicyId).getName();
         };
       default:
         return null;
