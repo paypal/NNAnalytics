@@ -158,8 +158,6 @@ public abstract class AbstractQueryEngine implements QueryEngine {
         return INode::getId;
       case "fileSize":
         return node -> node.asFile().computeFileSize();
-      case "diskspaceConsumed":
-        return node -> node.asFile().computeFileSize() * node.asFile().getFileReplication();
       case "fileReplica":
         return node -> ((long) node.asFile().getFileReplication());
       case "blockSize":
@@ -277,10 +275,8 @@ public abstract class AbstractQueryEngine implements QueryEngine {
           }
           return "NO_MAPPING";
         };
-      case "fileReplica":
-        return n -> String.valueOf(n.asFile().getFileReplication());
       default:
-        return null;
+        return versionLoader.getGroupingFunctionToStringForINode(grouping);
     }
   }
 

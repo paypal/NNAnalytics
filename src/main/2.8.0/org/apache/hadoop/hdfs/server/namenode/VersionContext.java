@@ -106,6 +106,14 @@ public class VersionContext implements VersionInterface {
   @Override // VersionInterface
   public Function<INode, Long> getFilterFunctionToLongForINode(String filter) {
     switch (filter) {
+      case "diskspaceConsumed":
+        return node -> {
+          byte storagePolicyId = node.getStoragePolicyID();
+          return node.asFile()
+              .storagespaceConsumed(
+                  BlockStoragePolicySuite.createDefaultSuite().getPolicy(storagePolicyId))
+              .getStorageSpace();
+        };
       case "dirNumChildren":
         return x -> ((long) x.asDirectory().getChildrenList(Snapshot.CURRENT_STATE_ID).size());
       case "dirSubTreeSize":
@@ -159,6 +167,18 @@ public class VersionContext implements VersionInterface {
     switch (filter) {
       case "hasQuota":
         return node -> node.asDirectory().isWithQuota();
+      case "hasEcPolicy":
+        return node -> false;
+      default:
+        return null;
+    }
+  }
+
+  @Override
+  public Function<INode, String> getGroupingFunctionToStringForINode(String grouping) {
+    switch (grouping) {
+      case "fileReplica":
+        return node -> String.valueOf(node.asFile().getFileReplication());
       default:
         return null;
     }

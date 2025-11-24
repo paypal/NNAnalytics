@@ -78,6 +78,11 @@ public class VersionContext implements VersionInterface {
         nodeDetails.put("isWithSnapshot", file.isWithSnapshot());
         nodeDetails.put("fileSize", file.computeFileSize());
         nodeDetails.put("replicationFactor", file.getFileReplication());
+        byte ecPolicyId = file.getErasureCodingPolicyID();
+        if (ecPolicyId != 0) {
+          nodeDetails.put(
+              "ecPolicy", ErasureCodingPolicyManager.getInstance().getByID(ecPolicyId).getName());
+        }
         nodeDetails.put("numBlocks", file.getBlocks().length);
         nodeDetails.put(
             "blocks",
@@ -107,6 +112,14 @@ public class VersionContext implements VersionInterface {
   @Override // VersionInterface
   public Function<INode, Long> getFilterFunctionToLongForINode(String filter) {
     switch (filter) {
+      case "diskspaceConsumed":
+        return node -> {
+          byte storagePolicyId = node.getStoragePolicyID();
+          return node.asFile()
+              .storagespaceConsumed(
+                  BlockStoragePolicySuite.createDefaultSuite().getPolicy(storagePolicyId))
+              .getStorageSpace();
+        };
       case "dirNumChildren":
         return x -> ((long) x.asDirectory().getChildrenList(Snapshot.CURRENT_STATE_ID).size());
       case "dirSubTreeSize":
@@ -172,6 +185,34 @@ public class VersionContext implements VersionInterface {
     switch (filter) {
       case "hasQuota":
         return node -> node.asDirectory().isWithQuota();
+      case "hasEcPolicy":
+        return node -> {
+          if (node.isFile()) {
+            return node.asFile().getErasureCodingPolicyID() != 0;
+          } else {
+            XAttrFeature xaf = node.getXAttrFeature();
+            if (xaf == null) {
+              return false;
+            }
+            return xaf.getXAttr("system.hdfs.erasurecoding.policy") != null;
+          }
+        };
+      default:
+        return null;
+    }
+  }
+
+  @Override
+  public Function<INode, String> getGroupingFunctionToStringForINode(String grouping) {
+    switch (grouping) {
+      case "fileReplica":
+        return node -> {
+          byte ecPolicyId = node.asFile().getErasureCodingPolicyID();
+          if (ecPolicyId == 0) {
+            return String.valueOf(node.asFile().getFileReplication());
+          }
+          return ErasureCodingPolicyManager.getInstance().getByID(ecPolicyId).getName();
+        };
       default:
         return null;
     }

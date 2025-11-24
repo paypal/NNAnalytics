@@ -34,6 +34,8 @@ public interface VersionInterface {
 
   Function<INode, Boolean> getFilterFunctionToBooleanForINode(String filter);
 
+  Function<INode, String> getGroupingFunctionToStringForINode(String grouping);
+
   void saveNamespace() throws IOException;
 
   void saveLegacyOivImage(String dir) throws IOException;
