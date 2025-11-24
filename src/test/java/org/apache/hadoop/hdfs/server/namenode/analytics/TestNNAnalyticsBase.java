@@ -497,6 +497,50 @@ public abstract class TestNNAnalyticsBase {
   }
 
   @Test
+  public void testHasEcPolicyDirs() throws IOException {
+    HttpGet get =
+        new HttpGet("http://localhost:4567/filter?set=dirs&filters=hasEcPolicy:eq:false&sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0), is(not("0")));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testHasEcPolicyListDirs() throws IOException {
+    HttpGet get = new HttpGet("http://localhost:4567/filter?set=dirs&filters=hasEcPolicy:eq:false");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    System.out.println(result);
+    assertThat(result.size(), is(not(0)));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testHasEcPolicyFiles() throws IOException {
+    HttpGet get =
+        new HttpGet(
+            "http://localhost:4567/filter?set=files&filters=hasEcPolicy:eq:false&sum=count");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0), is(not("0")));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
+  public void testHasEcPolicyListFiles() throws IOException {
+    HttpGet get =
+        new HttpGet("http://localhost:4567/filter?set=files&filters=hasEcPolicy:eq:false");
+    HttpResponse res = client.execute(hostPort, get);
+    List<String> result = IOUtils.readLines(res.getEntity().getContent());
+    System.out.println(result);
+    assertThat(result.size(), is(not(0)));
+    assertThat(res.getStatusLine().getStatusCode(), is(200));
+  }
+
+  @Test
   public void testModDateFilterGtAndLt() throws IOException {
     HttpGet get =
         new HttpGet(
