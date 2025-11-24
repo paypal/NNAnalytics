@@ -49,5 +49,4 @@ public interface VersionInterface {
   Long getDsQuotaUsed(INode node);
 
   void startStandbyServices(Configuration conf) throws IOException;
-
 }

@@ -184,9 +184,11 @@ public class VersionContext implements VersionInterface {
     switch (grouping) {
       case "fileReplica":
         return node -> {
-          byte ecPolicyID = node.asFile().getErasureCodingPolicyID();
-          if (ecPolicyID == 0) return String.valueOf(node.asFile().getFileReplication());
-          return ErasureCodingPolicyManager.getInstance().getByID(ecPolicyID).getCodecName();
+          byte ecPolicyId = node.asFile().getErasureCodingPolicyID();
+          if (ecPolicyId == 0) {
+            return String.valueOf(node.asFile().getFileReplication());
+          }
+          return ErasureCodingPolicyManager.getInstance().getByID(ecPolicyId).getCodecName();
         };
       default:
         return null;
